@@ -1,0 +1,81 @@
+{
+  "info": {
+    "name": "Carrivo API",
+    "description": "REST API for the Carrivo courier & logistics platform. All routes are under {{baseUrl}} (= http://localhost:5000/api/v1 locally).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000/api/v1", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('success envelope', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.eql(true);",
+                  "  pm.expect(body.data.status).to.eql('ok');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] },
+            "description": "Liveness check. Always 200 while the server is up; `data.database` reports `up` or `down`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json; charset=utf-8" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Server is healthy\",\n  \"data\": {\n    \"status\": \"ok\",\n    \"environment\": \"development\",\n    \"uptime\": 42,\n    \"timestamp\": \"2026-11-05T14:00:00.000Z\",\n    \"database\": \"up\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Unknown route (404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/does-not-exist", "host": ["{{baseUrl}}"], "path": ["does-not-exist"] },
+            "description": "Shows the error envelope returned for unknown routes."
+          },
+          "response": [
+            {
+              "name": "404 Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": { "raw": "{{baseUrl}}/does-not-exist", "host": ["{{baseUrl}}"], "path": ["does-not-exist"] }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json; charset=utf-8" }],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Route not found: GET /api/v1/does-not-exist\",\n  \"errors\": []\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

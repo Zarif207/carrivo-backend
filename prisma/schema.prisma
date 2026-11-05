@@ -1,0 +1,421 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────── Enums ─────────────
+enum Role {
+  CUSTOMER
+  COURIER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ShipmentStatus {
+  PENDING
+  PICKUP_SCHEDULED
+  COURIER_ASSIGNED
+  PICKED_UP
+  AT_ORIGIN_HUB
+  IN_TRANSIT
+  AT_DESTINATION_HUB
+  OUT_FOR_DELIVERY
+  DELIVERED
+  FAILED_DELIVERY
+  RETURNED
+  CANCELLED
+}
+
+enum ShipmentPaymentStatus {
+  UNPAID
+  PAID
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+  REFUNDED
+}
+
+enum ServiceType {
+  STANDARD
+  EXPRESS
+  SAME_DAY
+}
+
+enum VehicleType {
+  BICYCLE
+  MOTORCYCLE
+  CAR
+  VAN
+  TRUCK
+}
+
+enum PickupStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum EarningStatus {
+  PENDING
+  PAID
+}
+
+// ───────────── Better Auth core (user/session/account/verification) ─────────────
+model User {
+  id            String     @id
+  name          String
+  email         String     @unique
+  emailVerified Boolean    @default(false)
+  image         String?
+  role          Role       @default(CUSTOMER) // Better Auth additionalField, input:false (Phase 2)
+  phone         String?
+  status        UserStatus @default(ACTIVE)
+  deletedAt     DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  sessions          Session[]
+  accounts          Account[]
+  courierProfile    CourierProfile?
+  shipments         Shipment[]              @relation("CustomerShipments")
+  assignedShipments Shipment[]              @relation("CourierShipments")
+  statusChanges     ShipmentStatusHistory[]
+  pickupRequests    PickupRequest[]
+  payments          Payment[]
+  earnings          CourierEarning[]
+  auditLogs         AuditLog[]
+
+  @@index([role])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verifications")
+}
+
+// ───────────── Geography ─────────────
+model Zone {
+  id          String    @id @default(uuid(7))
+  name        String
+  code        String    @unique // e.g. "DHK-N"
+  description String?
+  isActive    Boolean   @default(true)
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  hubs                 Hub[]
+  couriers             CourierProfile[]
+  originShipments      Shipment[]       @relation("OriginZone")
+  destinationShipments Shipment[]       @relation("DestinationZone")
+  originPricingRules   PricingRule[]    @relation("PricingOrigin")
+  destPricingRules     PricingRule[]    @relation("PricingDestination")
+
+  @@index([isActive, deletedAt])
+  @@map("zones")
+}
+
+model Hub {
+  id        String    @id @default(uuid(7))
+  name      String
+  code      String    @unique
+  address   String
+  city      String
+  phone     String?
+  zoneId    String
+  zone      Zone      @relation(fields: [zoneId], references: [id])
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  couriers             CourierProfile[]
+  originShipments      Shipment[]              @relation("OriginHub")
+  destinationShipments Shipment[]              @relation("DestinationHub")
+  currentShipments     Shipment[]              @relation("CurrentHub")
+  statusEvents         ShipmentStatusHistory[]
+
+  @@index([zoneId])
+  @@index([deletedAt])
+  @@map("hubs")
+}
+
+// ───────────── Pricing ─────────────
+// price = baseFee + max(0, weightKg - baseWeightKg) * perKgFee
+// Rule lookup (Phase 3): exact (service, origin, dest) → (service, null, null) fallback.
+model PricingRule {
+  id                String      @id @default(uuid(7))
+  name              String
+  serviceType       ServiceType
+  originZoneId      String?
+  originZone        Zone?       @relation("PricingOrigin", fields: [originZoneId], references: [id])
+  destinationZoneId String?
+  destinationZone   Zone?       @relation("PricingDestination", fields: [destinationZoneId], references: [id])
+  baseFee           Decimal     @db.Decimal(10, 2)
+  baseWeightKg      Decimal     @default(1) @db.Decimal(8, 2)
+  perKgFee          Decimal     @db.Decimal(10, 2)
+  maxWeightKg       Decimal?    @db.Decimal(8, 2)
+  isActive          Boolean     @default(true)
+  deletedAt         DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@index([serviceType, originZoneId, destinationZoneId])
+  @@index([isActive, deletedAt])
+  @@map("pricing_rules")
+}
+
+// ───────────── Courier ─────────────
+model CourierProfile {
+  id            String      @id @default(uuid(7))
+  userId        String      @unique
+  user          User        @relation(fields: [userId], references: [id])
+  vehicleType   VehicleType
+  vehicleNumber String?
+  licenseNumber String?
+  zoneId        String // operating zone, checked on assignment
+  zone          Zone        @relation(fields: [zoneId], references: [id])
+  hubId         String?
+  hub           Hub?        @relation(fields: [hubId], references: [id])
+  isAvailable   Boolean     @default(true)
+  deletedAt     DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([zoneId, isAvailable])
+  @@index([deletedAt])
+  @@map("courier_profiles")
+}
+
+// ───────────── Shipment ─────────────
+model Shipment {
+  id         String @id @default(uuid(7))
+  trackingId String @unique
+
+  customerId String
+  customer   User    @relation("CustomerShipments", fields: [customerId], references: [id])
+  courierId  String? // User.id of a COURIER
+  courier    User?   @relation("CourierShipments", fields: [courierId], references: [id])
+
+  senderName      String
+  senderPhone     String
+  pickupAddress   String
+  receiverName    String
+  receiverPhone   String
+  receiverEmail   String?
+  deliveryAddress String
+
+  originZoneId      String
+  originZone        Zone    @relation("OriginZone", fields: [originZoneId], references: [id])
+  destinationZoneId String
+  destinationZone   Zone    @relation("DestinationZone", fields: [destinationZoneId], references: [id])
+  originHubId       String?
+  originHub         Hub?    @relation("OriginHub", fields: [originHubId], references: [id])
+  destinationHubId  String?
+  destinationHub    Hub?    @relation("DestinationHub", fields: [destinationHubId], references: [id])
+  currentHubId      String?
+  currentHub        Hub?    @relation("CurrentHub", fields: [currentHubId], references: [id])
+
+  weightKg      Decimal     @db.Decimal(8, 2)
+  description   String?
+  declaredValue Decimal?    @db.Decimal(10, 2)
+  isFragile     Boolean     @default(false)
+  serviceType   ServiceType
+
+  price          Decimal @db.Decimal(10, 2) // server-calculated
+  priceBreakdown Json // snapshot of rule + components
+  currency       String  @default("bdt")
+
+  status             ShipmentStatus        @default(PENDING)
+  paymentStatus      ShipmentPaymentStatus @default(UNPAID)
+  failedAttempts     Int                   @default(0)
+  failureReason      String?
+  cancelReason       String?
+  proofOfDeliveryUrl String?
+
+  estimatedDeliveryAt DateTime?
+  pickedUpAt          DateTime?
+  deliveredAt         DateTime?
+  cancelledAt         DateTime?
+  deletedAt           DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  statusHistory ShipmentStatusHistory[]
+  pickupRequest PickupRequest?
+  payments      Payment[]
+  earning       CourierEarning?
+
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([customerId, createdAt])
+  @@index([courierId, status])
+  @@index([originZoneId])
+  @@index([destinationZoneId])
+  @@index([serviceType])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("shipments")
+}
+
+model ShipmentStatusHistory {
+  id          String          @id @default(uuid(7))
+  shipmentId  String
+  shipment    Shipment        @relation(fields: [shipmentId], references: [id])
+  fromStatus  ShipmentStatus? // null for creation
+  toStatus    ShipmentStatus
+  note        String?
+  hubId       String?
+  hub         Hub?            @relation(fields: [hubId], references: [id])
+  changedById String? // null = system (e.g. webhook)
+  changedBy   User?           @relation(fields: [changedById], references: [id])
+  createdAt   DateTime        @default(now())
+
+  @@index([shipmentId, createdAt])
+  @@map("shipment_status_history")
+}
+
+model PickupRequest {
+  id            String       @id @default(uuid(7))
+  shipmentId    String       @unique // one pickup per shipment; reschedule = update
+  shipment      Shipment     @relation(fields: [shipmentId], references: [id])
+  requestedById String
+  requestedBy   User         @relation(fields: [requestedById], references: [id])
+  pickupAddress String
+  contactName   String
+  contactPhone  String
+  scheduledAt   DateTime
+  notes         String?
+  status        PickupStatus @default(SCHEDULED)
+  completedAt   DateTime?
+  deletedAt     DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([status, scheduledAt])
+  @@index([deletedAt])
+  @@map("pickup_requests")
+}
+
+// ───────────── Payments ─────────────
+model Payment {
+  id                    String        @id @default(uuid(7))
+  shipmentId            String
+  shipment              Shipment      @relation(fields: [shipmentId], references: [id])
+  userId                String
+  user                  User          @relation(fields: [userId], references: [id])
+  amount                Decimal       @db.Decimal(10, 2)
+  currency              String        @default("bdt")
+  status                PaymentStatus @default(PENDING)
+  provider              String        @default("STRIPE")
+  stripeSessionId       String?       @unique
+  stripePaymentIntentId String?       @unique
+  paidAt                DateTime?
+  failureReason         String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@index([shipmentId])
+  @@index([userId, createdAt])
+  @@index([status])
+  @@map("payments")
+}
+
+model CourierEarning {
+  id         String        @id @default(uuid(7))
+  courierId  String // User.id
+  courier    User          @relation(fields: [courierId], references: [id])
+  shipmentId String        @unique // one earning per delivered shipment
+  shipment   Shipment      @relation(fields: [shipmentId], references: [id])
+  amount     Decimal       @db.Decimal(10, 2)
+  status     EarningStatus @default(PENDING)
+  paidOutAt  DateTime?
+  createdAt  DateTime      @default(now())
+
+  @@index([courierId, createdAt])
+  @@index([status])
+  @@map("courier_earnings")
+}
+
+// ───────────── Audit ─────────────
+model AuditLog {
+  id         String   @id @default(uuid(7))
+  actorId    String? // null = system
+  actor      User?    @relation(fields: [actorId], references: [id])
+  actorRole  Role?
+  action     String // e.g. SHIPMENT_STATUS_CHANGED (TS const union)
+  entityType String // e.g. SHIPMENT, PAYMENT, USER
+  entityId   String
+  before     Json?
+  after      Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
