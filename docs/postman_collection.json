@@ -34,6 +34,51 @@
       "key": "customerToken",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "zoneId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "destinationZoneId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "hubId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "destinationHubId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "newZoneId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "newHubId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pricingRuleId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "shipmentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "trackingId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -1413,6 +1458,3167 @@
                 }
               ],
               "body": "{\n  \"success\": false,\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    {\n      \"path\": \"body\",\n      \"message\": \"Unrecognized key: \\\"role\\\"\"\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Zones",
+      "description": "Delivery zones. Reads are public; writes are ADMIN only. DELETE is a soft delete and is blocked (409) while hubs, couriers or unfinished shipments still use the zone.",
+      "item": [
+        {
+          "name": "List zones (public)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "if (body.data?.[0]) pm.collectionVariables.set('zoneId', body.data.find(z => z.code === 'DHK-N')?.id ?? body.data[0].id);",
+                  "if (body.data?.[1]) pm.collectionVariables.set('destinationZoneId', body.data.find(z => z.code === 'DHK-S')?.id ?? body.data[1].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/zones?",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "zones"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default 1)",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Page size (default 10, max 100)",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt",
+                  "description": "One of: name, code, createdAt",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "description": "asc | desc (default desc)",
+                  "disabled": true
+                },
+                {
+                  "key": "searchTerm",
+                  "value": "",
+                  "description": "Case-insensitive contains search",
+                  "disabled": true
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "description": "true (default) | false | all",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Searches name and code. Saves {{zoneId}} (first zone) and {{destinationZoneId}} (second).",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/zones?",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "zones"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number (default 1)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Page size (default 10, max 100)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortBy",
+                      "value": "createdAt",
+                      "description": "One of: name, code, createdAt",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": "desc",
+                      "description": "asc | desc (default desc)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "searchTerm",
+                      "value": "",
+                      "description": "Case-insensitive contains search",
+                      "disabled": true
+                    },
+                    {
+                      "key": "isActive",
+                      "value": "true",
+                      "description": "true (default) | false | all",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Zones retrieved successfully\",\n  \"data\": [\n    {\n      \"id\": \"01a1aeb5-ff0d-766a-8a86-134720acf7f4\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\",\n      \"description\": \"Motijheel, Dhanmondi, Old Dhaka\",\n      \"isActive\": true,\n      \"createdAt\": \"2026-11-06T02:35:25.325Z\",\n      \"updatedAt\": \"2026-11-06T02:35:25.325Z\"\n    },\n    {\n      \"id\": \"01a1aeb5-feef-72ce-b712-faa027b4d4f2\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\",\n      \"description\": \"Uttara, Mirpur, Gulshan, Banani\",\n      \"isActive\": true,\n      \"createdAt\": \"2026-11-06T02:35:25.296Z\",\n      \"updatedAt\": \"2026-11-06T02:35:25.296Z\"\n    }\n  ],\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 2,\n    \"totalPages\": 1\n  }\n}"
+            },
+            {
+              "name": "400 Invalid query",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/zones?",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "zones"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number (default 1)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Page size (default 10, max 100)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortBy",
+                      "value": "createdAt",
+                      "description": "One of: name, code, createdAt",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": "desc",
+                      "description": "asc | desc (default desc)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "searchTerm",
+                      "value": "",
+                      "description": "Case-insensitive contains search",
+                      "disabled": true
+                    },
+                    {
+                      "key": "isActive",
+                      "value": "true",
+                      "description": "true (default) | false | all",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    {\n      \"path\": \"query.sortBy\",\n      \"message\": \"Invalid option: expected one of \\\"name\\\"|\\\"code\\\"|\\\"createdAt\\\"\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get zone (public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/zones/{{zoneId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "zones",
+                "{{zoneId}}"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/zones/{{zoneId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "zones",
+                    "{{zoneId}}"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Zone retrieved successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb5-ff0d-766a-8a86-134720acf7f4\",\n    \"name\": \"Dhaka South\",\n    \"code\": \"DHK-S\",\n    \"description\": \"Motijheel, Dhanmondi, Old Dhaka\",\n    \"isActive\": true,\n    \"createdAt\": \"2026-11-06T02:35:25.325Z\",\n    \"updatedAt\": \"2026-11-06T02:35:25.325Z\"\n  }\n}"
+            },
+            {
+              "name": "404 Not found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/zones/{{zoneId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "zones",
+                    "{{zoneId}}"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Zone not found\",\n  \"errors\": []\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create zone (ADMIN)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('201', () => pm.response.to.have.status(201));",
+                  "if (body.data) pm.collectionVariables.set('newZoneId', body.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/zones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "zones"
+              ]
+            },
+            "description": "`code` is stored upper-cased and must be unique (soft-deleted zones keep their code). Saves {{newZoneId}}.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Gazipur\",\n  \"code\": \"gzp-1\",\n  \"description\": \"Tongi, Board Bazar\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/zones",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "zones"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Gazipur\",\n  \"code\": \"gzp-1\",\n  \"description\": \"Tongi, Board Bazar\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Zone created successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-071f-773b-b1bc-c07e2c26494e\",\n    \"name\": \"Gazipur\",\n    \"code\": \"GZP-1\",\n    \"description\": \"Tongi, Board Bazar\",\n    \"isActive\": true,\n    \"createdAt\": \"2026-11-06T02:35:27.391Z\",\n    \"updatedAt\": \"2026-11-06T02:35:27.391Z\"\n  }\n}"
+            },
+            {
+              "name": "409 Duplicate code",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/zones",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "zones"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Gazipur\",\n  \"code\": \"gzp-1\",\n  \"description\": \"Tongi, Board Bazar\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"A record with this code already exists\",\n  \"errors\": [\n    {\n      \"path\": \"code\",\n      \"message\": \"Value must be unique\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "403 Not admin",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/zones",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "zones"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Gazipur\",\n  \"code\": \"gzp-1\",\n  \"description\": \"Tongi, Board Bazar\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update zone (ADMIN)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/zones/{{newZoneId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "zones",
+                "{{newZoneId}}"
+              ]
+            },
+            "description": "Any of: name, code, description, isActive.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Gazipur city corporation\",\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/zones/{{newZoneId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "zones",
+                    "{{newZoneId}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"description\": \"Gazipur city corporation\",\n  \"isActive\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Zone updated successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-071f-773b-b1bc-c07e2c26494e\",\n    \"name\": \"Gazipur\",\n    \"code\": \"GZP-1\",\n    \"description\": \"Gazipur city corporation\",\n    \"isActive\": true,\n    \"createdAt\": \"2026-11-06T02:35:27.391Z\",\n    \"updatedAt\": \"2026-11-06T02:35:27.391Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete zone (ADMIN, soft)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/zones/{{newZoneId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "zones",
+                "{{newZoneId}}"
+              ]
+            },
+            "description": "Soft delete. 409 lists what still uses the zone.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/zones/{{newZoneId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "zones",
+                    "{{newZoneId}}"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Zone deleted successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-071f-773b-b1bc-c07e2c26494e\",\n    \"name\": \"Gazipur\",\n    \"code\": \"GZP-1\",\n    \"description\": \"Tongi, Board Bazar\",\n    \"isActive\": false,\n    \"createdAt\": \"2026-11-06T02:35:27.391Z\",\n    \"updatedAt\": \"2026-11-06T02:35:27.391Z\"\n  }\n}"
+            },
+            {
+              "name": "409 In use",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/zones/{{newZoneId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "zones",
+                    "{{newZoneId}}"
+                  ]
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Zone is still in use and cannot be deleted\",\n  \"errors\": [\n    {\n      \"path\": \"hubs\",\n      \"message\": \"1 hub(s) still belong to this zone\"\n    },\n    {\n      \"path\": \"couriers\",\n      \"message\": \"1 courier(s) still operate in this zone\"\n    },\n    {\n      \"path\": \"shipments\",\n      \"message\": \"6 active shipment(s) use this zone\"\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Hubs",
+      "description": "Hubs belong to a zone. Reads are public; writes are ADMIN only. Changing a hub's zone or deleting it is blocked (409) while couriers or unfinished shipments use it.",
+      "item": [
+        {
+          "name": "List hubs (public)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "if (body.data?.[0]) pm.collectionVariables.set('hubId', body.data[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/hubs?zoneId={{zoneId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hubs"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default 1)",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Page size (default 10, max 100)",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt",
+                  "description": "One of: name, code, city, createdAt",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "description": "asc | desc (default desc)",
+                  "disabled": true
+                },
+                {
+                  "key": "searchTerm",
+                  "value": "",
+                  "description": "Case-insensitive contains search",
+                  "disabled": true
+                },
+                {
+                  "key": "zoneId",
+                  "value": "{{zoneId}}",
+                  "description": "Filter by zone",
+                  "disabled": false
+                },
+                {
+                  "key": "city",
+                  "value": "Dhaka",
+                  "description": "Exact city (case-insensitive)",
+                  "disabled": true
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "description": "true (default) | false | all",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Searches name, code and city. Saves {{hubId}}.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/hubs?zoneId={{zoneId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "hubs"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number (default 1)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Page size (default 10, max 100)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortBy",
+                      "value": "createdAt",
+                      "description": "One of: name, code, city, createdAt",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": "desc",
+                      "description": "asc | desc (default desc)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "searchTerm",
+                      "value": "",
+                      "description": "Case-insensitive contains search",
+                      "disabled": true
+                    },
+                    {
+                      "key": "zoneId",
+                      "value": "{{zoneId}}",
+                      "description": "Filter by zone",
+                      "disabled": false
+                    },
+                    {
+                      "key": "city",
+                      "value": "Dhaka",
+                      "description": "Exact city (case-insensitive)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "isActive",
+                      "value": "true",
+                      "description": "true (default) | false | all",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Hubs retrieved successfully\",\n  \"data\": [\n    {\n      \"id\": \"01a1aeb5-ff0b-734d-be06-30862b47af26\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"address\": \"Plot 12, Sector 7, Uttara\",\n      \"city\": \"Dhaka\",\n      \"phone\": \"+8801700000001\",\n      \"isActive\": true,\n      \"zone\": {\n        \"id\": \"01a1aeb5-feef-72ce-b712-faa027b4d4f2\",\n        \"name\": \"Dhaka North\",\n        \"code\": \"DHK-N\"\n      },\n      \"createdAt\": \"2026-11-06T02:35:25.323Z\",\n      \"updatedAt\": \"2026-11-06T02:35:25.323Z\"\n    }\n  ],\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 1,\n    \"totalPages\": 1\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get hub (public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/hubs/{{hubId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hubs",
+                "{{hubId}}"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/hubs/{{hubId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "hubs",
+                    "{{hubId}}"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Hub retrieved successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb5-ff0b-734d-be06-30862b47af26\",\n    \"name\": \"Dhaka North Hub\",\n    \"code\": \"HUB-DHK-N\",\n    \"address\": \"Plot 12, Sector 7, Uttara\",\n    \"city\": \"Dhaka\",\n    \"phone\": \"+8801700000001\",\n    \"isActive\": true,\n    \"zone\": {\n      \"id\": \"01a1aeb5-feef-72ce-b712-faa027b4d4f2\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"createdAt\": \"2026-11-06T02:35:25.323Z\",\n    \"updatedAt\": \"2026-11-06T02:35:25.323Z\"\n  }\n}"
+            },
+            {
+              "name": "404 Not found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/hubs/{{hubId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "hubs",
+                    "{{hubId}}"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Hub not found\",\n  \"errors\": []\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create hub (ADMIN)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('201', () => pm.response.to.have.status(201));",
+                  "if (body.data) pm.collectionVariables.set('newHubId', body.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/hubs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hubs"
+              ]
+            },
+            "description": "The zone must exist and be active. Saves {{newHubId}}.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Gazipur Hub\",\n  \"code\": \"hub-gzp\",\n  \"address\": \"Tongi Station Road\",\n  \"city\": \"Gazipur\",\n  \"phone\": \"+8801700000009\",\n  \"zoneId\": \"{{newZoneId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/hubs",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "hubs"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Gazipur Hub\",\n  \"code\": \"hub-gzp\",\n  \"address\": \"Tongi Station Road\",\n  \"city\": \"Gazipur\",\n  \"phone\": \"+8801700000009\",\n  \"zoneId\": \"{{newZoneId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Hub created successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-074d-7743-92da-fa700cb5619c\",\n    \"name\": \"Gazipur Hub\",\n    \"code\": \"HUB-GZP\",\n    \"address\": \"Tongi Station Road\",\n    \"city\": \"Gazipur\",\n    \"phone\": null,\n    \"isActive\": true,\n    \"zone\": {\n      \"id\": \"01a1aeb6-071f-773b-b1bc-c07e2c26494e\",\n      \"name\": \"Gazipur\",\n      \"code\": \"GZP-1\"\n    },\n    \"createdAt\": \"2026-11-06T02:35:27.437Z\",\n    \"updatedAt\": \"2026-11-06T02:35:27.437Z\"\n  }\n}"
+            },
+            {
+              "name": "400 Zone not usable",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/hubs",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "hubs"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Gazipur Hub\",\n  \"code\": \"hub-gzp\",\n  \"address\": \"Tongi Station Road\",\n  \"city\": \"Gazipur\",\n  \"phone\": \"+8801700000009\",\n  \"zoneId\": \"{{newZoneId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Zone not found or inactive\",\n  \"errors\": [\n    {\n      \"path\": \"body.zoneId\",\n      \"message\": \"Zone not found or inactive\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update hub (ADMIN)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/hubs/{{newHubId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hubs",
+                "{{newHubId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+8801700000010\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/hubs/{{newHubId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "hubs",
+                    "{{newHubId}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"phone\": \"+8801700000010\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Hub updated successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-074d-7743-92da-fa700cb5619c\",\n    \"name\": \"Gazipur Hub\",\n    \"code\": \"HUB-GZP\",\n    \"address\": \"Tongi Station Road\",\n    \"city\": \"Gazipur\",\n    \"phone\": \"+8801700000010\",\n    \"isActive\": true,\n    \"zone\": {\n      \"id\": \"01a1aeb6-071f-773b-b1bc-c07e2c26494e\",\n      \"name\": \"Gazipur\",\n      \"code\": \"GZP-1\"\n    },\n    \"createdAt\": \"2026-11-06T02:35:27.437Z\",\n    \"updatedAt\": \"2026-11-06T02:35:27.437Z\"\n  }\n}"
+            },
+            {
+              "name": "409 Zone change while in use",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/hubs/{{newHubId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "hubs",
+                    "{{newHubId}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"phone\": \"+8801700000010\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Hub is in use; its zone cannot be changed\",\n  \"errors\": [\n    {\n      \"path\": \"couriers\",\n      \"message\": \"1 courier(s) are based at this hub\"\n    },\n    {\n      \"path\": \"shipments\",\n      \"message\": \"6 active shipment(s) use this hub\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete hub (ADMIN, soft)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/hubs/{{newHubId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hubs",
+                "{{newHubId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/hubs/{{newHubId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "hubs",
+                    "{{newHubId}}"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Hub deleted successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-074d-7743-92da-fa700cb5619c\",\n    \"name\": \"Gazipur Hub\",\n    \"code\": \"HUB-GZP\",\n    \"address\": \"Tongi Station Road\",\n    \"city\": \"Gazipur\",\n    \"phone\": null,\n    \"isActive\": false,\n    \"zone\": {\n      \"id\": \"01a1aeb6-071f-773b-b1bc-c07e2c26494e\",\n      \"name\": \"Gazipur\",\n      \"code\": \"GZP-1\"\n    },\n    \"createdAt\": \"2026-11-06T02:35:27.437Z\",\n    \"updatedAt\": \"2026-11-06T02:35:27.437Z\"\n  }\n}"
+            },
+            {
+              "name": "409 In use",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/hubs/{{newHubId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "hubs",
+                    "{{newHubId}}"
+                  ]
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Hub is still in use and cannot be deleted\",\n  \"errors\": [\n    {\n      \"path\": \"couriers\",\n      \"message\": \"1 courier(s) are based at this hub\"\n    },\n    {\n      \"path\": \"shipments\",\n      \"message\": \"6 active shipment(s) use this hub\"\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Pricing",
+      "description": "Price (BDT) = baseFee + ceil(max(0, weight - baseWeightKg)) × perKgFee, i.e. extra weight is charged per started kg.\nRule lookup: active rule for (serviceType, originZone, destinationZone), else the service's default rule (both zones null).\nNo rule → 422. Weight above the rule's maxWeightKg → 422. Money fields are strings (Decimal).",
+      "item": [
+        {
+          "name": "Estimate price (public)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pricing/estimate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pricing",
+                "estimate"
+              ]
+            },
+            "description": "Public so the frontend can quote before sign-up. Uses the same calculation as shipment create. Seeded SAME_DAY rules exist only within a zone, so SAME_DAY between zones returns 422.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"weightKg\": 2.3,\n  \"serviceType\": \"STANDARD\",\n  \"originZoneId\": \"{{zoneId}}\",\n  \"destinationZoneId\": \"{{destinationZoneId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/pricing/estimate",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "pricing",
+                    "estimate"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"weightKg\": 2.3,\n  \"serviceType\": \"STANDARD\",\n  \"originZoneId\": \"{{zoneId}}\",\n  \"destinationZoneId\": \"{{destinationZoneId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Price estimated successfully\",\n  \"data\": {\n    \"currency\": \"bdt\",\n    \"weightKg\": \"2.30\",\n    \"baseWeightKg\": \"1.00\",\n    \"chargeableExtraKg\": \"2.00\",\n    \"baseFee\": \"120.00\",\n    \"perKgFee\": \"20.00\",\n    \"weightCharge\": \"40.00\",\n    \"total\": \"160.00\",\n    \"serviceType\": \"STANDARD\"\n  }\n}"
+            },
+            {
+              "name": "422 No rule for route",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/pricing/estimate",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "pricing",
+                    "estimate"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"weightKg\": 2.3,\n  \"serviceType\": \"STANDARD\",\n  \"originZoneId\": \"{{zoneId}}\",\n  \"destinationZoneId\": \"{{destinationZoneId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"No pricing available for this service and route\",\n  \"errors\": [\n    {\n      \"path\": \"body.serviceType\",\n      \"message\": \"SAME_DAY is not offered between these zones\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "422 Over max weight",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/pricing/estimate",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "pricing",
+                    "estimate"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"weightKg\": 2.3,\n  \"serviceType\": \"STANDARD\",\n  \"originZoneId\": \"{{zoneId}}\",\n  \"destinationZoneId\": \"{{destinationZoneId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Weight exceeds the 30.00 kg limit for EXPRESS\",\n  \"errors\": [\n    {\n      \"path\": \"body.weightKg\",\n      \"message\": \"Weight exceeds the 30.00 kg limit for EXPRESS\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "List pricing rules (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pricing?",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pricing"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default 1)",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Page size (default 10, max 100)",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt",
+                  "description": "One of: name, serviceType, baseFee, perKgFee, createdAt",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "description": "asc | desc (default desc)",
+                  "disabled": true
+                },
+                {
+                  "key": "searchTerm",
+                  "value": "",
+                  "description": "Case-insensitive contains search",
+                  "disabled": true
+                },
+                {
+                  "key": "serviceType",
+                  "value": "STANDARD",
+                  "description": "STANDARD | EXPRESS | SAME_DAY",
+                  "disabled": true
+                },
+                {
+                  "key": "originZoneId",
+                  "value": "{{zoneId}}",
+                  "description": "Filter by origin zone",
+                  "disabled": true
+                },
+                {
+                  "key": "destinationZoneId",
+                  "value": "{{destinationZoneId}}",
+                  "description": "Filter by destination zone",
+                  "disabled": true
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "description": "true | false (default: both)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Searches rule name.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK (first 2 shown)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/pricing?",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "pricing"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number (default 1)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Page size (default 10, max 100)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortBy",
+                      "value": "createdAt",
+                      "description": "One of: name, serviceType, baseFee, perKgFee, createdAt",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": "desc",
+                      "description": "asc | desc (default desc)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "searchTerm",
+                      "value": "",
+                      "description": "Case-insensitive contains search",
+                      "disabled": true
+                    },
+                    {
+                      "key": "serviceType",
+                      "value": "STANDARD",
+                      "description": "STANDARD | EXPRESS | SAME_DAY",
+                      "disabled": true
+                    },
+                    {
+                      "key": "originZoneId",
+                      "value": "{{zoneId}}",
+                      "description": "Filter by origin zone",
+                      "disabled": true
+                    },
+                    {
+                      "key": "destinationZoneId",
+                      "value": "{{destinationZoneId}}",
+                      "description": "Filter by destination zone",
+                      "disabled": true
+                    },
+                    {
+                      "key": "isActive",
+                      "value": "true",
+                      "description": "true | false (default: both)",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Pricing rules retrieved successfully\",\n  \"data\": [\n    {\n      \"id\": \"01a1aeb5-ff21-726a-be68-05856cbf2162\",\n      \"name\": \"Same Day - Within Dhaka South\",\n      \"serviceType\": \"SAME_DAY\",\n      \"originZone\": {\n        \"id\": \"01a1aeb5-ff0d-766a-8a86-134720acf7f4\",\n        \"name\": \"Dhaka South\",\n        \"code\": \"DHK-S\"\n      },\n      \"destinationZone\": {\n        \"id\": \"01a1aeb5-ff0d-766a-8a86-134720acf7f4\",\n        \"name\": \"Dhaka South\",\n        \"code\": \"DHK-S\"\n      },\n      \"baseFee\": \"150.00\",\n      \"baseWeightKg\": \"1\",\n      \"perKgFee\": \"30.00\",\n      \"maxWeightKg\": \"10\",\n      \"isActive\": true,\n      \"createdAt\": \"2026-11-06T02:35:25.345Z\",\n      \"updatedAt\": \"2026-11-06T02:35:25.345Z\"\n    },\n    {\n      \"id\": \"01a1aeb5-ff20-7000-8a76-193da2a7857d\",\n      \"name\": \"Same Day - Within Dhaka North\",\n      \"serviceType\": \"SAME_DAY\",\n      \"originZone\": {\n        \"id\": \"01a1aeb5-feef-72ce-b712-faa027b4d4f2\",\n        \"name\": \"Dhaka North\",\n        \"code\": \"DHK-N\"\n      },\n      \"destinationZone\": {\n        \"id\": \"01a1aeb5-feef-72ce-b712-faa027b4d4f2\",\n        \"name\": \"Dhaka North\",\n        \"code\": \"DHK-N\"\n      },\n      \"baseFee\": \"150.00\",\n      \"baseWeightKg\": \"1\",\n      \"perKgFee\": \"30.00\",\n      \"maxWeightKg\": \"10\",\n      \"isActive\": true,\n      \"createdAt\": \"2026-11-06T02:35:25.344Z\",\n      \"updatedAt\": \"2026-11-06T02:35:25.344Z\"\n    }\n  ],\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 8,\n    \"totalPages\": 1\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create pricing rule (ADMIN)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('201', () => pm.response.to.have.status(201));",
+                  "if (body.data) pm.collectionVariables.set('pricingRuleId', body.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pricing",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pricing"
+              ]
+            },
+            "description": "Set both zone ids (route rule) or neither (default rule). Defaults: baseWeightKg 1, maxWeightKg null (no cap), isActive true. Only one active rule per service + route. Saves {{pricingRuleId}}.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Same Day - North to South\",\n  \"serviceType\": \"SAME_DAY\",\n  \"originZoneId\": \"{{zoneId}}\",\n  \"destinationZoneId\": \"{{destinationZoneId}}\",\n  \"baseFee\": 250,\n  \"baseWeightKg\": 1,\n  \"perKgFee\": 40,\n  \"maxWeightKg\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/pricing",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "pricing"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Same Day - North to South\",\n  \"serviceType\": \"SAME_DAY\",\n  \"originZoneId\": \"{{zoneId}}\",\n  \"destinationZoneId\": \"{{destinationZoneId}}\",\n  \"baseFee\": 250,\n  \"baseWeightKg\": 1,\n  \"perKgFee\": 40,\n  \"maxWeightKg\": 5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Pricing rule created successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-07ca-72ce-b112-6e7375b12888\",\n    \"name\": \"Same Day - North to South\",\n    \"serviceType\": \"SAME_DAY\",\n    \"originZone\": {\n      \"id\": \"01a1aeb5-feef-72ce-b712-faa027b4d4f2\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aeb5-ff0d-766a-8a86-134720acf7f4\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\"\n    },\n    \"baseFee\": \"250.00\",\n    \"baseWeightKg\": \"1\",\n    \"perKgFee\": \"40.00\",\n    \"maxWeightKg\": \"5\",\n    \"isActive\": true,\n    \"createdAt\": \"2026-11-06T02:35:27.562Z\",\n    \"updatedAt\": \"2026-11-06T02:35:27.562Z\"\n  }\n}"
+            },
+            {
+              "name": "409 Duplicate active rule",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/pricing",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "pricing"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Same Day - North to South\",\n  \"serviceType\": \"SAME_DAY\",\n  \"originZoneId\": \"{{zoneId}}\",\n  \"destinationZoneId\": \"{{destinationZoneId}}\",\n  \"baseFee\": 250,\n  \"baseWeightKg\": 1,\n  \"perKgFee\": 40,\n  \"maxWeightKg\": 5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"An active pricing rule already exists for this service and route (\\\"Standard - Default\\\")\",\n  \"errors\": [\n    {\n      \"path\": \"body\",\n      \"message\": \"Conflicts with pricing rule 01a1aeb5-ff16-727f-a4ba-08d3ef1f8bc0\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "400 Only one zone set",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/pricing",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "pricing"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Same Day - North to South\",\n  \"serviceType\": \"SAME_DAY\",\n  \"originZoneId\": \"{{zoneId}}\",\n  \"destinationZoneId\": \"{{destinationZoneId}}\",\n  \"baseFee\": 250,\n  \"baseWeightKg\": 1,\n  \"perKgFee\": 40,\n  \"maxWeightKg\": 5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    {\n      \"path\": \"body.destinationZoneId\",\n      \"message\": \"Set both originZoneId and destinationZoneId (route rule) or neither (default rule)\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get pricing rule (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pricing/{{pricingRuleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pricing",
+                "{{pricingRuleId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/pricing/{{pricingRuleId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "pricing",
+                    "{{pricingRuleId}}"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Pricing rule retrieved successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-07ca-72ce-b112-6e7375b12888\",\n    \"name\": \"Same Day - North to South\",\n    \"serviceType\": \"SAME_DAY\",\n    \"originZone\": {\n      \"id\": \"01a1aeb5-feef-72ce-b712-faa027b4d4f2\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aeb5-ff0d-766a-8a86-134720acf7f4\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\"\n    },\n    \"baseFee\": \"250.00\",\n    \"baseWeightKg\": \"1\",\n    \"perKgFee\": \"40.00\",\n    \"maxWeightKg\": \"5\",\n    \"isActive\": true,\n    \"createdAt\": \"2026-11-06T02:35:27.562Z\",\n    \"updatedAt\": \"2026-11-06T02:35:27.562Z\"\n  }\n}"
+            },
+            {
+              "name": "404 Not found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/pricing/{{pricingRuleId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "pricing",
+                    "{{pricingRuleId}}"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Pricing rule not found\",\n  \"errors\": []\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update pricing rule (ADMIN)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pricing/{{pricingRuleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pricing",
+                "{{pricingRuleId}}"
+              ]
+            },
+            "description": "Any rule field. The zone pair and duplicate checks run on the merged result.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/pricing/{{pricingRuleId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "pricing",
+                    "{{pricingRuleId}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"isActive\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Pricing rule updated successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-07ca-72ce-b112-6e7375b12888\",\n    \"name\": \"Same Day - North to South\",\n    \"serviceType\": \"SAME_DAY\",\n    \"originZone\": {\n      \"id\": \"01a1aeb5-feef-72ce-b712-faa027b4d4f2\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aeb5-ff0d-766a-8a86-134720acf7f4\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\"\n    },\n    \"baseFee\": \"250.00\",\n    \"baseWeightKg\": \"1\",\n    \"perKgFee\": \"40.00\",\n    \"maxWeightKg\": \"5\",\n    \"isActive\": false,\n    \"createdAt\": \"2026-11-06T02:35:27.562Z\",\n    \"updatedAt\": \"2026-11-06T02:35:27.562Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete pricing rule (ADMIN, soft)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pricing/{{pricingRuleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pricing",
+                "{{pricingRuleId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/pricing/{{pricingRuleId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "pricing",
+                    "{{pricingRuleId}}"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Pricing rule deleted successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-07ca-72ce-b112-6e7375b12888\",\n    \"name\": \"Same Day - North to South\",\n    \"serviceType\": \"SAME_DAY\",\n    \"originZone\": {\n      \"id\": \"01a1aeb5-feef-72ce-b712-faa027b4d4f2\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aeb5-ff0d-766a-8a86-134720acf7f4\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\"\n    },\n    \"baseFee\": \"250.00\",\n    \"baseWeightKg\": \"1\",\n    \"perKgFee\": \"40.00\",\n    \"maxWeightKg\": \"5\",\n    \"isActive\": false,\n    \"createdAt\": \"2026-11-06T02:35:27.562Z\",\n    \"updatedAt\": \"2026-11-06T02:35:27.562Z\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Shipments",
+      "description": "All routes need a Bearer token. Scope: CUSTOMER sees own shipments, COURIER sees assigned ones, ADMIN sees all.\nShipments outside your scope return 404 (not 403) so ids can't be probed.\nPrice is always calculated on the server; sending price/status/trackingId returns 400.",
+      "item": [
+        {
+          "name": "Get destination hub id (helper)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.data?.[0]) pm.collectionVariables.set('destinationHubId', body.data[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/hubs?zoneId={{destinationZoneId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hubs"
+              ],
+              "query": [
+                {
+                  "key": "zoneId",
+                  "value": "{{destinationZoneId}}",
+                  "description": "Destination zone",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Helper: saves {{destinationHubId}} for Create shipment.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create shipment (CUSTOMER)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('201', () => pm.response.to.have.status(201));",
+                  "if (body.data) { pm.collectionVariables.set('shipmentId', body.data.id); pm.collectionVariables.set('trackingId', body.data.trackingId); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/shipments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments"
+              ]
+            },
+            "description": "Each hub must be active and belong to the zone sent with it. Creates the shipment (PENDING, UNPAID), a status-history row and an audit row in one transaction. trackingId: CRV-YYMMDD-XXXXXX (Dhaka date). Saves {{shipmentId}} and {{trackingId}}.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"senderName\": \"Ayesha Customer\",\n  \"senderPhone\": \"+8801711000003\",\n  \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara\",\n  \"receiverName\": \"Zahid Hasan\",\n  \"receiverPhone\": \"+8801911222333\",\n  \"receiverEmail\": \"zahid@example.com\",\n  \"deliveryAddress\": \"House 2, Road 5, Dhanmondi\",\n  \"originZoneId\": \"{{zoneId}}\",\n  \"originHubId\": \"{{hubId}}\",\n  \"destinationZoneId\": \"{{destinationZoneId}}\",\n  \"destinationHubId\": \"{{destinationHubId}}\",\n  \"weightKg\": 2.3,\n  \"serviceType\": \"STANDARD\",\n  \"description\": \"Books\",\n  \"declaredValue\": 1500,\n  \"isFragile\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"senderName\": \"Ayesha Customer\",\n  \"senderPhone\": \"+8801711000003\",\n  \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara\",\n  \"receiverName\": \"Zahid Hasan\",\n  \"receiverPhone\": \"+8801911222333\",\n  \"receiverEmail\": \"zahid@example.com\",\n  \"deliveryAddress\": \"House 2, Road 5, Dhanmondi\",\n  \"originZoneId\": \"{{zoneId}}\",\n  \"originHubId\": \"{{hubId}}\",\n  \"destinationZoneId\": \"{{destinationZoneId}}\",\n  \"destinationHubId\": \"{{destinationHubId}}\",\n  \"weightKg\": 2.3,\n  \"serviceType\": \"STANDARD\",\n  \"description\": \"Books\",\n  \"declaredValue\": 1500,\n  \"isFragile\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Shipment created successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-07e6-74df-b72f-44241d63eb80\",\n    \"trackingId\": \"CRV-261106-TDZZUR\",\n    \"status\": \"PENDING\",\n    \"paymentStatus\": \"UNPAID\",\n    \"serviceType\": \"STANDARD\",\n    \"senderName\": \"Ayesha Customer\",\n    \"receiverName\": \"Zahid Hasan\",\n    \"receiverPhone\": \"+8801911222333\",\n    \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara\",\n    \"deliveryAddress\": \"House 2, Road 5, Dhanmondi\",\n    \"weightKg\": \"2.3\",\n    \"price\": \"160.00\",\n    \"currency\": \"bdt\",\n    \"originZone\": {\n      \"id\": \"01a1aeb5-feef-72ce-b712-faa027b4d4f2\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aeb5-ff0d-766a-8a86-134720acf7f4\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\"\n    },\n    \"originHub\": {\n      \"id\": \"01a1aeb5-ff0b-734d-be06-30862b47af26\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"destinationHub\": {\n      \"id\": \"01a1aeb5-ff0d-766a-8a86-14af7870e9ee\",\n      \"name\": \"Dhaka South Hub\",\n      \"code\": \"HUB-DHK-S\",\n      \"city\": \"Dhaka\"\n    },\n    \"customer\": {\n      \"id\": \"a630e864-2bd2-4174-89ab-ceeda9fe76a0\",\n      \"name\": \"Ayesha Customer\"\n    },\n    \"courier\": null,\n    \"createdAt\": \"2026-11-06T02:35:27.590Z\",\n    \"updatedAt\": \"2026-11-06T02:35:27.590Z\",\n    \"senderPhone\": \"+8801711000003\",\n    \"receiverEmail\": \"zahid@example.com\",\n    \"description\": \"Books\",\n    \"declaredValue\": \"1500.00\",\n    \"isFragile\": false,\n    \"priceBreakdown\": {\n      \"total\": \"160.00\",\n      \"ruleId\": \"01a1aeb5-ff16-727f-a4ba-08d3ef1f8bc0\",\n      \"baseFee\": \"120.00\",\n      \"currency\": \"bdt\",\n      \"perKgFee\": \"20.00\",\n      \"ruleName\": \"Standard - Default\",\n      \"weightKg\": \"2.30\",\n      \"serviceType\": \"STANDARD\",\n      \"baseWeightKg\": \"1.00\",\n      \"calculatedAt\": \"2026-11-06T02:35:27.589Z\",\n      \"weightCharge\": \"40.00\",\n      \"chargeableExtraKg\": \"2.00\"\n    },\n    \"failedAttempts\": 0,\n    \"failureReason\": null,\n    \"cancelReason\": null,\n    \"proofOfDeliveryUrl\": null,\n    \"estimatedDeliveryAt\": null,\n    \"pickedUpAt\": null,\n    \"deliveredAt\": null,\n    \"cancelledAt\": null,\n    \"currentHub\": null,\n    \"statusHistory\": [\n      {\n        \"id\": \"01a1aeb6-07e9-774b-88bd-6d38599e9414\",\n        \"fromStatus\": null,\n        \"toStatus\": \"PENDING\",\n        \"note\": \"Shipment created\",\n        \"hub\": {\n          \"id\": \"01a1aeb5-ff0b-734d-be06-30862b47af26\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"a630e864-2bd2-4174-89ab-ceeda9fe76a0\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T02:35:27.593Z\"\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "400 Hub not in zone",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"senderName\": \"Ayesha Customer\",\n  \"senderPhone\": \"+8801711000003\",\n  \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara\",\n  \"receiverName\": \"Zahid Hasan\",\n  \"receiverPhone\": \"+8801911222333\",\n  \"receiverEmail\": \"zahid@example.com\",\n  \"deliveryAddress\": \"House 2, Road 5, Dhanmondi\",\n  \"originZoneId\": \"{{zoneId}}\",\n  \"originHubId\": \"{{hubId}}\",\n  \"destinationZoneId\": \"{{destinationZoneId}}\",\n  \"destinationHubId\": \"{{destinationHubId}}\",\n  \"weightKg\": 2.3,\n  \"serviceType\": \"STANDARD\",\n  \"description\": \"Books\",\n  \"declaredValue\": 1500,\n  \"isFragile\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid origin or destination hub\",\n  \"errors\": [\n    {\n      \"path\": \"body.originHubId\",\n      \"message\": \"Hub does not belong to originZoneId\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "400 Client price sent",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"senderName\": \"Ayesha Customer\",\n  \"senderPhone\": \"+8801711000003\",\n  \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara\",\n  \"receiverName\": \"Zahid Hasan\",\n  \"receiverPhone\": \"+8801911222333\",\n  \"receiverEmail\": \"zahid@example.com\",\n  \"deliveryAddress\": \"House 2, Road 5, Dhanmondi\",\n  \"originZoneId\": \"{{zoneId}}\",\n  \"originHubId\": \"{{hubId}}\",\n  \"destinationZoneId\": \"{{destinationZoneId}}\",\n  \"destinationHubId\": \"{{destinationHubId}}\",\n  \"weightKg\": 2.3,\n  \"serviceType\": \"STANDARD\",\n  \"description\": \"Books\",\n  \"declaredValue\": 1500,\n  \"isFragile\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    {\n      \"path\": \"body\",\n      \"message\": \"Unrecognized key: \\\"price\\\"\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "422 Service not offered on route",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"senderName\": \"Ayesha Customer\",\n  \"senderPhone\": \"+8801711000003\",\n  \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara\",\n  \"receiverName\": \"Zahid Hasan\",\n  \"receiverPhone\": \"+8801911222333\",\n  \"receiverEmail\": \"zahid@example.com\",\n  \"deliveryAddress\": \"House 2, Road 5, Dhanmondi\",\n  \"originZoneId\": \"{{zoneId}}\",\n  \"originHubId\": \"{{hubId}}\",\n  \"destinationZoneId\": \"{{destinationZoneId}}\",\n  \"destinationHubId\": \"{{destinationHubId}}\",\n  \"weightKg\": 2.3,\n  \"serviceType\": \"STANDARD\",\n  \"description\": \"Books\",\n  \"declaredValue\": 1500,\n  \"isFragile\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"No pricing available for this service and route\",\n  \"errors\": [\n    {\n      \"path\": \"body.serviceType\",\n      \"message\": \"SAME_DAY is not offered between these zones\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "403 Not a customer",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"senderName\": \"Ayesha Customer\",\n  \"senderPhone\": \"+8801711000003\",\n  \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara\",\n  \"receiverName\": \"Zahid Hasan\",\n  \"receiverPhone\": \"+8801911222333\",\n  \"receiverEmail\": \"zahid@example.com\",\n  \"deliveryAddress\": \"House 2, Road 5, Dhanmondi\",\n  \"originZoneId\": \"{{zoneId}}\",\n  \"originHubId\": \"{{hubId}}\",\n  \"destinationZoneId\": \"{{destinationZoneId}}\",\n  \"destinationHubId\": \"{{destinationHubId}}\",\n  \"weightKg\": 2.3,\n  \"serviceType\": \"STANDARD\",\n  \"description\": \"Books\",\n  \"declaredValue\": 1500,\n  \"isFragile\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
+            }
+          ]
+        },
+        {
+          "name": "List shipments (role-scoped)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shipments?",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default 1)",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Page size (default 10, max 100)",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt",
+                  "description": "One of: createdAt, updatedAt, price, weightKg, status, trackingId",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "description": "asc | desc (default desc)",
+                  "disabled": true
+                },
+                {
+                  "key": "searchTerm",
+                  "value": "",
+                  "description": "Case-insensitive contains search",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "PENDING",
+                  "description": "ShipmentStatus",
+                  "disabled": true
+                },
+                {
+                  "key": "serviceType",
+                  "value": "STANDARD",
+                  "description": "STANDARD | EXPRESS | SAME_DAY",
+                  "disabled": true
+                },
+                {
+                  "key": "paymentStatus",
+                  "value": "UNPAID",
+                  "description": "UNPAID | PAID | REFUNDED",
+                  "disabled": true
+                },
+                {
+                  "key": "fromDate",
+                  "value": "2026-11-01",
+                  "description": "YYYY-MM-DD (Dhaka day) or ISO datetime; on createdAt",
+                  "disabled": true
+                },
+                {
+                  "key": "toDate",
+                  "value": "2026-11-30",
+                  "description": "YYYY-MM-DD (end of that Dhaka day) or ISO datetime",
+                  "disabled": true
+                },
+                {
+                  "key": "customerId",
+                  "value": "",
+                  "description": "ADMIN: filter by customer",
+                  "disabled": true
+                },
+                {
+                  "key": "courierId",
+                  "value": "",
+                  "description": "ADMIN: filter by courier",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "searchTerm matches trackingId, receiver name or receiver phone. Use {{customerToken}}, {{courierToken}} or {{adminToken}} to see the scoping.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK (customer, first row shown)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments?",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number (default 1)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Page size (default 10, max 100)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortBy",
+                      "value": "createdAt",
+                      "description": "One of: createdAt, updatedAt, price, weightKg, status, trackingId",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": "desc",
+                      "description": "asc | desc (default desc)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "searchTerm",
+                      "value": "",
+                      "description": "Case-insensitive contains search",
+                      "disabled": true
+                    },
+                    {
+                      "key": "status",
+                      "value": "PENDING",
+                      "description": "ShipmentStatus",
+                      "disabled": true
+                    },
+                    {
+                      "key": "serviceType",
+                      "value": "STANDARD",
+                      "description": "STANDARD | EXPRESS | SAME_DAY",
+                      "disabled": true
+                    },
+                    {
+                      "key": "paymentStatus",
+                      "value": "UNPAID",
+                      "description": "UNPAID | PAID | REFUNDED",
+                      "disabled": true
+                    },
+                    {
+                      "key": "fromDate",
+                      "value": "2026-11-01",
+                      "description": "YYYY-MM-DD (Dhaka day) or ISO datetime; on createdAt",
+                      "disabled": true
+                    },
+                    {
+                      "key": "toDate",
+                      "value": "2026-11-30",
+                      "description": "YYYY-MM-DD (end of that Dhaka day) or ISO datetime",
+                      "disabled": true
+                    },
+                    {
+                      "key": "customerId",
+                      "value": "",
+                      "description": "ADMIN: filter by customer",
+                      "disabled": true
+                    },
+                    {
+                      "key": "courierId",
+                      "value": "",
+                      "description": "ADMIN: filter by courier",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Shipments retrieved successfully\",\n  \"data\": [\n    {\n      \"id\": \"01a1aeb6-07e6-74df-b72f-44241d63eb80\",\n      \"trackingId\": \"CRV-261106-TDZZUR\",\n      \"status\": \"PENDING\",\n      \"paymentStatus\": \"UNPAID\",\n      \"serviceType\": \"STANDARD\",\n      \"senderName\": \"Ayesha Customer\",\n      \"receiverName\": \"Zahid Hasan\",\n      \"receiverPhone\": \"+8801911222333\",\n      \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara\",\n      \"deliveryAddress\": \"House 2, Road 5, Dhanmondi\",\n      \"weightKg\": \"2.3\",\n      \"price\": \"160.00\",\n      \"currency\": \"bdt\",\n      \"originZone\": {\n        \"id\": \"01a1aeb5-feef-72ce-b712-faa027b4d4f2\",\n        \"name\": \"Dhaka North\",\n        \"code\": \"DHK-N\"\n      },\n      \"destinationZone\": {\n        \"id\": \"01a1aeb5-ff0d-766a-8a86-134720acf7f4\",\n        \"name\": \"Dhaka South\",\n        \"code\": \"DHK-S\"\n      },\n      \"originHub\": {\n        \"id\": \"01a1aeb5-ff0b-734d-be06-30862b47af26\",\n        \"name\": \"Dhaka North Hub\",\n        \"code\": \"HUB-DHK-N\",\n        \"city\": \"Dhaka\"\n      },\n      \"destinationHub\": {\n        \"id\": \"01a1aeb5-ff0d-766a-8a86-14af7870e9ee\",\n        \"name\": \"Dhaka South Hub\",\n        \"code\": \"HUB-DHK-S\",\n        \"city\": \"Dhaka\"\n      },\n      \"customer\": {\n        \"id\": \"a630e864-2bd2-4174-89ab-ceeda9fe76a0\",\n        \"name\": \"Ayesha Customer\"\n      },\n      \"courier\": null,\n      \"createdAt\": \"2026-11-06T02:35:27.590Z\",\n      \"updatedAt\": \"2026-11-06T02:35:27.590Z\"\n    }\n  ],\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 6,\n    \"totalPages\": 1\n  }\n}"
+            },
+            {
+              "name": "400 sortBy not allowed",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments?",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number (default 1)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Page size (default 10, max 100)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortBy",
+                      "value": "createdAt",
+                      "description": "One of: createdAt, updatedAt, price, weightKg, status, trackingId",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": "desc",
+                      "description": "asc | desc (default desc)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "searchTerm",
+                      "value": "",
+                      "description": "Case-insensitive contains search",
+                      "disabled": true
+                    },
+                    {
+                      "key": "status",
+                      "value": "PENDING",
+                      "description": "ShipmentStatus",
+                      "disabled": true
+                    },
+                    {
+                      "key": "serviceType",
+                      "value": "STANDARD",
+                      "description": "STANDARD | EXPRESS | SAME_DAY",
+                      "disabled": true
+                    },
+                    {
+                      "key": "paymentStatus",
+                      "value": "UNPAID",
+                      "description": "UNPAID | PAID | REFUNDED",
+                      "disabled": true
+                    },
+                    {
+                      "key": "fromDate",
+                      "value": "2026-11-01",
+                      "description": "YYYY-MM-DD (Dhaka day) or ISO datetime; on createdAt",
+                      "disabled": true
+                    },
+                    {
+                      "key": "toDate",
+                      "value": "2026-11-30",
+                      "description": "YYYY-MM-DD (end of that Dhaka day) or ISO datetime",
+                      "disabled": true
+                    },
+                    {
+                      "key": "customerId",
+                      "value": "",
+                      "description": "ADMIN: filter by customer",
+                      "disabled": true
+                    },
+                    {
+                      "key": "courierId",
+                      "value": "",
+                      "description": "ADMIN: filter by courier",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    {\n      \"path\": \"query.sortBy\",\n      \"message\": \"Invalid option: expected one of \\\"createdAt\\\"|\\\"updatedAt\\\"|\\\"price\\\"|\\\"weightKg\\\"|\\\"status\\\"|\\\"trackingId\\\"\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get shipment",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/{{shipmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{shipmentId}}"
+              ]
+            },
+            "description": "Includes zones, hubs, courier, price breakdown and the status timeline.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Shipment retrieved successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-07e6-74df-b72f-44241d63eb80\",\n    \"trackingId\": \"CRV-261106-TDZZUR\",\n    \"status\": \"PENDING\",\n    \"paymentStatus\": \"UNPAID\",\n    \"serviceType\": \"STANDARD\",\n    \"senderName\": \"Ayesha Customer\",\n    \"receiverName\": \"Zahid Hasan\",\n    \"receiverPhone\": \"+8801911222333\",\n    \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara\",\n    \"deliveryAddress\": \"House 2, Road 5, Dhanmondi\",\n    \"weightKg\": \"2.3\",\n    \"price\": \"160.00\",\n    \"currency\": \"bdt\",\n    \"originZone\": {\n      \"id\": \"01a1aeb5-feef-72ce-b712-faa027b4d4f2\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aeb5-ff0d-766a-8a86-134720acf7f4\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\"\n    },\n    \"originHub\": {\n      \"id\": \"01a1aeb5-ff0b-734d-be06-30862b47af26\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"destinationHub\": {\n      \"id\": \"01a1aeb5-ff0d-766a-8a86-14af7870e9ee\",\n      \"name\": \"Dhaka South Hub\",\n      \"code\": \"HUB-DHK-S\",\n      \"city\": \"Dhaka\"\n    },\n    \"customer\": {\n      \"id\": \"a630e864-2bd2-4174-89ab-ceeda9fe76a0\",\n      \"name\": \"Ayesha Customer\"\n    },\n    \"courier\": null,\n    \"createdAt\": \"2026-11-06T02:35:27.590Z\",\n    \"updatedAt\": \"2026-11-06T02:35:27.590Z\",\n    \"senderPhone\": \"+8801711000003\",\n    \"receiverEmail\": \"zahid@example.com\",\n    \"description\": \"Books\",\n    \"declaredValue\": \"1500.00\",\n    \"isFragile\": false,\n    \"priceBreakdown\": {\n      \"total\": \"160.00\",\n      \"ruleId\": \"01a1aeb5-ff16-727f-a4ba-08d3ef1f8bc0\",\n      \"baseFee\": \"120.00\",\n      \"currency\": \"bdt\",\n      \"perKgFee\": \"20.00\",\n      \"ruleName\": \"Standard - Default\",\n      \"weightKg\": \"2.30\",\n      \"serviceType\": \"STANDARD\",\n      \"baseWeightKg\": \"1.00\",\n      \"calculatedAt\": \"2026-11-06T02:35:27.589Z\",\n      \"weightCharge\": \"40.00\",\n      \"chargeableExtraKg\": \"2.00\"\n    },\n    \"failedAttempts\": 0,\n    \"failureReason\": null,\n    \"cancelReason\": null,\n    \"proofOfDeliveryUrl\": null,\n    \"estimatedDeliveryAt\": null,\n    \"pickedUpAt\": null,\n    \"deliveredAt\": null,\n    \"cancelledAt\": null,\n    \"currentHub\": null,\n    \"statusHistory\": [\n      {\n        \"id\": \"01a1aeb6-07e9-774b-88bd-6d38599e9414\",\n        \"fromStatus\": null,\n        \"toStatus\": \"PENDING\",\n        \"note\": \"Shipment created\",\n        \"hub\": {\n          \"id\": \"01a1aeb5-ff0b-734d-be06-30862b47af26\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"a630e864-2bd2-4174-89ab-ceeda9fe76a0\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T02:35:27.593Z\"\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "404 Not yours / unknown",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Shipment not found\",\n  \"errors\": []\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update shipment (owner, PENDING only)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/{{shipmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{shipmentId}}"
+              ]
+            },
+            "description": "Editable: sender/receiver details, addresses, description, declaredValue, isFragile, weightKg, serviceType. Zones/hubs are fixed. Changing weight or service type re-prices; once PAID those two return 409 (contact/address fields stay editable).",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"weightKg\": 5,\n  \"receiverName\": \"Zahid H.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK (re-priced)",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"weightKg\": 5,\n  \"receiverName\": \"Zahid H.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Shipment updated successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-07e6-74df-b72f-44241d63eb80\",\n    \"trackingId\": \"CRV-261106-TDZZUR\",\n    \"status\": \"PENDING\",\n    \"paymentStatus\": \"UNPAID\",\n    \"serviceType\": \"STANDARD\",\n    \"senderName\": \"Ayesha Customer\",\n    \"receiverName\": \"Zahid H.\",\n    \"receiverPhone\": \"+8801911222333\",\n    \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara\",\n    \"deliveryAddress\": \"House 2, Road 5, Dhanmondi\",\n    \"weightKg\": \"5\",\n    \"price\": \"200.00\",\n    \"currency\": \"bdt\",\n    \"originZone\": {\n      \"id\": \"01a1aeb5-feef-72ce-b712-faa027b4d4f2\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aeb5-ff0d-766a-8a86-134720acf7f4\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\"\n    },\n    \"originHub\": {\n      \"id\": \"01a1aeb5-ff0b-734d-be06-30862b47af26\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"destinationHub\": {\n      \"id\": \"01a1aeb5-ff0d-766a-8a86-14af7870e9ee\",\n      \"name\": \"Dhaka South Hub\",\n      \"code\": \"HUB-DHK-S\",\n      \"city\": \"Dhaka\"\n    },\n    \"customer\": {\n      \"id\": \"a630e864-2bd2-4174-89ab-ceeda9fe76a0\",\n      \"name\": \"Ayesha Customer\"\n    },\n    \"courier\": null,\n    \"createdAt\": \"2026-11-06T02:35:27.590Z\",\n    \"updatedAt\": \"2026-11-06T02:35:27.757Z\",\n    \"senderPhone\": \"+8801711000003\",\n    \"receiverEmail\": \"zahid@example.com\",\n    \"description\": \"Books\",\n    \"declaredValue\": \"1500.00\",\n    \"isFragile\": false,\n    \"priceBreakdown\": {\n      \"total\": \"200.00\",\n      \"ruleId\": \"01a1aeb5-ff16-727f-a4ba-08d3ef1f8bc0\",\n      \"baseFee\": \"120.00\",\n      \"currency\": \"bdt\",\n      \"perKgFee\": \"20.00\",\n      \"ruleName\": \"Standard - Default\",\n      \"weightKg\": \"5.00\",\n      \"serviceType\": \"STANDARD\",\n      \"baseWeightKg\": \"1.00\",\n      \"calculatedAt\": \"2026-11-06T02:35:27.755Z\",\n      \"weightCharge\": \"80.00\",\n      \"chargeableExtraKg\": \"4.00\"\n    },\n    \"failedAttempts\": 0,\n    \"failureReason\": null,\n    \"cancelReason\": null,\n    \"proofOfDeliveryUrl\": null,\n    \"estimatedDeliveryAt\": null,\n    \"pickedUpAt\": null,\n    \"deliveredAt\": null,\n    \"cancelledAt\": null,\n    \"currentHub\": null,\n    \"statusHistory\": [\n      {\n        \"id\": \"01a1aeb6-07e9-774b-88bd-6d38599e9414\",\n        \"fromStatus\": null,\n        \"toStatus\": \"PENDING\",\n        \"note\": \"Shipment created\",\n        \"hub\": {\n          \"id\": \"01a1aeb5-ff0b-734d-be06-30862b47af26\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"a630e864-2bd2-4174-89ab-ceeda9fe76a0\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T02:35:27.593Z\"\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "409 Not PENDING",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"weightKg\": 5,\n  \"receiverName\": \"Zahid H.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Shipment can only be edited while PENDING (current status: PICKUP_SCHEDULED)\",\n  \"errors\": []\n}"
+            },
+            {
+              "name": "409 Locked after payment",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"weightKg\": 5,\n  \"receiverName\": \"Zahid H.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Weight and service type cannot be changed after payment\",\n  \"errors\": [\n    {\n      \"path\": \"body.weightKg\",\n      \"message\": \"Locked after payment\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Cancel shipment (owner or ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/{{shipmentId}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{shipmentId}}",
+                "cancel"
+              ]
+            },
+            "description": "Allowed before PICKED_UP (PENDING, PICKUP_SCHEDULED, COURIER_ASSIGNED). Body is optional. Writes status history + audit log in one transaction. A paid shipment keeps paymentStatus PAID (refunds come with payments).",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Ordered twice\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}/cancel",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}",
+                    "cancel"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reason\": \"Ordered twice\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Shipment cancelled successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-08e5-741b-be48-9185c5043ee9\",\n    \"trackingId\": \"CRV-261106-ERMJRG\",\n    \"status\": \"CANCELLED\",\n    \"paymentStatus\": \"UNPAID\",\n    \"serviceType\": \"STANDARD\",\n    \"senderName\": \"Ayesha Customer\",\n    \"receiverName\": \"Zahid Hasan\",\n    \"receiverPhone\": \"+8801911222333\",\n    \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara\",\n    \"deliveryAddress\": \"House 2, Road 5, Dhanmondi\",\n    \"weightKg\": \"1\",\n    \"price\": \"120.00\",\n    \"currency\": \"bdt\",\n    \"originZone\": {\n      \"id\": \"01a1aeb5-feef-72ce-b712-faa027b4d4f2\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aeb5-ff0d-766a-8a86-134720acf7f4\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\"\n    },\n    \"originHub\": {\n      \"id\": \"01a1aeb5-ff0b-734d-be06-30862b47af26\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"destinationHub\": {\n      \"id\": \"01a1aeb5-ff0d-766a-8a86-14af7870e9ee\",\n      \"name\": \"Dhaka South Hub\",\n      \"code\": \"HUB-DHK-S\",\n      \"city\": \"Dhaka\"\n    },\n    \"customer\": {\n      \"id\": \"a630e864-2bd2-4174-89ab-ceeda9fe76a0\",\n      \"name\": \"Ayesha Customer\"\n    },\n    \"courier\": null,\n    \"createdAt\": \"2026-11-06T02:35:27.845Z\",\n    \"updatedAt\": \"2026-11-06T02:35:27.852Z\",\n    \"senderPhone\": \"+8801711000003\",\n    \"receiverEmail\": \"zahid@example.com\",\n    \"description\": \"Books\",\n    \"declaredValue\": \"1500.00\",\n    \"isFragile\": false,\n    \"priceBreakdown\": {\n      \"total\": \"120.00\",\n      \"ruleId\": \"01a1aeb5-ff16-727f-a4ba-08d3ef1f8bc0\",\n      \"baseFee\": \"120.00\",\n      \"currency\": \"bdt\",\n      \"perKgFee\": \"20.00\",\n      \"ruleName\": \"Standard - Default\",\n      \"weightKg\": \"1.00\",\n      \"serviceType\": \"STANDARD\",\n      \"baseWeightKg\": \"1.00\",\n      \"calculatedAt\": \"2026-11-06T02:35:27.844Z\",\n      \"weightCharge\": \"0.00\",\n      \"chargeableExtraKg\": \"0.00\"\n    },\n    \"failedAttempts\": 0,\n    \"failureReason\": null,\n    \"cancelReason\": \"Ordered twice\",\n    \"proofOfDeliveryUrl\": null,\n    \"estimatedDeliveryAt\": null,\n    \"pickedUpAt\": null,\n    \"deliveredAt\": null,\n    \"cancelledAt\": \"2026-11-06T02:35:27.851Z\",\n    \"currentHub\": null,\n    \"statusHistory\": [\n      {\n        \"id\": \"01a1aeb6-08e6-7150-a503-49a8bced2c51\",\n        \"fromStatus\": null,\n        \"toStatus\": \"PENDING\",\n        \"note\": \"Shipment created\",\n        \"hub\": {\n          \"id\": \"01a1aeb5-ff0b-734d-be06-30862b47af26\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"a630e864-2bd2-4174-89ab-ceeda9fe76a0\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T02:35:27.846Z\"\n      },\n      {\n        \"id\": \"01a1aeb6-08ed-75bd-b989-ee6aa2650ef6\",\n        \"fromStatus\": \"PENDING\",\n        \"toStatus\": \"CANCELLED\",\n        \"note\": \"Ordered twice\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"a630e864-2bd2-4174-89ab-ceeda9fe76a0\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T02:35:27.853Z\"\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "409 Already picked up",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}/cancel",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}",
+                    "cancel"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reason\": \"Ordered twice\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Shipment can only be cancelled before it is picked up (current status: PICKED_UP)\",\n  \"errors\": []\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete shipment (ADMIN, soft)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/{{shipmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{shipmentId}}"
+              ]
+            },
+            "description": "Only PENDING or finished (DELIVERED, RETURNED, CANCELLED) shipments. Writes an audit log.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Shipment deleted successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-08e5-741b-be48-9185c5043ee9\",\n    \"trackingId\": \"CRV-261106-ERMJRG\",\n    \"deletedAt\": \"2026-11-06T02:35:27.924Z\"\n  }\n}"
+            },
+            {
+              "name": "409 Shipment is moving",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}"
+                  ]
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Only PENDING or finished shipments can be deleted (current status: IN_TRANSIT). Cancel it first if possible.\",\n  \"errors\": []\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Tracking",
+      "item": [
+        {
+          "name": "Track shipment (public)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/tracking/CRV-261101-SEED05",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tracking",
+                "CRV-261101-SEED05"
+              ]
+            },
+            "description": "Public. Case-insensitive. Returns status, cities and the timeline only: no names, phones, addresses, prices or ids. Try {{trackingId}} after creating a shipment.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/tracking/CRV-261101-SEED05",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "tracking",
+                    "CRV-261101-SEED05"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Tracking information retrieved successfully\",\n  \"data\": {\n    \"trackingId\": \"CRV-261101-SEED05\",\n    \"status\": \"IN_TRANSIT\",\n    \"serviceType\": \"EXPRESS\",\n    \"origin\": {\n      \"city\": \"Dhaka\"\n    },\n    \"destination\": {\n      \"city\": \"Dhaka\"\n    },\n    \"createdAt\": \"2026-11-01T14:35:25.769Z\",\n    \"estimatedDeliveryAt\": null,\n    \"deliveredAt\": null,\n    \"timeline\": [\n      {\n        \"status\": \"PENDING\",\n        \"city\": \"Dhaka\",\n        \"at\": \"2026-11-01T14:35:25.769Z\"\n      },\n      {\n        \"status\": \"PICKUP_SCHEDULED\",\n        \"city\": null,\n        \"at\": \"2026-11-01T16:35:25.769Z\"\n      },\n      {\n        \"status\": \"COURIER_ASSIGNED\",\n        \"city\": null,\n        \"at\": \"2026-11-01T18:35:25.769Z\"\n      },\n      {\n        \"status\": \"PICKED_UP\",\n        \"city\": null,\n        \"at\": \"2026-11-01T20:35:25.769Z\"\n      },\n      {\n        \"status\": \"AT_ORIGIN_HUB\",\n        \"city\": \"Dhaka\",\n        \"at\": \"2026-11-01T22:35:25.769Z\"\n      },\n      {\n        \"status\": \"IN_TRANSIT\",\n        \"city\": null,\n        \"at\": \"2026-11-02T00:35:25.769Z\"\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "404 Unknown",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/tracking/CRV-261101-SEED05",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "tracking",
+                    "CRV-261101-SEED05"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"No shipment found with this tracking ID\",\n  \"errors\": []\n}"
+            },
+            {
+              "name": "400 Bad format",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/tracking/CRV-261101-SEED05",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "tracking",
+                    "CRV-261101-SEED05"
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    {\n      \"path\": \"params.trackingId\",\n      \"message\": \"Tracking ID must look like CRV-YYMMDD-XXXXXX\"\n    }\n  ]\n}"
             }
           ]
         }

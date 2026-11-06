@@ -1,4 +1,4 @@
-import type { RequestHandler } from "express";
+import type { RequestHandler, Response } from "express";
 import { z } from "zod";
 import { catchAsync } from "../utils/catchAsync.js";
 
@@ -23,6 +23,15 @@ export interface ValidatedRequest {
  * in `res.locals.validated`. Express 5 makes `req.query` a read-only getter, so
  * controllers read parsed query values from `res.locals.validated.query`.
  */
+/**
+ * Parsed query values stored by validateRequest. `T` must be the z.infer output of
+ * the route's query schema; validateRequest guarantees the shape at runtime.
+ */
+export const getValidatedQuery = <T>(res: Response): T => {
+  const validated = res.locals["validated"] as ValidatedRequest | undefined;
+  return validated?.query as T;
+};
+
 export const validateRequest = (schema: RequestSchema): RequestHandler =>
   catchAsync(async (req, res, next) => {
     const parsed = (await schema.parseAsync({

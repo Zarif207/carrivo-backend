@@ -245,6 +245,7 @@ model CourierProfile {
   updatedAt     DateTime    @updatedAt
 
   @@index([zoneId, isAvailable])
+  @@index([hubId])
   @@index([deletedAt])
   @@map("courier_profiles")
 }
@@ -317,6 +318,16 @@ model Shipment {
   @@index([serviceType])
   @@index([createdAt])
   @@index([deletedAt])
+  // FK lookups for the "hub still in use" check on hub delete.
+  @@index([originHubId])
+  @@index([destinationHubId])
+  @@index([currentHubId])
+  // Trigram GIN indexes back the case-insensitive `contains` search (ILIKE '%term%').
+  // Needs the pg_trgm extension, created in the migration SQL (the schema-level
+  // `extensions` field is still a preview feature in Prisma 7).
+  @@index([trackingId(ops: raw("gin_trgm_ops"))], type: Gin, map: "shipments_trackingId_trgm_idx")
+  @@index([receiverName(ops: raw("gin_trgm_ops"))], type: Gin, map: "shipments_receiverName_trgm_idx")
+  @@index([receiverPhone(ops: raw("gin_trgm_ops"))], type: Gin, map: "shipments_receiverPhone_trgm_idx")
   @@map("shipments")
 }
 

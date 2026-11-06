@@ -6,11 +6,15 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
 /**
- * Pulls the conflicting field names out of a P2002 error. Prisma puts them in
- * `meta.target` without a driver adapter, or in
- * `meta.driverAdapterError.cause.constraint.fields` with one, so both are checked.
+ * Pulls the conflicting field names out of a P2002 error. The shape depends on
+ * where the query ran, so all known shapes are checked:
+ * - `meta.target` (no driver adapter)
+ * - `meta.driverAdapterError.cause.constraint.fields` (pg adapter, plain query)
+ * - `meta.driverAdapterError.cause.constraint.index`, e.g. "shipments_trackingId_key"
+ *   (pg adapter inside an interactive transaction). The field is read from Prisma's
+ *   `<table>_<field>_key` index naming, using `cause.table` when present.
  */
-const getUniqueFields = (meta: unknown): string[] => {
+export const getUniqueFields = (meta: unknown): string[] => {
   if (!isRecord(meta)) return [];
   const target = meta["target"];
   if (Array.isArray(target)) return target.map(String);
@@ -18,13 +22,26 @@ const getUniqueFields = (meta: unknown): string[] => {
 
   const adapterError = meta["driverAdapterError"];
   if (isRecord(adapterError) && isRecord(adapterError["cause"])) {
-    const constraint = adapterError["cause"]["constraint"];
+    const cause = adapterError["cause"];
+    const constraint = cause["constraint"];
     if (isRecord(constraint) && Array.isArray(constraint["fields"])) {
       return constraint["fields"].map(String);
+    }
+    if (isRecord(constraint) && typeof constraint["index"] === "string") {
+      const table = typeof cause["table"] === "string" ? cause["table"] : null;
+      let name = constraint["index"].replace(/_key$/, "");
+      if (table && name.startsWith(`${table}_`)) name = name.slice(table.length + 1);
+      return name ? [name] : [];
     }
   }
   return [];
 };
+
+/** True only for a P2002 whose conflicting fields include `field`. */
+export const isUniqueViolationOn = (error: unknown, field: string): boolean =>
+  error instanceof Prisma.PrismaClientKnownRequestError &&
+  error.code === "P2002" &&
+  getUniqueFields(error.meta).includes(field);
 
 export const handlePrismaKnownError = (
   error: Prisma.PrismaClientKnownRequestError,
