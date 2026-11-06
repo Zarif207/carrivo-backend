@@ -9,8 +9,10 @@
  *
  * The demo password comes from SEED_DEMO_PASSWORD; it is never stored in code.
  */
+import { PLATFORM_CURRENCY } from "../src/app/config/currency.js";
 import { env } from "../src/app/config/env.js";
 import {
+  PaymentStatus,
   PickupStatus,
   Role,
   ServiceType,
@@ -156,7 +158,7 @@ const seedUser = async (
   return existing ? "existing" : "created";
 };
 
-// ───────────── Pricing rules (BDT) ─────────────
+// ───────────── Pricing rules (USD, the platform currency) ─────────────
 interface SeedRule {
   name: string;
   serviceType: ServiceType;
@@ -170,14 +172,14 @@ interface SeedRule {
 // SAME_DAY has no default rule, so it is only offered within a zone
 // (an estimate between zones returns 422 "No pricing available").
 const PRICING_RULES: SeedRule[] = [
-  { name: "Standard - Default", serviceType: ServiceType.STANDARD, route: null, baseFee: 120, baseWeightKg: 1, perKgFee: 20, maxWeightKg: 50 },
-  { name: "Standard - Within Dhaka North", serviceType: ServiceType.STANDARD, route: ["DHK-N", "DHK-N"], baseFee: 60, baseWeightKg: 1, perKgFee: 15, maxWeightKg: 50 },
-  { name: "Standard - Within Dhaka South", serviceType: ServiceType.STANDARD, route: ["DHK-S", "DHK-S"], baseFee: 60, baseWeightKg: 1, perKgFee: 15, maxWeightKg: 50 },
-  { name: "Express - Default", serviceType: ServiceType.EXPRESS, route: null, baseFee: 180, baseWeightKg: 1, perKgFee: 30, maxWeightKg: 30 },
-  { name: "Express - Within Dhaka North", serviceType: ServiceType.EXPRESS, route: ["DHK-N", "DHK-N"], baseFee: 100, baseWeightKg: 1, perKgFee: 20, maxWeightKg: 30 },
-  { name: "Express - Within Dhaka South", serviceType: ServiceType.EXPRESS, route: ["DHK-S", "DHK-S"], baseFee: 100, baseWeightKg: 1, perKgFee: 20, maxWeightKg: 30 },
-  { name: "Same Day - Within Dhaka North", serviceType: ServiceType.SAME_DAY, route: ["DHK-N", "DHK-N"], baseFee: 150, baseWeightKg: 1, perKgFee: 30, maxWeightKg: 10 },
-  { name: "Same Day - Within Dhaka South", serviceType: ServiceType.SAME_DAY, route: ["DHK-S", "DHK-S"], baseFee: 150, baseWeightKg: 1, perKgFee: 30, maxWeightKg: 10 },
+  { name: "Standard - Default", serviceType: ServiceType.STANDARD, route: null, baseFee: 4.0, baseWeightKg: 1, perKgFee: 1.0, maxWeightKg: 50 },
+  { name: "Standard - Within Dhaka North", serviceType: ServiceType.STANDARD, route: ["DHK-N", "DHK-N"], baseFee: 2.5, baseWeightKg: 1, perKgFee: 0.75, maxWeightKg: 50 },
+  { name: "Standard - Within Dhaka South", serviceType: ServiceType.STANDARD, route: ["DHK-S", "DHK-S"], baseFee: 2.5, baseWeightKg: 1, perKgFee: 0.75, maxWeightKg: 50 },
+  { name: "Express - Default", serviceType: ServiceType.EXPRESS, route: null, baseFee: 6.5, baseWeightKg: 1, perKgFee: 1.5, maxWeightKg: 30 },
+  { name: "Express - Within Dhaka North", serviceType: ServiceType.EXPRESS, route: ["DHK-N", "DHK-N"], baseFee: 4.5, baseWeightKg: 1, perKgFee: 1.0, maxWeightKg: 30 },
+  { name: "Express - Within Dhaka South", serviceType: ServiceType.EXPRESS, route: ["DHK-S", "DHK-S"], baseFee: 4.5, baseWeightKg: 1, perKgFee: 1.0, maxWeightKg: 30 },
+  { name: "Same Day - Within Dhaka North", serviceType: ServiceType.SAME_DAY, route: ["DHK-N", "DHK-N"], baseFee: 7.0, baseWeightKg: 1, perKgFee: 1.5, maxWeightKg: 10 },
+  { name: "Same Day - Within Dhaka South", serviceType: ServiceType.SAME_DAY, route: ["DHK-S", "DHK-S"], baseFee: 7.0, baseWeightKg: 1, perKgFee: 1.5, maxWeightKg: 10 },
 ];
 
 const seedPricingRules = async (ids: Map<string, string>): Promise<number> => {
@@ -347,6 +349,7 @@ const seedShipments = async (ids: Map<string, string>, userIds: Map<string, stri
           isFragile: s.isFragile ?? false,
           serviceType: s.serviceType,
           price: priced.breakdown.total,
+          currency: PLATFORM_CURRENCY,
           priceBreakdown: {
             ...priced.breakdown,
             serviceType: s.serviceType,
@@ -462,6 +465,111 @@ const seedWorkflowExtras = async (): Promise<{ pickups: number; earnings: number
   return { pickups, earnings };
 };
 
+/** Same rule lookup the API uses: exact route rule, else the service's default rule. */
+const findRule = (serviceType: ServiceType, originZoneId: string, destinationZoneId: string) =>
+  prisma.pricingRule
+    .findFirst({ where: { serviceType, originZoneId, destinationZoneId, isActive: true, deletedAt: null } })
+    .then(
+      (exact) =>
+        exact ??
+        prisma.pricingRule.findFirst({
+          where: { serviceType, originZoneId: null, destinationZoneId: null, isActive: true, deletedAt: null },
+        }),
+    );
+
+/**
+ * Brings already-seeded sample shipments (matched by their fixed tracking ids) to
+ * the current rate card and currency, using the same pure calculatePrice as the
+ * API, then aligns their SEED payments and courier earnings (20% of the new price).
+ * Only seed data is touched: real (STRIPE) payments are never modified.
+ */
+const syncSeedMoney = async (): Promise<{ repriced: number; payments: number; earnings: number }> => {
+  let repriced = 0;
+  let payments = 0;
+  let earnings = 0;
+  const rows = await prisma.shipment.findMany({
+    where: { trackingId: { in: SHIPMENTS.map((s) => s.trackingId) } },
+    select: {
+      id: true,
+      trackingId: true,
+      customerId: true,
+      serviceType: true,
+      weightKg: true,
+      originZoneId: true,
+      destinationZoneId: true,
+      price: true,
+      currency: true,
+      paymentStatus: true,
+      createdAt: true,
+      earning: { select: { id: true, amount: true } },
+      payments: { select: { id: true, provider: true, status: true, amount: true } },
+    },
+  });
+  for (const row of rows) {
+    const rule = await findRule(row.serviceType, row.originZoneId, row.destinationZoneId);
+    if (!rule) throw new Error(`Seed: no pricing rule for ${row.trackingId}`);
+    const priced = calculatePrice(rule, row.weightKg);
+    if (!priced.ok) throw new Error(`Seed: cannot price ${row.trackingId}: ${priced.reason}`);
+    const price = priced.breakdown.total;
+
+    if (row.price.toFixed(2) !== price || row.currency !== PLATFORM_CURRENCY) {
+      await prisma.shipment.update({
+        where: { id: row.id },
+        data: {
+          price,
+          currency: PLATFORM_CURRENCY,
+          priceBreakdown: {
+            ...priced.breakdown,
+            serviceType: row.serviceType,
+            ruleId: rule.id,
+            ruleName: rule.name,
+            calculatedAt: new Date().toISOString(),
+          },
+        },
+      });
+      repriced += 1;
+    }
+
+    // One SEED payment for each paid sample shipment (no Stripe ids: clearly seed data).
+    const seedPayment = row.payments.find((p) => p.provider === "SEED");
+    const realPayment = row.payments.find((p) => p.provider !== "SEED" && p.status !== PaymentStatus.EXPIRED && p.status !== PaymentStatus.FAILED);
+    if (seedPayment) {
+      if (seedPayment.amount.toFixed(2) !== price) {
+        await prisma.payment.update({
+          where: { id: seedPayment.id },
+          data: { amount: price, paidAmount: price, currency: PLATFORM_CURRENCY, paidCurrency: PLATFORM_CURRENCY },
+        });
+        payments += 1;
+      }
+    } else if (row.paymentStatus === "PAID" && !realPayment) {
+      await prisma.payment.create({
+        data: {
+          shipmentId: row.id,
+          userId: row.customerId,
+          amount: price,
+          paidAmount: price,
+          currency: PLATFORM_CURRENCY,
+          paidCurrency: PLATFORM_CURRENCY,
+          status: PaymentStatus.PAID,
+          provider: "SEED",
+          paidAt: new Date(row.createdAt.getTime() + HOUR),
+          createdAt: row.createdAt,
+        },
+      });
+      payments += 1;
+    }
+
+    if (row.earning) {
+      const amount = calculateCourierEarning(price);
+      if (row.earning.amount.toFixed(2) !== amount) {
+        await prisma.courierEarning.update({ where: { id: row.earning.id }, data: { amount } });
+        earnings += 1;
+      }
+    }
+  }
+  return { repriced, payments, earnings };
+};
+
 async function main(): Promise<void> {
   const password = env.SEED_DEMO_PASSWORD;
   if (!password || password.length < 8) {
@@ -488,6 +596,10 @@ async function main(): Promise<void> {
   console.log(`Seed: sample shipments ${shipments.created} created, ${shipments.existing} already present.`);
   const extras = await seedWorkflowExtras();
   console.log(`Seed: ${extras.pickups} pickup request(s) and ${extras.earnings} courier earning(s) added.`);
+  const money = await syncSeedMoney();
+  console.log(
+    `Seed: ${money.repriced} sample shipment(s) re-priced in ${PLATFORM_CURRENCY}, ${money.payments} seed payment(s) and ${money.earnings} earning(s) aligned.`,
+  );
 
   console.log("\nDemo accounts (all share the password from SEED_DEMO_PASSWORD):");
   console.table(rows);

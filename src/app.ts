@@ -9,6 +9,7 @@ import { limitBodySize } from "./app/middlewares/limitBodySize.js";
 import { globalErrorHandler } from "./app/middlewares/globalErrorHandler.js";
 import { globalLimiter } from "./app/middlewares/rateLimiter.js";
 import { AuthRoutes } from "./app/modules/auth/auth.route.js";
+import { PaymentController } from "./app/modules/payment/payment.controller.js";
 import { notFound } from "./app/middlewares/notFound.js";
 import router from "./app/routes/index.js";
 import { ApiError } from "./app/utils/ApiError.js";
@@ -37,6 +38,12 @@ const corsOptions: CorsOptions = {
 
 app.use(helmet());
 app.use(cors(corsOptions));
+
+// Stripe webhook FIRST: it needs the raw body (signature over exact bytes), so it
+// must come before express.json(); and it is exempt from the per-IP limiter because
+// Stripe sends from shared IPs. The signature check is what protects it.
+app.post("/api/v1/payments/webhook", express.raw({ type: "application/json", limit: "1mb" }), PaymentController.webhook);
+
 app.use(globalLimiter);
 
 // ── Must come BEFORE express.json() ─────────────────────────────────────────
@@ -45,7 +52,6 @@ app.use(globalLimiter);
 // 2. Better Auth, for an ALLOW-LIST of its endpoints only (lib/auth.ts). It reads
 //    the body itself, so a Content-Length guard enforces our size limit first.
 //    Any other /auth/* path falls through to our 404 envelope.
-// 3. Phase 6: the Stripe webhook raw-body route goes here too.
 app.use(AUTH_BASE_PATH, AuthRoutes);
 app.all(
   BETTER_AUTH_ALLOWED_PATHS.map((path) => `${AUTH_BASE_PATH}${path}`),

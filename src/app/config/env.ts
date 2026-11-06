@@ -41,16 +41,25 @@ const envSchema = z.object({
     .min(32, { message: "BETTER_AUTH_SECRET must be at least 32 characters" }),
   BETTER_AUTH_URL: z.url({ message: "BETTER_AUTH_URL must be the API's base URL" }),
 
+  // ── Stripe (test mode in development). Required: payments can't work without them.
+  STRIPE_SECRET_KEY: z
+    .string()
+    .trim()
+    .regex(/^(sk|rk)_(test|live)_[A-Za-z0-9]+$/, { message: "STRIPE_SECRET_KEY must be a Stripe secret or restricted key" }),
+  STRIPE_WEBHOOK_SECRET: z
+    .string()
+    .trim()
+    .regex(/^whsec_[A-Za-z0-9]+$/, { message: "STRIPE_WEBHOOK_SECRET must be a webhook signing secret (whsec_...)" }),
+  // Frontend pages Stripe Checkout redirects to. "?session_id=cs_..." is appended to the success URL.
+  FRONTEND_SUCCESS_URL: z.url({ message: "FRONTEND_SUCCESS_URL must be a URL" }),
+  FRONTEND_CANCEL_URL: z.url({ message: "FRONTEND_CANCEL_URL must be a URL" }),
+
   // Only needed by `npm run db:seed`.
   SEED_DEMO_PASSWORD: optionalString,
 
   // Later phases: optional until their phase makes them required.
   GOOGLE_CLIENT_ID: optionalString,
   GOOGLE_CLIENT_SECRET: optionalString,
-  STRIPE_SECRET_KEY: optionalString,
-  STRIPE_WEBHOOK_SECRET: optionalString,
-  STRIPE_SUCCESS_URL: optionalString,
-  STRIPE_CANCEL_URL: optionalString,
   // Redis is optional: without both values the app runs with no cache and in-memory rate limits.
   UPSTASH_REDIS_REST_URL: optionalString,
   UPSTASH_REDIS_REST_TOKEN: optionalString,

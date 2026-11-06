@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { Prisma } from "../../../generated/prisma/client.js";
+import { PLATFORM_CURRENCY } from "../../config/currency.js";
 import { calculatePrice, type PricingRates } from "./pricing.utils.js";
 
 const rates: PricingRates = { baseFee: 60, baseWeightKg: 1, perKgFee: 15, maxWeightKg: 50 };
@@ -21,7 +22,7 @@ describe("calculatePrice", () => {
     const result = calculatePrice(rates, 2.3);
     assert.ok(result.ok);
     assert.deepEqual(result.breakdown, {
-      currency: "bdt",
+      currency: PLATFORM_CURRENCY,
       weightKg: "2.30",
       baseWeightKg: "1.00",
       chargeableExtraKg: "2.00",

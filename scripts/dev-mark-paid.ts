@@ -26,13 +26,14 @@ if (trackingIds.length === 0) fail("pass one or more tracking ids, e.g. npm run 
 // Imported only after the guards pass.
 const { prisma } = await import("../src/app/lib/prisma.js");
 const { AUDIT_ACTIONS, AUDIT_ENTITIES } = await import("../src/app/modules/audit/audit.constants.js");
-const { ShipmentPaymentStatus } = await import("../src/generated/prisma/enums.js");
+const { PaymentStatus, ShipmentPaymentStatus } = await import("../src/generated/prisma/enums.js");
+const { PLATFORM_CURRENCY } = await import("../src/app/config/currency.js");
 
 try {
   for (const trackingId of trackingIds) {
     const shipment = await prisma.shipment.findFirst({
       where: { trackingId, deletedAt: null },
-      select: { id: true, paymentStatus: true, status: true },
+      select: { id: true, paymentStatus: true, status: true, price: true, customerId: true },
     });
     if (!shipment) {
       console.log(`${trackingId}: not found`);
@@ -49,6 +50,21 @@ try {
         data: { paymentStatus: ShipmentPaymentStatus.PAID },
       });
       if (count === 0) throw new Error(`${trackingId}: payment status changed concurrently`);
+      // A DEV payment row (no Stripe ids) keeps payment lists and revenue consistent.
+      const payment = await tx.payment.create({
+        data: {
+          shipmentId: shipment.id,
+          userId: shipment.customerId,
+          amount: shipment.price,
+          paidAmount: shipment.price,
+          currency: PLATFORM_CURRENCY,
+          paidCurrency: PLATFORM_CURRENCY,
+          status: PaymentStatus.PAID,
+          provider: "DEV",
+          paidAt: new Date(),
+        },
+        select: { id: true },
+      });
       await tx.auditLog.create({
         data: {
           actorId: null,
@@ -57,7 +73,7 @@ try {
           entityType: AUDIT_ENTITIES.SHIPMENT,
           entityId: shipment.id,
           before: { paymentStatus: shipment.paymentStatus },
-          after: { paymentStatus: ShipmentPaymentStatus.PAID, source: "scripts/dev-mark-paid.ts" },
+          after: { paymentStatus: ShipmentPaymentStatus.PAID, paymentId: payment.id, source: "scripts/dev-mark-paid.ts" },
         },
       });
     });

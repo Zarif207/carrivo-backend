@@ -4,6 +4,8 @@ import { authenticate } from "../../middlewares/authenticate.js";
 import { authorize } from "../../middlewares/authorize.js";
 import { validateRequest } from "../../middlewares/validateRequest.js";
 import { AuditRoutes } from "../audit/audit.route.js";
+import { PaymentController } from "../payment/payment.controller.js";
+import { PaymentValidation } from "../payment/payment.validation.js";
 import { AdminController } from "./admin.controller.js";
 import { AdminValidation } from "./admin.validation.js";
 
@@ -18,5 +20,7 @@ router.patch("/users/:id/role", validateRequest(AdminValidation.changeRole), Adm
 router.patch("/users/:id/status", validateRequest(AdminValidation.changeStatus), AdminController.changeStatus);
 router.get("/dashboard-stats", AdminController.dashboardStats);
 router.use("/audit-logs", AuditRoutes);
+router.get("/payments", validateRequest(PaymentValidation.adminList), PaymentController.adminList);
+router.post("/payments/:id/refund", validateRequest(PaymentValidation.byId), PaymentController.retryRefund);
 
 export const AdminRoutes = router;

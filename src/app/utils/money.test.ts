@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { Prisma } from "../../generated/prisma/client.js";
-import { formatMoney, formatMoneyFields } from "./money.js";
+import { formatMoney, formatMoneyFields, fromMinorUnits, toMinorUnits } from "./money.js";
 
 describe("formatMoney", () => {
   it("always returns 2 decimals", () => {
@@ -45,5 +45,27 @@ describe("formatMoneyFields", () => {
     const row = { price: new Prisma.Decimal("5") };
     formatMoneyFields(row, ["price"]);
     assert.ok(row.price instanceof Prisma.Decimal);
+  });
+});
+
+describe("minor units (cents) at the Stripe boundary", () => {
+  it("converts dollars to integer cents with Decimal math", () => {
+    assert.equal(toMinorUnits(new Prisma.Decimal("6.00")), 600);
+    assert.equal(toMinorUnits("4.75"), 475);
+    assert.equal(toMinorUnits("0.29"), 29); // 0.29 * 100 is 28.999999999999996 with floats
+    assert.equal(toMinorUnits(new Prisma.Decimal("1.1").plus("2.2")), 330);
+    assert.equal(toMinorUnits(0), 0);
+  });
+
+  it("rejects sub-cent, negative and unsafe amounts", () => {
+    assert.throws(() => toMinorUnits("1.005"), RangeError);
+    assert.throws(() => toMinorUnits("-1.00"), RangeError);
+    assert.throws(() => toMinorUnits("1e20"), RangeError);
+  });
+
+  it("converts cents back to a Decimal", () => {
+    assert.equal(fromMinorUnits(600).toFixed(2), "6.00");
+    assert.equal(fromMinorUnits(29).toFixed(2), "0.29");
+    assert.throws(() => fromMinorUnits(1.5), RangeError);
   });
 });

@@ -1,6 +1,7 @@
 import httpStatus from "http-status";
 import { Prisma } from "../../../generated/prisma/client.js";
-import { Role, ShipmentPaymentStatus, ShipmentStatus, UserStatus } from "../../../generated/prisma/enums.js";
+import { PaymentStatus, Role, ShipmentStatus, UserStatus } from "../../../generated/prisma/enums.js";
+import { PLATFORM_CURRENCY } from "../../config/currency.js";
 import { auth } from "../../lib/auth.js";
 import { CACHE_KEYS, CACHE_TTL, cache } from "../../lib/cache.js";
 import { prisma } from "../../lib/prisma.js";
@@ -325,9 +326,10 @@ const shipmentsPerDay = () =>
 
 const computeDashboardStats = async (): Promise<DashboardStats> => {
   const live: Prisma.ShipmentWhereInput = { deletedAt: null };
-  const [byStatusRows, revenue, perDay, top, failed, activeCouriers, activeCustomers, activeHubs] = await Promise.all([
+  const [byStatusRows, paymentGroups, perDay, top, failed, activeCouriers, activeCustomers, activeHubs] = await Promise.all([
     prisma.shipment.groupBy({ by: ["status"], where: live, _count: { _all: true } }),
-    prisma.shipment.aggregate({ where: { ...live, paymentStatus: ShipmentPaymentStatus.PAID }, _sum: { price: true } }),
+    // One grouped aggregate gives both the counts and the money per payment status.
+    prisma.payment.groupBy({ by: ["status"], where: { currency: PLATFORM_CURRENCY }, _count: { _all: true }, _sum: { amount: true } }),
     shipmentsPerDay(),
     prisma.shipment.groupBy({
       by: ["courierId"],
@@ -351,6 +353,15 @@ const computeDashboardStats = async (): Promise<DashboardStats> => {
     (await prisma.user.findMany({ where: { id: { in: courierIds } }, select: { id: true, name: true } })).map((u) => [u.id, u.name]),
   );
 
+  const paymentsByStatus = Object.fromEntries(Object.values(PaymentStatus).map((s) => [s, 0])) as Record<PaymentStatus, number>;
+  const sumBy = (statuses: PaymentStatus[]): Prisma.Decimal =>
+    paymentGroups
+      .filter((g) => statuses.includes(g.status))
+      .reduce((acc, g) => acc.plus(g._sum.amount ?? 0), new Prisma.Decimal(0));
+  for (const g of paymentGroups) paymentsByStatus[g.status] = g._count._all;
+  const grossCollected = sumBy([PaymentStatus.PAID, PaymentStatus.REFUND_PENDING, PaymentStatus.REFUNDED]);
+  const refunded = sumBy([PaymentStatus.REFUNDED]);
+
   const failedAttempts = failed._sum.failedAttempts ?? 0;
   const delivered = byStatus.DELIVERED;
   const attempts = failedAttempts + delivered;
@@ -358,10 +369,12 @@ const computeDashboardStats = async (): Promise<DashboardStats> => {
   return {
     shipments: { total, byStatus },
     revenue: {
-      currency: "bdt",
-      paidTotal: formatMoney(revenue._sum.price ?? new Prisma.Decimal(0)),
-      source: "Sum of shipment prices with paymentStatus PAID (switches to Payment amounts in Phase 6)",
+      currency: PLATFORM_CURRENCY,
+      grossCollected: formatMoney(grossCollected),
+      refunded: formatMoney(refunded),
+      net: formatMoney(grossCollected.minus(refunded)),
     },
+    paymentsByStatus,
     shipmentsPerDay: perDay,
     topCouriers: top
       .filter((t) => t.courierId !== null)

@@ -1,4 +1,5 @@
 import { Prisma } from "../../generated/prisma/client.js";
+import { MINOR_UNITS_PER_MAJOR } from "../config/currency.js";
 
 /**
  * Every money amount in an API response is a 2-decimal string ("160.00").
@@ -28,4 +29,22 @@ export const formatMoneyFields = <T extends object, K extends MoneyKey<T>>(
     out[key as string] = value === null ? null : formatMoney(value);
   }
   return out as WithMoney<T, K>;
+};
+
+/**
+ * Major units (Decimal, e.g. 6.00) → Stripe minor units (integer cents, e.g. 600).
+ * Decimal math only; throws if the amount has more precision than a cent.
+ */
+export const toMinorUnits = (value: Prisma.Decimal | number | string): number => {
+  const minor = new Prisma.Decimal(value).times(MINOR_UNITS_PER_MAJOR);
+  if (!minor.isInteger()) throw new RangeError(`Amount ${String(value)} has sub-cent precision`);
+  if (minor.isNegative()) throw new RangeError(`Amount ${String(value)} is negative`);
+  if (minor.greaterThan(Number.MAX_SAFE_INTEGER)) throw new RangeError(`Amount ${String(value)} is too large`);
+  return minor.toNumber();
+};
+
+/** Stripe minor units (integer cents) → major units as a Decimal. */
+export const fromMinorUnits = (minor: number): Prisma.Decimal => {
+  if (!Number.isSafeInteger(minor)) throw new RangeError(`Minor amount ${minor} is not an integer`);
+  return new Prisma.Decimal(minor).dividedBy(MINOR_UNITS_PER_MAJOR);
 };

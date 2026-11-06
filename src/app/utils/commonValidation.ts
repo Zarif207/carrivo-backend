@@ -13,7 +13,7 @@ export const phoneSchema = z
 /** Rounds to 2 decimals (money and kg are stored as Decimal(_, 2)). */
 const round2 = (value: number): number => Math.round(value * 100) / 100;
 
-/** Non-negative amount in BDT, at most 2 decimals after rounding. */
+/** Non-negative amount in the platform currency (USD), at most 2 decimals after rounding. */
 export const moneySchema = z
   .number({ message: "Must be a number" })
   .min(0, { message: "Must be 0 or more" })

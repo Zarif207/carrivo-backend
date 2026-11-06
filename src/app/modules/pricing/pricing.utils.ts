@@ -1,4 +1,5 @@
 import { Prisma } from "../../../generated/prisma/client.js";
+import { PLATFORM_CURRENCY, type PlatformCurrency } from "../../config/currency.js";
 
 /** Decimal-safe input: a Prisma Decimal from the DB, or a number/string from the request. */
 export type DecimalInput = Prisma.Decimal | number | string;
@@ -13,7 +14,7 @@ export interface PricingRates {
 /** Money as 2-decimal strings so the JSON never carries float artefacts. */
 // `type` (not interface) so it is assignable to Prisma JSON input.
 export type PriceBreakdown = {
-  currency: "bdt";
+  currency: PlatformCurrency;
   weightKg: string;
   baseWeightKg: string;
   chargeableExtraKg: string;
@@ -55,7 +56,7 @@ export const calculatePrice = (rates: PricingRates, weightKg: DecimalInput): Pri
   return {
     ok: true,
     breakdown: {
-      currency: "bdt",
+      currency: PLATFORM_CURRENCY,
       weightKg: weight.toFixed(2),
       baseWeightKg: baseWeight.toFixed(2),
       chargeableExtraKg: chargeableExtraKg.toFixed(2),

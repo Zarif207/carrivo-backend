@@ -11,6 +11,7 @@ import type { RequestMeta } from "../../utils/requestMeta.js";
 import { AUDIT_ACTIONS, AUDIT_ENTITIES } from "../audit/audit.constants.js";
 import { AuditService } from "../audit/audit.service.js";
 import type { Actor } from "../audit/audit.types.js";
+import { PaymentService } from "../payment/payment.service.js";
 import { PricingService } from "../pricing/pricing.service.js";
 import { calculateCourierEarning } from "../courier/courier.utils.js";
 import {
@@ -556,6 +557,10 @@ const update = async (
       ]);
     }
 
+    if (repriced && (await PaymentService.hasOpenPayment(tx, id))) {
+      throw conflict("A checkout for this shipment is open; wait for it to complete or expire before changing weight or service type");
+    }
+
     const data: Prisma.ShipmentUpdateManyMutationInput = { ...payload };
     if (repriced) {
       const snapshot = await PricingService.quote(tx, {
@@ -597,16 +602,30 @@ const update = async (
   return loadDetailAndInvalidate(id);
 };
 
-/** Owner (customer) or admin, before PICKED_UP. Paid shipments keep paymentStatus PAID. */
-const cancel = (actor: Actor, id: string, reason: string | undefined, meta: RequestMeta): Promise<ShipmentDetail> =>
-  changeStatus({
+/**
+ * Owner (customer) or admin, before PICKED_UP. For a PAID shipment:
+ * 1. the cancel transaction also moves the Payment to REFUND_PENDING (the refund
+ *    obligation commits atomically with the cancellation), then
+ * 2. after commit the Stripe refund runs with a fixed idempotency key. If Stripe
+ *    fails, the shipment stays cancelled and the payment stays REFUND_PENDING with
+ *    requiresReview (retry: POST /admin/payments/:id/refund, or charge.refunded).
+ */
+const cancel = async (actor: Actor, id: string, reason: string | undefined, meta: RequestMeta): Promise<ShipmentDetail> => {
+  const refund: { paymentId: string | null } = { paymentId: null };
+  await changeStatus({
     shipmentId: id,
     toStatus: ShipmentStatus.CANCELLED,
     actor,
     meta,
     note: reason ?? "Cancelled",
     data: { cancelledAt: new Date(), cancelReason: reason ?? null },
+    afterUpdate: async (tx) => {
+      refund.paymentId = await PaymentService.markRefundPendingForCancel(tx, id, actor, meta);
+    },
   });
+  if (refund.paymentId) await PaymentService.processRefund(refund.paymentId, actor);
+  return loadDetailAndInvalidate(id);
+};
 
 /** Admin soft delete; only for shipments that aren't moving (PENDING or finished). */
 const remove = (actor: Actor, id: string, meta: RequestMeta): Promise<{ id: string; trackingId: string; deletedAt: Date }> =>

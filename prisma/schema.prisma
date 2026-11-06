@@ -47,6 +47,7 @@ enum PaymentStatus {
   PAID
   FAILED
   EXPIRED
+  REFUND_PENDING // shipment cancelled; refund requested but not yet confirmed by Stripe
   REFUNDED
 }
 
@@ -287,7 +288,7 @@ model Shipment {
 
   price          Decimal @db.Decimal(10, 2) // server-calculated
   priceBreakdown Json // snapshot of rule + components
-  currency       String  @default("bdt")
+  currency       String  @default("usd") // platform currency (PLATFORM_CURRENCY in code)
 
   status             ShipmentStatus        @default(PENDING)
   paymentStatus      ShipmentPaymentStatus @default(UNPAID)
@@ -378,21 +379,41 @@ model Payment {
   shipment              Shipment      @relation(fields: [shipmentId], references: [id])
   userId                String
   user                  User          @relation(fields: [userId], references: [id])
-  amount                Decimal       @db.Decimal(10, 2)
-  currency              String        @default("bdt")
+  amount                Decimal       @db.Decimal(10, 2) // what we ask Stripe to charge (= shipment price)
+  currency              String        @default("usd") // platform currency (PLATFORM_CURRENCY in code)
   status                PaymentStatus @default(PENDING)
-  provider              String        @default("STRIPE")
+  provider              String        @default("STRIPE") // STRIPE | SEED | DEV
   stripeSessionId       String?       @unique
   stripePaymentIntentId String?       @unique
+  stripeRefundId        String?       @unique
+  checkoutUrl           String? // returned again while the session is open
+  expiresAt             DateTime? // Checkout Session expiry
+  paidAmount            Decimal?      @db.Decimal(10, 2) // what Stripe reports as paid
+  paidCurrency          String?
   paidAt                DateTime?
-  failureReason         String?
+  refundedAt            DateTime?
+  failureReason         String? // last failure / card decline message
+  requiresReview        Boolean       @default(false) // amount mismatch, duplicate payment, refund failure
+  reviewReason          String?
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
 
   @@index([shipmentId])
   @@index([userId, createdAt])
-  @@index([status])
+  @@index([status, createdAt])
+  @@index([requiresReview])
   @@map("payments")
+}
+
+/// Webhook idempotency: one row per processed Stripe event id.
+model StripeEvent {
+  id          String   @id // evt_...
+  type        String
+  paymentId   String?
+  processedAt DateTime @default(now())
+
+  @@index([paymentId])
+  @@map("stripe_events")
 }
 
 model CourierEarning {
