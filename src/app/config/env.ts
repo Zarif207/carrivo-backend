@@ -25,9 +25,15 @@ const envSchema = z.object({
     ),
   FRONTEND_URL: z.url().default("http://localhost:3000"),
 
+  BETTER_AUTH_SECRET: z
+    .string()
+    .min(32, { message: "BETTER_AUTH_SECRET must be at least 32 characters" }),
+  BETTER_AUTH_URL: z.url({ message: "BETTER_AUTH_URL must be the API's base URL" }),
+
+  // Only needed by `npm run db:seed`.
+  SEED_DEMO_PASSWORD: optionalString,
+
   // Later phases: optional until their phase makes them required.
-  BETTER_AUTH_SECRET: optionalString,
-  BETTER_AUTH_URL: optionalString,
   GOOGLE_CLIENT_ID: optionalString,
   GOOGLE_CLIENT_SECRET: optionalString,
   STRIPE_SECRET_KEY: optionalString,

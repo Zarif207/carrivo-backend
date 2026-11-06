@@ -5,7 +5,36 @@
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:5000/api/v1", "type": "string" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "demoPassword",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "courierToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "customerToken",
+      "value": "",
+      "type": "string"
+    }
   ],
   "item": [
     {
@@ -32,7 +61,15 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] },
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
             "description": "Liveness check. Always 200 while the server is up; `data.database` reports `up` or `down`."
           },
           "response": [
@@ -41,12 +78,25 @@
               "originalRequest": {
                 "method": "GET",
                 "header": [],
-                "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+                "url": {
+                  "raw": "{{baseUrl}}/health",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "health"
+                  ]
+                }
               },
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json; charset=utf-8" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
               "body": "{\n  \"success\": true,\n  \"message\": \"Server is healthy\",\n  \"data\": {\n    \"status\": \"ok\",\n    \"environment\": \"development\",\n    \"uptime\": 42,\n    \"timestamp\": \"2026-11-05T14:00:00.000Z\",\n    \"database\": \"up\"\n  }\n}"
             }
           ]
@@ -56,7 +106,15 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": { "raw": "{{baseUrl}}/does-not-exist", "host": ["{{baseUrl}}"], "path": ["does-not-exist"] },
+            "url": {
+              "raw": "{{baseUrl}}/does-not-exist",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "does-not-exist"
+              ]
+            },
             "description": "Shows the error envelope returned for unknown routes."
           },
           "response": [
@@ -65,13 +123,1296 @@
               "originalRequest": {
                 "method": "GET",
                 "header": [],
-                "url": { "raw": "{{baseUrl}}/does-not-exist", "host": ["{{baseUrl}}"], "path": ["does-not-exist"] }
+                "url": {
+                  "raw": "{{baseUrl}}/does-not-exist",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "does-not-exist"
+                  ]
+                }
               },
               "status": "Not Found",
               "code": 404,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json; charset=utf-8" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
               "body": "{\n  \"success\": false,\n  \"message\": \"Route not found: GET /api/v1/does-not-exist\",\n  \"errors\": []\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "description": "Email/password auth (Better Auth + bearer plugin). Send the returned `data.token` as `Authorization: Bearer <token>`. Login/register are rate limited: 20 failed attempts per 15 min per IP.",
+      "item": [
+        {
+          "name": "Register (customer)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('success envelope', () => pm.expect(body.success).to.eql(true));",
+                  "if (body.data && body.data.token) { pm.collectionVariables.set('customerToken', body.data.token); pm.collectionVariables.set('token', body.data.token); }",
+                  "pm.test('201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Self-registration always creates a CUSTOMER. Unknown fields (e.g. `role`) are rejected. Returns a session token (auto sign-in).",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Customer\",\n  \"email\": \"new.customer@example.com\",\n  \"password\": \"Secret123!\",\n  \"phone\": \"+8801711000123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "register"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"New Customer\",\n  \"email\": \"new.customer@example.com\",\n  \"password\": \"Secret123!\",\n  \"phone\": \"+8801711000123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Registration successful\",\n  \"data\": {\n    \"token\": \"Xk2v9QpL7mN3rT8wY1zA4bC6dE0fG5hJ.lMn0pQ2rS4tU6vW8xY0zA2bC4dE6fG8hJ0kL2mN4pQ6=\",\n    \"expiresAt\": \"2026-11-12T15:30:00.000Z\",\n    \"user\": {\n      \"id\": \"0f8c2a4e-6b1d-4e1a-9c3f-2d5e7a9b1c3d\",\n      \"name\": \"New Customer\",\n      \"email\": \"new.customer@example.com\",\n      \"emailVerified\": false,\n      \"image\": null,\n      \"role\": \"CUSTOMER\",\n      \"status\": \"ACTIVE\",\n      \"phone\": \"+8801711000123\",\n      \"address\": null,\n      \"createdAt\": \"2026-11-05T15:20:20.325Z\",\n      \"updatedAt\": \"2026-11-05T15:20:20.325Z\"\n    }\n  }\n}"
+            },
+            {
+              "name": "400 Validation error",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "register"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"New Customer\",\n  \"email\": \"new.customer@example.com\",\n  \"password\": \"Secret123!\",\n  \"phone\": \"+8801711000123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    {\n      \"path\": \"body.email\",\n      \"message\": \"A valid email is required\"\n    },\n    {\n      \"path\": \"body.password\",\n      \"message\": \"Password must be at least 8 characters\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "409 Email exists",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "register"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"New Customer\",\n  \"email\": \"new.customer@example.com\",\n  \"password\": \"Secret123!\",\n  \"phone\": \"+8801711000123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"User already exists. Use another email.\",\n  \"errors\": [\n    {\n      \"path\": \"\",\n      \"message\": \"USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "429 Too many attempts",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "register"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"New Customer\",\n  \"email\": \"new.customer@example.com\",\n  \"password\": \"Secret123!\",\n  \"phone\": \"+8801711000123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Too Many Requests",
+              "code": 429,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Too many authentication attempts, please try again in 15 minutes\",\n  \"errors\": []\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('success envelope', () => pm.expect(body.success).to.eql(true));",
+                  "if (body.data && body.data.token) { pm.collectionVariables.set('token', body.data.token); pm.collectionVariables.set('token', body.data.token); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Returns a signed session token valid for 7 days (sliding). Saves {{token}}.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer1@carrivo.dev\",\n  \"password\": \"{{demoPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"customer1@carrivo.dev\",\n  \"password\": \"{{demoPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Login successful\",\n  \"data\": {\n    \"token\": \"Xk2v9QpL7mN3rT8wY1zA4bC6dE0fG5hJ.lMn0pQ2rS4tU6vW8xY0zA2bC4dE6fG8hJ0kL2mN4pQ6=\",\n    \"expiresAt\": \"2026-11-12T15:30:00.000Z\",\n    \"user\": {\n      \"id\": \"0f8c2a4e-6b1d-4e1a-9c3f-2d5e7a9b1c3d\",\n      \"name\": \"Ayesha Customer\",\n      \"email\": \"customer1@carrivo.dev\",\n      \"emailVerified\": true,\n      \"image\": null,\n      \"role\": \"CUSTOMER\",\n      \"status\": \"ACTIVE\",\n      \"phone\": \"+8801711000003\",\n      \"address\": null,\n      \"createdAt\": \"2026-11-05T15:20:20.325Z\",\n      \"updatedAt\": \"2026-11-05T15:20:20.325Z\"\n    }\n  }\n}"
+            },
+            {
+              "name": "401 Wrong credentials",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"customer1@carrivo.dev\",\n  \"password\": \"{{demoPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid email or password\",\n  \"errors\": [\n    {\n      \"path\": \"\",\n      \"message\": \"INVALID_EMAIL_OR_PASSWORD\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "403 Deactivated account",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"customer1@carrivo.dev\",\n  \"password\": \"{{demoPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Account is deactivated\",\n  \"errors\": [\n    {\n      \"path\": \"\",\n      \"message\": \"ACCOUNT_DEACTIVATED\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login as Admin (demo)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('success envelope', () => pm.expect(body.success).to.eql(true));",
+                  "if (body.data && body.data.token) { pm.collectionVariables.set('adminToken', body.data.token); pm.collectionVariables.set('token', body.data.token); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Logs in the seeded admin account and saves {{adminToken}}.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@carrivo.dev\",\n  \"password\": \"{{demoPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"admin@carrivo.dev\",\n  \"password\": \"{{demoPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Login successful\",\n  \"data\": {\n    \"token\": \"Xk2v9QpL7mN3rT8wY1zA4bC6dE0fG5hJ.lMn0pQ2rS4tU6vW8xY0zA2bC4dE6fG8hJ0kL2mN4pQ6=\",\n    \"expiresAt\": \"2026-11-12T15:30:00.000Z\",\n    \"user\": {\n      \"id\": \"0f8c2a4e-6b1d-4e1a-9c3f-2d5e7a9b1c3d\",\n      \"name\": \"Ayesha Customer\",\n      \"email\": \"admin@carrivo.dev\",\n      \"emailVerified\": true,\n      \"image\": null,\n      \"role\": \"ADMIN\",\n      \"status\": \"ACTIVE\",\n      \"phone\": \"+8801711000003\",\n      \"address\": null,\n      \"createdAt\": \"2026-11-05T15:20:20.325Z\",\n      \"updatedAt\": \"2026-11-05T15:20:20.325Z\"\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login as Courier (demo)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('success envelope', () => pm.expect(body.success).to.eql(true));",
+                  "if (body.data && body.data.token) { pm.collectionVariables.set('courierToken', body.data.token); pm.collectionVariables.set('token', body.data.token); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Logs in the seeded courier account and saves {{courierToken}}.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"courier1@carrivo.dev\",\n  \"password\": \"{{demoPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"courier1@carrivo.dev\",\n  \"password\": \"{{demoPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Login successful\",\n  \"data\": {\n    \"token\": \"Xk2v9QpL7mN3rT8wY1zA4bC6dE0fG5hJ.lMn0pQ2rS4tU6vW8xY0zA2bC4dE6fG8hJ0kL2mN4pQ6=\",\n    \"expiresAt\": \"2026-11-12T15:30:00.000Z\",\n    \"user\": {\n      \"id\": \"0f8c2a4e-6b1d-4e1a-9c3f-2d5e7a9b1c3d\",\n      \"name\": \"Ayesha Customer\",\n      \"email\": \"courier1@carrivo.dev\",\n      \"emailVerified\": true,\n      \"image\": null,\n      \"role\": \"COURIER\",\n      \"status\": \"ACTIVE\",\n      \"phone\": \"+8801711000003\",\n      \"address\": null,\n      \"createdAt\": \"2026-11-05T15:20:20.325Z\",\n      \"updatedAt\": \"2026-11-05T15:20:20.325Z\"\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login as Customer (demo)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('success envelope', () => pm.expect(body.success).to.eql(true));",
+                  "if (body.data && body.data.token) { pm.collectionVariables.set('customerToken', body.data.token); pm.collectionVariables.set('token', body.data.token); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Logs in the seeded customer account and saves {{customerToken}}.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer1@carrivo.dev\",\n  \"password\": \"{{demoPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"customer1@carrivo.dev\",\n  \"password\": \"{{demoPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Login successful\",\n  \"data\": {\n    \"token\": \"Xk2v9QpL7mN3rT8wY1zA4bC6dE0fG5hJ.lMn0pQ2rS4tU6vW8xY0zA2bC4dE6fG8hJ0kL2mN4pQ6=\",\n    \"expiresAt\": \"2026-11-12T15:30:00.000Z\",\n    \"user\": {\n      \"id\": \"0f8c2a4e-6b1d-4e1a-9c3f-2d5e7a9b1c3d\",\n      \"name\": \"Ayesha Customer\",\n      \"email\": \"customer1@carrivo.dev\",\n      \"emailVerified\": true,\n      \"image\": null,\n      \"role\": \"CUSTOMER\",\n      \"status\": \"ACTIVE\",\n      \"phone\": \"+8801711000003\",\n      \"address\": null,\n      \"createdAt\": \"2026-11-05T15:20:20.325Z\",\n      \"updatedAt\": \"2026-11-05T15:20:20.325Z\"\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Refresh token (rotate session)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('success envelope', () => pm.expect(body.success).to.eql(true));",
+                  "if (body.data && body.data.token) { pm.collectionVariables.set('token', body.data.token); pm.collectionVariables.set('token', body.data.token); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh-token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "refresh-token"
+              ]
+            },
+            "description": "Session rotation: issues a new token (fresh 7-day expiry) and revokes the one sent. Replace your stored token with the returned one.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/refresh-token",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "refresh-token"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Session refreshed\",\n  \"data\": {\n    \"token\": \"Xk2v9QpL7mN3rT8wY1zA4bC6dE0fG5hJ.lMn0pQ2rS4tU6vW8xY0zA2bC4dE6fG8hJ0kL2mN4pQ6=\",\n    \"expiresAt\": \"2026-11-12T15:30:00.000Z\"\n  }\n}"
+            },
+            {
+              "name": "401 Invalid token",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/refresh-token",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "refresh-token"
+                  ]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid or expired authentication token\",\n  \"errors\": []\n}"
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Revokes the current session. The token stops working immediately.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/logout",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "logout"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Logout successful\",\n  \"data\": null\n}"
+            },
+            {
+              "name": "401 Missing token",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/logout",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "logout"
+                  ]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Authentication token is missing\",\n  \"errors\": []\n}"
+            }
+          ]
+        },
+        {
+          "name": "Admin check (temporary, ADMIN only)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/admin-check",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "admin-check"
+              ]
+            },
+            "description": "Temporary route to verify role authorization. Try it with {{customerToken}} to see 403.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK (admin)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/admin-check",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "admin-check"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Admin access confirmed\",\n  \"data\": {\n    \"ok\": true,\n    \"userId\": \"7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d\",\n    \"role\": \"ADMIN\"\n  }\n}"
+            },
+            {
+              "name": "403 Forbidden (customer)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/admin-check",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "admin-check"
+                  ]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
+            }
+          ]
+        },
+        {
+          "name": "Change password (Better Auth endpoint)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/change-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "change-password"
+              ]
+            },
+            "description": "Served directly by Better Auth (passes through our router), so the response is Better Auth's own shape, not our envelope.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"{{demoPassword}}\",\n  \"newPassword\": \"NewSecret123!\",\n  \"revokeOtherSessions\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/change-password",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "change-password"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"currentPassword\": \"{{demoPassword}}\",\n  \"newPassword\": \"NewSecret123!\",\n  \"revokeOtherSessions\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"token\": null,\n  \"user\": {\n    \"id\": \"0f8c2a4e-6b1d-4e1a-9c3f-2d5e7a9b1c3d\",\n    \"email\": \"customer1@carrivo.dev\",\n    \"name\": \"Ayesha Customer\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get my profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me"
+              ]
+            },
+            "description": "Any role. Couriers also get `courierProfile` (zone, hub, vehicle, availability).",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK (customer)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/users/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "me"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Profile retrieved successfully\",\n  \"data\": {\n    \"id\": \"0f8c2a4e-6b1d-4e1a-9c3f-2d5e7a9b1c3d\",\n    \"name\": \"Ayesha Customer\",\n    \"email\": \"customer1@carrivo.dev\",\n    \"emailVerified\": true,\n    \"image\": null,\n    \"role\": \"CUSTOMER\",\n    \"status\": \"ACTIVE\",\n    \"phone\": \"+8801711000003\",\n    \"address\": null,\n    \"createdAt\": \"2026-11-05T15:20:20.325Z\",\n    \"updatedAt\": \"2026-11-05T15:20:20.325Z\",\n    \"courierProfile\": null\n  }\n}"
+            },
+            {
+              "name": "200 OK (courier)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/users/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "me"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Profile retrieved successfully\",\n  \"data\": {\n    \"id\": \"0f8c2a4e-6b1d-4e1a-9c3f-2d5e7a9b1c3d\",\n    \"name\": \"Rahim Courier\",\n    \"email\": \"courier1@carrivo.dev\",\n    \"emailVerified\": true,\n    \"image\": null,\n    \"role\": \"COURIER\",\n    \"status\": \"ACTIVE\",\n    \"phone\": \"+8801711000001\",\n    \"address\": null,\n    \"createdAt\": \"2026-11-05T15:20:20.325Z\",\n    \"updatedAt\": \"2026-11-05T15:20:20.325Z\",\n    \"courierProfile\": {\n      \"id\": \"019a5b7e-1c2d-7e3f-8a9b-0c1d2e3f4a5b\",\n      \"vehicleType\": \"MOTORCYCLE\",\n      \"vehicleNumber\": \"DHAKA-METRO-HA-11-1111\",\n      \"isAvailable\": true,\n      \"zone\": {\n        \"id\": \"019a5b7e-0001-7000-8000-000000000001\",\n        \"name\": \"Dhaka North\",\n        \"code\": \"DHK-N\"\n      },\n      \"hub\": {\n        \"id\": \"019a5b7e-0002-7000-8000-000000000002\",\n        \"name\": \"Dhaka North Hub\",\n        \"code\": \"HUB-DHK-N\"\n      }\n    }\n  }\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/users/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "me"
+                  ]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Authentication token is missing\",\n  \"errors\": []\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update my profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me"
+              ]
+            },
+            "description": "Whitelisted fields only: name, phone, address, image (send null to clear phone/address/image). Any other field (e.g. role, email) returns 400.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ayesha Rahman\",\n  \"phone\": \"+8801711000099\",\n  \"address\": \"House 1, Road 2, Dhanmondi, Dhaka\",\n  \"image\": \"https://res.cloudinary.com/demo/image/upload/avatar.png\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/users/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "me"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Ayesha Rahman\",\n  \"phone\": \"+8801711000099\",\n  \"address\": \"House 1, Road 2, Dhanmondi, Dhaka\",\n  \"image\": \"https://res.cloudinary.com/demo/image/upload/avatar.png\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Profile updated successfully\",\n  \"data\": {\n    \"id\": \"0f8c2a4e-6b1d-4e1a-9c3f-2d5e7a9b1c3d\",\n    \"name\": \"Ayesha Rahman\",\n    \"email\": \"customer1@carrivo.dev\",\n    \"emailVerified\": true,\n    \"image\": \"https://res.cloudinary.com/demo/image/upload/avatar.png\",\n    \"role\": \"CUSTOMER\",\n    \"status\": \"ACTIVE\",\n    \"phone\": \"+8801711000099\",\n    \"address\": \"House 1, Road 2, Dhanmondi, Dhaka\",\n    \"createdAt\": \"2026-11-05T15:20:20.325Z\",\n    \"updatedAt\": \"2026-11-05T15:20:20.325Z\",\n    \"courierProfile\": null\n  }\n}"
+            },
+            {
+              "name": "400 Unknown field",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/users/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "me"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Ayesha Rahman\",\n  \"phone\": \"+8801711000099\",\n  \"address\": \"House 1, Road 2, Dhanmondi, Dhaka\",\n  \"image\": \"https://res.cloudinary.com/demo/image/upload/avatar.png\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    {\n      \"path\": \"body\",\n      \"message\": \"Unrecognized key: \\\"role\\\"\"\n    }\n  ]\n}"
             }
           ]
         }

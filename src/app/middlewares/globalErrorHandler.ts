@@ -1,7 +1,9 @@
+import { isAPIError } from "better-auth/api";
 import type { ErrorRequestHandler } from "express";
 import httpStatus from "http-status";
 import { ZodError } from "zod";
 import { isDevelopment } from "../config/env.js";
+import { handleBetterAuthError } from "../errors/handleBetterAuthError.js";
 import { handlePrismaKnownError, handlePrismaValidationError } from "../errors/handlePrismaError.js";
 import { handleZodError } from "../errors/handleZodError.js";
 import { Prisma } from "../../generated/prisma/client.js";
@@ -24,6 +26,7 @@ const normalizeError = (error: unknown): NormalizedError => {
   if (error instanceof ApiError) {
     return { statusCode: error.statusCode, message: error.message, errors: error.errors };
   }
+  if (isAPIError(error)) return handleBetterAuthError(error);
   if (error instanceof Prisma.PrismaClientKnownRequestError) return handlePrismaKnownError(error);
   if (error instanceof Prisma.PrismaClientValidationError) return handlePrismaValidationError();
   if (error instanceof Prisma.PrismaClientInitializationError) {

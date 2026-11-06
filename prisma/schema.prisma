@@ -84,6 +84,7 @@ model User {
   image         String?
   role          Role       @default(CUSTOMER) // Better Auth additionalField, input:false (Phase 2)
   phone         String?
+  address       String?
   status        UserStatus @default(ACTIVE)
   deletedAt     DateTime?
   createdAt     DateTime   @default(now())
