@@ -9,3 +9,10 @@ export interface AuthTokenResult {
 export interface AuthResult extends AuthTokenResult {
   user: SafeUser;
 }
+
+export interface GoogleStartResult {
+  /** Google's authorization URL (the browser is redirected there). */
+  url: string;
+  /** Better Auth's OAuth state cookie(s), forwarded as-is. */
+  setCookies: string[];
+}

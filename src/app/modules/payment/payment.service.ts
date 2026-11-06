@@ -13,6 +13,8 @@ import type { RequestMeta } from "../../utils/requestMeta.js";
 import { AUDIT_ACTIONS, AUDIT_ENTITIES, type AuditAction } from "../audit/audit.constants.js";
 import { AuditService } from "../audit/audit.service.js";
 import type { Actor } from "../audit/audit.types.js";
+import { NotificationService } from "../notification/notification.service.js";
+import type { PendingEmail } from "../notification/notification.types.js";
 import {
   paymentSelect,
   type InitiateResult,
@@ -231,6 +233,8 @@ const initiate = async (actor: Actor, shipmentId: string, meta: RequestMeta): Pr
       {
         mode: "payment",
         allowed_payment_method_types: ["card"],
+        // Customers always see and pay the USD amount (no local-currency conversion).
+        adaptive_pricing: { enabled: false },
         line_items: [
           {
             quantity: 1,
@@ -309,8 +313,9 @@ const recordEvent = async (db: Db, event: Stripe.Event | null, paymentId: string
  * price must match; otherwise the payment is flagged for review and NOT paid.
  * Guarded updates make every repeat (retries, /verify, duplicates) a no-op.
  */
-const markPaidFromSession = (session: Stripe.Checkout.Session, event: Stripe.Event | null): Promise<WebhookOutcome> =>
-  prisma.$transaction(async (tx) => {
+const markPaidFromSession = async (session: Stripe.Checkout.Session, event: Stripe.Event | null): Promise<WebhookOutcome> => {
+  let emails: PendingEmail[] = [];
+  const outcome = await prisma.$transaction(async (tx): Promise<WebhookOutcome> => {
     const paymentId = session.metadata?.["paymentId"] ?? null;
     if (!(await recordEvent(tx, event, paymentId))) return "duplicate_event";
     if (!paymentId) return "unknown_payment";
@@ -352,11 +357,12 @@ const markPaidFromSession = (session: Stripe.Checkout.Session, event: Stripe.Eve
       return "review_required";
     }
 
+    const paidAt = new Date();
     const { count } = await tx.payment.updateMany({
       where: { id: payment.id, status: PaymentStatus.PENDING },
       data: {
         status: PaymentStatus.PAID,
-        paidAt: new Date(),
+        paidAt,
         paidAmount: check.paidAmount,
         paidCurrency: session.currency,
         stripePaymentIntentId: paymentIntentId,
@@ -386,8 +392,13 @@ const markPaidFromSession = (session: Stripe.Checkout.Session, event: Stripe.Eve
       source: event ? "webhook" : "verify",
       duplicate: shipmentUpdate.count === 0,
     });
-    return shipmentUpdate.count === 0 ? "review_required" : "paid";
+    if (shipmentUpdate.count === 0) return "review_required";
+    emails = await NotificationService.forPaymentReceived(tx, payment.shipmentId, check.paidAmount, paidAt);
+    return "paid";
   });
+  void NotificationService.sendAfterCommit(emails);
+  return outcome;
+};
 
 /** PENDING → EXPIRED or FAILED for a session (guarded; repeat calls are no-ops). */
 const closePendingBySession = (
@@ -433,15 +444,18 @@ const markRefundPendingForCancel = async (db: Db, shipmentId: string, actor: Act
   return payment.id;
 };
 
-/** PAID/REFUND_PENDING → REFUNDED and the shipment's paymentStatus → REFUNDED (guarded). */
+/**
+ * PAID/REFUND_PENDING → REFUNDED and the shipment's paymentStatus → REFUNDED (guarded).
+ * Returns the REFUND_COMPLETED email to send after commit, or null if nothing changed.
+ */
 const completeRefund = async (
   db: Db,
   paymentId: string,
   details: { stripeRefundId: string | null; source: string; actor: Actor | null },
-): Promise<boolean> => {
+): Promise<PendingEmail[] | null> => {
   const payment = await db.payment.findUniqueOrThrow({
     where: { id: paymentId },
-    select: { shipmentId: true, reviewReason: true },
+    select: { shipmentId: true, reviewReason: true, amount: true, paidAmount: true },
   });
   const { count } = await db.payment.updateMany({
     where: { id: paymentId, status: { in: [PaymentStatus.PAID, PaymentStatus.REFUND_PENDING] } },
@@ -453,7 +467,7 @@ const completeRefund = async (
       ...(payment.reviewReason?.startsWith("Refund failed") ? { requiresReview: false, reviewReason: null } : {}),
     },
   });
-  if (count === 0) return false;
+  if (count === 0) return null;
   const shipment = await db.shipment.findUniqueOrThrow({ where: { id: payment.shipmentId }, select: { status: true } });
   await db.shipment.updateMany({
     where: { id: payment.shipmentId, paymentStatus: ShipmentPaymentStatus.PAID },
@@ -466,7 +480,7 @@ const completeRefund = async (
     });
   }
   await audit(db, AUDIT_ACTIONS.PAYMENT_REFUNDED, paymentId, { stripeRefundId: details.stripeRefundId, source: details.source }, details.actor);
-  return true;
+  return NotificationService.forRefundCompleted(db, payment.shipmentId, payment.paidAmount ?? payment.amount);
 };
 
 /**
@@ -485,9 +499,10 @@ const processRefund = async (paymentId: string, actor: Actor | null): Promise<Pa
 
   if (payment.provider !== STRIPE_PROVIDER || !payment.stripePaymentIntentId) {
     // Seed/dev payments have no Stripe charge to refund: completed locally, audited as such.
-    await prisma.$transaction((tx) =>
+    const emails = await prisma.$transaction((tx) =>
       completeRefund(tx, payment.id, { stripeRefundId: null, source: `local (${payment.provider} payment, no Stripe charge)`, actor }),
     );
+    void NotificationService.sendAfterCommit(emails ?? []);
     return PaymentStatus.REFUNDED;
   }
 
@@ -506,7 +521,8 @@ const processRefund = async (paymentId: string, actor: Actor | null): Promise<Pa
         { idempotencyKey: `refund-${payment.id}` },
       ));
     if (refund.status === "succeeded") {
-      await prisma.$transaction((tx) => completeRefund(tx, payment.id, { stripeRefundId: refund.id, source: "stripe", actor }));
+      const emails = await prisma.$transaction((tx) => completeRefund(tx, payment.id, { stripeRefundId: refund.id, source: "stripe", actor }));
+      void NotificationService.sendAfterCommit(emails ?? []);
       return PaymentStatus.REFUNDED;
     }
     await prisma.payment.update({ where: { id: payment.id }, data: { stripeRefundId: refund.id } });
@@ -576,7 +592,8 @@ const handleWebhookEvent = async (event: Stripe.Event): Promise<WebhookOutcome> 
     }
     case "charge.refunded": {
       const charge = event.data.object;
-      return prisma.$transaction(async (tx) => {
+      let emails: PendingEmail[] = [];
+      const outcome = await prisma.$transaction(async (tx): Promise<WebhookOutcome> => {
         const payment = await paymentByIntent(tx, stripeId(charge.payment_intent));
         if (!(await recordEvent(tx, event, payment?.id ?? null))) return "duplicate_event";
         if (!payment) return "unknown_payment";
@@ -588,8 +605,12 @@ const handleWebhookEvent = async (event: Stripe.Event): Promise<WebhookOutcome> 
           return "review_required";
         }
         const done = await completeRefund(tx, payment.id, { stripeRefundId: null, source: "webhook charge.refunded", actor: null });
-        return done ? "refunded" : "already_processed";
+        if (!done) return "already_processed";
+        emails = done;
+        return "refunded";
       });
+      void NotificationService.sendAfterCommit(emails);
+      return outcome;
     }
     case "refund.failed": {
       const refund = event.data.object;

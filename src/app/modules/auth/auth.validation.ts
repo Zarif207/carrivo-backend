@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CHALLENGE_PATTERN, EXCHANGE_CODE_PATTERN, VERIFIER_PATTERN } from "./auth.google.utils.js";
 
 const email = z.email({ message: "A valid email is required" }).trim().toLowerCase();
 const password = z
@@ -26,7 +27,34 @@ const login = z.object({
   }),
 });
 
-export const AuthValidation = { register, login };
+/** Browser navigation: GET /auth/google?challenge=<base64url(SHA-256(verifier))> */
+const googleStart = z.object({
+  query: z.strictObject({
+    challenge: z.string().regex(CHALLENGE_PATTERN, {
+      message: "challenge must be base64url(SHA-256(code_verifier)) without padding (43 characters)",
+    }),
+  }),
+});
+
+/** Reached only through Better Auth's redirects; extra params from Better Auth are ignored. */
+const googleComplete = z.object({
+  query: z.object({
+    error: z.string().max(100).optional(),
+    new: z.literal("1").optional(),
+  }),
+});
+
+const googleExchange = z.object({
+  body: z.strictObject({
+    code: z.string().regex(EXCHANGE_CODE_PATTERN, { message: "Invalid code" }),
+    codeVerifier: z.string().regex(VERIFIER_PATTERN, { message: "codeVerifier must be 43-128 characters [A-Za-z0-9-._~]" }),
+  }),
+});
+
+export const AuthValidation = { register, login, googleStart, googleComplete, googleExchange };
 
 export type RegisterInput = z.infer<typeof register>["body"];
 export type LoginInput = z.infer<typeof login>["body"];
+export type GoogleStartQuery = z.infer<typeof googleStart>["query"];
+export type GoogleCompleteQuery = z.infer<typeof googleComplete>["query"];
+export type GoogleExchangeInput = z.infer<typeof googleExchange>["body"];

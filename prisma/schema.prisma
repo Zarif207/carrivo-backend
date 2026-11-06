@@ -76,6 +76,24 @@ enum EarningStatus {
   PAID
 }
 
+enum NotificationType {
+  SHIPMENT_CREATED
+  COURIER_ASSIGNED
+  PICKED_UP
+  OUT_FOR_DELIVERY
+  DELIVERED
+  FAILED_DELIVERY
+  PAYMENT_RECEIVED
+  REFUND_COMPLETED
+}
+
+enum EmailStatus {
+  PENDING // row committed, email not attempted yet
+  SENT
+  FAILED
+  SKIPPED // RESEND_API_KEY not configured
+}
+
 // ───────────── Better Auth core (user/session/account/verification) ─────────────
 model User {
   id            String     @id
@@ -101,6 +119,7 @@ model User {
   payments          Payment[]
   earnings          CourierEarning[]
   auditLogs         AuditLog[]
+  notifications     Notification[]
 
   @@index([role, status]) // admin user list, last-admin lock, dashboard counts
   @@index([status])
@@ -295,7 +314,10 @@ model Shipment {
   failedAttempts     Int                   @default(0)
   failureReason      String?
   cancelReason       String?
-  proofOfDeliveryUrl String?
+  // Proof of delivery (Cloudinary). Never part of public tracking.
+  proofOfDeliveryUrl        String?
+  proofOfDeliveryPublicId   String? // to replace/delete the image
+  proofOfDeliveryUploadedAt DateTime?
 
   estimatedDeliveryAt DateTime?
   pickedUpAt          DateTime?
@@ -309,6 +331,7 @@ model Shipment {
   pickupRequest PickupRequest?
   payments      Payment[]
   earning       CourierEarning?
+  notifications Notification[]
 
   @@index([status])
   @@index([paymentStatus])
@@ -453,4 +476,28 @@ model AuditLog {
   @@index([action, createdAt])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// ───────────── Notifications ─────────────
+// Append-only (no deletedAt): rows are only ever marked read. Created in the same
+// transaction as the business change; the email is sent after commit.
+model Notification {
+  id          String           @id @default(uuid(7))
+  userId      String
+  user        User             @relation(fields: [userId], references: [id])
+  shipmentId  String?
+  shipment    Shipment?        @relation(fields: [shipmentId], references: [id])
+  type        NotificationType
+  title       String
+  message     String
+  readAt      DateTime?
+  emailStatus EmailStatus      @default(PENDING)
+  emailError  String? // short provider message; never the address or API key
+  emailSentAt DateTime?
+  createdAt   DateTime         @default(now())
+
+  @@index([userId, readAt, createdAt]) // unread filter + newest first
+  @@index([userId, createdAt])
+  @@index([shipmentId])
+  @@map("notifications")
 }

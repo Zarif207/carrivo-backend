@@ -1,6 +1,7 @@
 import httpStatus from "http-status";
 import { getAuthUser } from "../../middlewares/authenticate.js";
 import { getValidatedQuery } from "../../middlewares/validateRequest.js";
+import { ApiError } from "../../utils/ApiError.js";
 import { catchAsync } from "../../utils/catchAsync.js";
 import { getRequestMeta } from "../../utils/requestMeta.js";
 import { sendResponse } from "../../utils/sendResponse.js";
@@ -97,7 +98,15 @@ const updateStatus = catchAsync(async (req, res) => {
   sendResponse(res, { statusCode: httpStatus.OK, message: "Shipment status updated successfully", data });
 });
 
+const uploadProof = catchAsync(async (req, res) => {
+  // uploadSingleImage has already validated size, declared type and actual bytes.
+  if (!req.file) throw new ApiError(httpStatus.BAD_REQUEST, "An image file is required in the 'image' form field");
+  const data = await ShipmentService.uploadProof(getAuthUser(req), String(req.params["id"]), req.file.buffer, getRequestMeta(req));
+  sendResponse(res, { statusCode: httpStatus.OK, message: "Proof of delivery uploaded", data });
+});
+
 export const ShipmentController = {
+  uploadProof,
   create,
   list,
   getById,

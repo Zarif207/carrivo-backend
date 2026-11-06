@@ -33,6 +33,9 @@ export const courierTaskSelect = {
   description: true,
   failedAttempts: true,
   failureReason: true,
+  // Only the assigned courier ever reads a task, so the proof is safe to include.
+  proofOfDeliveryUrl: true,
+  proofOfDeliveryUploadedAt: true,
   currentHub: { select: hubRefSelect },
   pickupRequest: { select: pickupRequestSelect },
 } as const satisfies Prisma.ShipmentSelect;

@@ -3,6 +3,7 @@ import { AdminRoutes } from "../modules/admin/admin.route.js";
 import { CourierRoutes } from "../modules/courier/courier.route.js";
 import { PaymentRoutes } from "../modules/payment/payment.route.js";
 import { HealthRoutes } from "../modules/health/health.route.js";
+import { NotificationRoutes } from "../modules/notification/notification.route.js";
 import { HubRoutes } from "../modules/hub/hub.route.js";
 import { PricingRoutes } from "../modules/pricing/pricing.route.js";
 import { ShipmentRoutes } from "../modules/shipment/shipment.route.js";
@@ -28,6 +29,7 @@ const moduleRoutes: ModuleRoute[] = [
   { path: "/couriers", route: CourierRoutes },
   { path: "/admin", route: AdminRoutes },
   { path: "/payments", route: PaymentRoutes },
+  { path: "/notifications", route: NotificationRoutes },
   { path: "/tracking", route: TrackingRoutes },
 ];
 

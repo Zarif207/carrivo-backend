@@ -58,6 +58,7 @@ export const shipmentDetailSelect = {
   failureReason: true,
   cancelReason: true,
   proofOfDeliveryUrl: true,
+  proofOfDeliveryUploadedAt: true,
   estimatedDeliveryAt: true,
   pickedUpAt: true,
   deliveredAt: true,

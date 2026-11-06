@@ -109,6 +109,26 @@
       "key": "checkoutSessionId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "googleChallenge",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "googleCodeVerifier",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "googleCode",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "notificationId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -1187,6 +1207,295 @@
           ]
         },
         {
+          "name": "Google: start sign-in (open in a BROWSER)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/google?challenge={{googleChallenge}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "google"
+              ],
+              "query": [
+                {
+                  "key": "challenge",
+                  "value": "{{googleChallenge}}",
+                  "description": "base64url(SHA-256(codeVerifier)), no padding, 43 chars",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Not an XHR call: the frontend NAVIGATES the browser here (window.location). Answers 302 to Google and sets two httpOnly cookies on the API domain (Better Auth's OAuth state + the signed challenge).\nAfter Google, the browser ends on FRONTEND_URL/auth/google/callback?code=<one-time code> or ?error=account_exists | account_deactivated | google_cancelled | google_failed.\naccount_exists: the email already has an account (Google never links to it; use the password).\n\nManual test without a frontend (also in README → Authentication):\nVERIFIER=$(openssl rand -base64 48 | tr '+/' '-_' | tr -d '=\\n')\nCHALLENGE=$(printf '%s' \"$VERIFIER\" | openssl dgst -sha256 -binary | openssl base64 -A | tr '+/' '-_' | tr -d '=')\nPut both into the googleCodeVerifier / googleChallenge collection variables, open {{baseUrl}}/auth/google?challenge=<CHALLENGE> in a browser, sign in, copy ?code= from the address bar into googleCode, then send \"Google: exchange code\" within 60 s.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "302 Redirect to Google",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/google?challenge={{googleChallenge}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "google"
+                  ],
+                  "query": [
+                    {
+                      "key": "challenge",
+                      "value": "{{googleChallenge}}",
+                      "description": "base64url(SHA-256(codeVerifier)), no padding, 43 chars",
+                      "disabled": false
+                    }
+                  ]
+                }
+              },
+              "status": "Found",
+              "code": 302,
+              "_postman_previewlanguage": "text",
+              "header": [
+                {
+                  "key": "Location",
+                  "value": "https://accounts.google.com/o/oauth2/v2/auth?client_id=<GOOGLE_CLIENT_ID>&redirect_uri=http%3A%2F%2Flocalhost%3A5077%2Fapi%2Fv1%2Fauth%2Fcallback%2Fgoogle&response_type=code&scope=...&state=...&code_challenge=...&prompt=select_account"
+                },
+                {
+                  "key": "Set-Cookie",
+                  "value": "better-auth.state=...; Max-Age=300; Path=/; HttpOnly; SameSite=Lax"
+                },
+                {
+                  "key": "Set-Cookie",
+                  "value": "carrivo_google_challenge=...; Max-Age=600; Path=/api/v1/auth/google; HttpOnly; SameSite=Lax"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-store"
+                }
+              ],
+              "body": ""
+            },
+            {
+              "name": "400 Missing/malformed challenge",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/google?challenge={{googleChallenge}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "google"
+                  ],
+                  "query": [
+                    {
+                      "key": "challenge",
+                      "value": "{{googleChallenge}}",
+                      "description": "base64url(SHA-256(codeVerifier)), no padding, 43 chars",
+                      "disabled": false
+                    }
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    {\n      \"path\": \"query.challenge\",\n      \"message\": \"challenge must be base64url(SHA-256(code_verifier)) without padding (43 characters)\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Google: exchange code",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.token) pm.collectionVariables.set('token', body.data.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/google/exchange",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "google",
+                "exchange"
+              ]
+            },
+            "description": "Swaps the one-time code from the frontend callback URL for the normal { token, expiresAt, user } response. The code is valid for 60 s, works once (a wrong verifier also burns it), and only with the verifier whose S256 hash started the flow. New Google users are always CUSTOMER. Saves {{token}}.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{googleCode}}\",\n  \"codeVerifier\": \"{{googleCodeVerifier}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/google/exchange",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "google",
+                    "exchange"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"code\": \"{{googleCode}}\",\n  \"codeVerifier\": \"{{googleCodeVerifier}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Google sign-in successful\",\n  \"data\": {\n    \"token\": \"<session-token>\",\n    \"expiresAt\": \"2026-11-13T07:35:06.799Z\",\n    \"user\": {\n      \"id\": \"3d879c03-00a7-479f-8520-140b03c53648\",\n      \"name\": \"Nadia Google\",\n      \"email\": \"nadia.google@example.com\",\n      \"emailVerified\": true,\n      \"image\": \"https://lh3.googleusercontent.com/a/mock\",\n      \"role\": \"CUSTOMER\",\n      \"status\": \"ACTIVE\",\n      \"phone\": null,\n      \"address\": null,\n      \"createdAt\": \"2026-11-06T07:35:06.153Z\",\n      \"updatedAt\": \"2026-11-06T07:35:06.153Z\"\n    }\n  }\n}"
+            },
+            {
+              "name": "400 Invalid, expired or already used code (or wrong verifier)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/google/exchange",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "google",
+                    "exchange"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"code\": \"{{googleCode}}\",\n  \"codeVerifier\": \"{{googleCodeVerifier}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid or expired code, please sign in with Google again\",\n  \"errors\": [\n    {\n      \"path\": \"body.code\",\n      \"message\": \"Invalid or expired\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "403 Account deactivated in the meantime",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/google/exchange",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "google",
+                    "exchange"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"code\": \"{{googleCode}}\",\n  \"codeVerifier\": \"{{googleCodeVerifier}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Account is deactivated\",\n  \"errors\": []\n}"
+            }
+          ]
+        },
+        {
           "name": "Not allow-listed Better Auth endpoint (404)",
           "request": {
             "method": "GET",
@@ -1201,7 +1510,7 @@
                 "list-sessions"
               ]
             },
-            "description": "Example: /auth/list-sessions is blocked because it would return the raw token of every session.",
+            "description": "Example: /auth/list-sessions is blocked because it would return the raw token of every session.\nOnly these Better Auth paths are reachable: /get-session, /change-password, /revoke-sessions, /revoke-other-sessions, /ok and /callback/google (Google's redirect URI). /sign-in/social, other providers' callbacks, /link-social and /error all return 404.",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -4119,7 +4428,7 @@
                 "{{shipmentId}}"
               ]
             },
-            "description": "Includes zones, hubs, courier, price breakdown and the status timeline.",
+            "description": "Includes zones, hubs, courier, price breakdown and the status timeline.\nIncludes proofOfDeliveryUrl / proofOfDeliveryUploadedAt (null until the courier uploads one).",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -5722,6 +6031,321 @@
           ]
         },
         {
+          "name": "Upload proof of delivery (assigned COURIER)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/{{shipmentId}}/proof",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{shipmentId}}",
+                "proof"
+              ]
+            },
+            "description": "multipart/form-data with exactly one file in the `image` field (pick a file in Postman's Body tab). Only the assigned courier, only while OUT_FOR_DELIVERY or DELIVERED.\nValidation: declared type must be image/jpeg|png|webp AND the file's bytes must match it; max 4 MB (below Vercel's 4.5 MB request limit, so the error is always ours). Frontends should compress phone photos before uploading (e.g. resize to ~1600 px, JPEG/WebP quality 0.8).\nStored on Cloudinary (carrivo/proof-of-delivery, random unguessable id). Uploading again replaces the image; the old one is deleted. The URL appears in the owner's and admin's shipment detail and in the courier's task, never in public tracking.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{courierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": [],
+                  "description": "JPEG, PNG or WebP, max 4 MB"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 Uploaded",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}/proof",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}",
+                    "proof"
+                  ]
+                },
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "image",
+                      "type": "file",
+                      "src": [],
+                      "description": "JPEG, PNG or WebP, max 4 MB"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Proof of delivery uploaded\",\n  \"data\": {\n    \"id\": \"01a1afc8-7369-7652-b7be-ea7f8abaa731\",\n    \"trackingId\": \"CRV-261106-SKNT7M\",\n    \"status\": \"DELIVERED\",\n    \"paymentStatus\": \"PAID\",\n    \"serviceType\": \"STANDARD\",\n    \"senderName\": \"Delia Delivered\",\n    \"receiverName\": \"Rahim <b>Uddin</b>\",\n    \"receiverPhone\": \"+8801911222333\",\n    \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara\",\n    \"deliveryAddress\": \"House 2, Road 5, Dhanmondi\",\n    \"weightKg\": \"2.3\",\n    \"price\": \"6.00\",\n    \"currency\": \"usd\",\n    \"originZone\": {\n      \"id\": \"01a1afc8-4cb2-71b3-8f6f-6596ffdeb6af\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1afc8-4ccd-7489-97d0-37f269b62dd1\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\"\n    },\n    \"originHub\": {\n      \"id\": \"01a1afc8-4ccb-748e-abc9-dc88741cc917\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"destinationHub\": {\n      \"id\": \"01a1afc8-4cce-73d1-a9f5-4325155d7d96\",\n      \"name\": \"Dhaka South Hub\",\n      \"code\": \"HUB-DHK-S\",\n      \"city\": \"Dhaka\"\n    },\n    \"customer\": {\n      \"id\": \"0eb15ade-8603-4a17-9c6e-64ddfe4d0f45\",\n      \"name\": \"Delia Delivered\"\n    },\n    \"courier\": {\n      \"id\": \"a27cd2c0-0b5e-4494-affb-c4178d42f2e5\",\n      \"name\": \"Rahim Courier\",\n      \"phone\": \"+8801711000001\"\n    },\n    \"createdAt\": \"2026-11-06T07:35:11.978Z\",\n    \"updatedAt\": \"2026-11-06T07:37:03.218Z\",\n    \"senderPhone\": \"+8801711000099\",\n    \"receiverEmail\": null,\n    \"description\": null,\n    \"declaredValue\": null,\n    \"isFragile\": false,\n    \"priceBreakdown\": {\n      \"total\": \"6.00\",\n      \"baseFee\": \"4.00\",\n      \"currency\": \"usd\",\n      \"perKgFee\": \"1.00\",\n      \"ruleName\": \"Standard - Default\",\n      \"weightKg\": \"2.30\",\n      \"serviceType\": \"STANDARD\",\n      \"baseWeightKg\": \"1.00\",\n      \"calculatedAt\": \"2026-11-06T07:35:11.973Z\",\n      \"weightCharge\": \"2.00\",\n      \"chargeableExtraKg\": \"2.00\"\n    },\n    \"failedAttempts\": 1,\n    \"failureReason\": \"Receiver not home\",\n    \"cancelReason\": null,\n    \"proofOfDeliveryUrl\": \"https://res.cloudinary.com/<cloud-name>/image/upload/v1762412345/carrivo/proof-of-delivery/<random-id>.png\",\n    \"proofOfDeliveryUploadedAt\": \"2026-11-06T07:37:03.217Z\",\n    \"estimatedDeliveryAt\": null,\n    \"pickedUpAt\": \"2026-11-06T07:36:22.144Z\",\n    \"deliveredAt\": \"2026-11-06T07:36:36.755Z\",\n    \"cancelledAt\": null,\n    \"currentHub\": null,\n    \"pickupRequest\": {\n      \"scheduledAt\": \"2026-11-06T09:36:19.172Z\",\n      \"scheduledUntil\": \"2026-11-06T11:36:19.177Z\",\n      \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara\",\n      \"contactName\": \"Delia Delivered\",\n      \"contactPhone\": \"+8801711000099\",\n      \"notes\": null,\n      \"status\": \"COMPLETED\",\n      \"completedAt\": \"2026-11-06T07:36:22.144Z\"\n    },\n    \"statusHistory\": [\n      {\n        \"id\": \"01a1afc8-7370-75d9-9ed4-065e792821fd\",\n        \"fromStatus\": null,\n        \"toStatus\": \"PENDING\",\n        \"note\": \"Shipment created\",\n        \"hub\": {\n          \"id\": \"01a1afc8-4ccb-748e-abc9-dc88741cc917\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"0eb15ade-8603-4a17-9c6e-64ddfe4d0f45\",\n          \"name\": \"Delia Delivered\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T07:35:11.984Z\"\n      },\n      {\n        \"id\": \"01a1afc9-7a32-7466-8175-6311247a580e\",\n        \"fromStatus\": \"PENDING\",\n        \"toStatus\": \"PICKUP_SCHEDULED\",\n        \"note\": \"Pickup scheduled\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"0eb15ade-8603-4a17-9c6e-64ddfe4d0f45\",\n          \"name\": \"Delia Delivered\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T07:36:19.250Z\"\n      },\n      {\n        \"id\": \"01a1afc9-7ad5-7168-9535-16698f357035\",\n        \"fromStatus\": \"PICKUP_SCHEDULED\",\n        \"toStatus\": \"COURIER_ASSIGNED\",\n        \"note\": \"Courier assigned\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"22313418-3358-4f35-bb24-ff8f9e102629\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T07:36:19.413Z\"\n      },\n      {\n        \"id\": \"01a1afc9-8587-7428-b775-83629f355cb4\",\n        \"fromStatus\": \"COURIER_ASSIGNED\",\n        \"toStatus\": \"PICKED_UP\",\n        \"note\": null,\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"a27cd2c0-0b5e-4494-affb-c4178d42f2e5\",\n          \"name\": \"Rahim Courier\",\n          \"role\": \"COURIER\"\n        },\n        \"createdAt\": \"2026-11-06T07:36:22.151Z\"\n      },\n      {\n        \"id\": \"01a1afc9-8617-7785-81cb-111938df5cfe\",\n        \"fromStatus\": \"PICKED_UP\",\n        \"toStatus\": \"AT_ORIGIN_HUB\",\n        \"note\": null,\n        \"hub\": {\n          \"id\": \"01a1afc8-4ccb-748e-abc9-dc88741cc917\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"22313418-3358-4f35-bb24-ff8f9e102629\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T07:36:22.295Z\"\n      },\n      {\n        \"id\": \"01a1afc9-86a6-76ba-8770-7a0bfa9de205\",\n        \"fromStatus\": \"AT_ORIGIN_HUB\",\n        \"toStatus\": \"IN_TRANSIT\",\n        \"note\": null,\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"22313418-3358-4f35-bb24-ff8f9e102629\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T07:36:22.438Z\"\n      },\n      {\n        \"id\": \"01a1afc9-8733-708b-87e6-3808dbfcc5e6\",\n        \"fromStatus\": \"IN_TRANSIT\",\n        \"toStatus\": \"AT_DESTINATION_HUB\",\n        \"note\": null,\n        \"hub\": {\n          \"id\": \"01a1afc8-4cce-73d1-a9f5-4325155d7d96\",\n          \"name\": \"Dhaka South Hub\",\n          \"code\": \"HUB-DHK-S\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"22313418-3358-4f35-bb24-ff8f9e102629\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T07:36:22.579Z\"\n      },\n      {\n        \"id\": \"01a1afc9-87c1-730f-8996-1ece4c42c5ee\",\n        \"fromStatus\": \"AT_DESTINATION_HUB\",\n        \"toStatus\": \"OUT_FOR_DELIVERY\",\n        \"note\": null,\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"22313418-3358-4f35-bb24-ff8f9e102629\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T07:36:22.721Z\"\n      },\n      {\n        \"id\": \"01a1afc9-8844-77b8-a3df-b1358547ac9e\",\n        \"fromStatus\": \"OUT_FOR_DELIVERY\",\n        \"toStatus\": \"FAILED_DELIVERY\",\n        \"note\": \"Receiver not home\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"a27cd2c0-0b5e-4494-affb-c4178d42f2e5\",\n          \"name\": \"Rahim Courier\",\n          \"role\": \"COURIER\"\n        },\n        \"createdAt\": \"2026-11-06T07:36:22.852Z\"\n      },\n      {\n        \"id\": \"01a1afc9-88d3-7597-82b2-f394dce6f539\",\n        \"fromStatus\": \"FAILED_DELIVERY\",\n        \"toStatus\": \"OUT_FOR_DELIVERY\",\n        \"note\": null,\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"a27cd2c0-0b5e-4494-affb-c4178d42f2e5\",\n          \"name\": \"Rahim Courier\",\n          \"role\": \"COURIER\"\n        },\n        \"createdAt\": \"2026-11-06T07:36:22.995Z\"\n      },\n      {\n        \"id\": \"01a1afc9-be9c-7585-b801-d3cb89bc1cc4\",\n        \"fromStatus\": \"OUT_FOR_DELIVERY\",\n        \"toStatus\": \"DELIVERED\",\n        \"note\": \"Handed to receiver\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"a27cd2c0-0b5e-4494-affb-c4178d42f2e5\",\n          \"name\": \"Rahim Courier\",\n          \"role\": \"COURIER\"\n        },\n        \"createdAt\": \"2026-11-06T07:36:36.764Z\"\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "400 Not a JPEG/PNG/WebP (or bytes don't match the type)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}/proof",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}",
+                    "proof"
+                  ]
+                },
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "image",
+                      "type": "file",
+                      "src": [],
+                      "description": "JPEG, PNG or WebP, max 4 MB"
+                    }
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Image must be JPEG, PNG or WebP\",\n  \"errors\": [\n    {\n      \"path\": \"image\",\n      \"message\": \"Got image/gif\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "413 Larger than 4 MB",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}/proof",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}",
+                    "proof"
+                  ]
+                },
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "image",
+                      "type": "file",
+                      "src": [],
+                      "description": "JPEG, PNG or WebP, max 4 MB"
+                    }
+                  ]
+                }
+              },
+              "status": "Payload Too Large",
+              "code": 413,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Image must be 4 MB or smaller\",\n  \"errors\": [\n    {\n      \"path\": \"image\",\n      \"message\": \"Image must be 4 MB or smaller\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "415 Not multipart",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}/proof",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}",
+                    "proof"
+                  ]
+                },
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "image",
+                      "type": "file",
+                      "src": [],
+                      "description": "JPEG, PNG or WebP, max 4 MB"
+                    }
+                  ]
+                }
+              },
+              "status": "Unsupported Media Type",
+              "code": 415,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Send the image as multipart/form-data\",\n  \"errors\": [\n    {\n      \"path\": \"image\",\n      \"message\": \"Required\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "403 Not a courier",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}/proof",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}",
+                    "proof"
+                  ]
+                },
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "image",
+                      "type": "file",
+                      "src": [],
+                      "description": "JPEG, PNG or WebP, max 4 MB"
+                    }
+                  ]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
+            },
+            {
+              "name": "404 Not your task",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}/proof",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}",
+                    "proof"
+                  ]
+                },
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "image",
+                      "type": "file",
+                      "src": [],
+                      "description": "JPEG, PNG or WebP, max 4 MB"
+                    }
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Shipment not found\",\n  \"errors\": []\n}"
+            },
+            {
+              "name": "409 Wrong status",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}/proof",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}",
+                    "proof"
+                  ]
+                },
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "image",
+                      "type": "file",
+                      "src": [],
+                      "description": "JPEG, PNG or WebP, max 4 MB"
+                    }
+                  ]
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Proof of delivery uploaded\",\n  \"data\": {\n    \"id\": \"01a1afc8-7369-7652-b7be-ea7f8abaa731\",\n    \"trackingId\": \"CRV-261106-SKNT7M\",\n    \"status\": \"DELIVERED\",\n    \"paymentStatus\": \"PAID\",\n    \"serviceType\": \"STANDARD\",\n    \"senderName\": \"Delia Delivered\",\n    \"receiverName\": \"Rahim <b>Uddin</b>\",\n    \"receiverPhone\": \"+8801911222333\",\n    \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara\",\n    \"deliveryAddress\": \"House 2, Road 5, Dhanmondi\",\n    \"weightKg\": \"2.3\",\n    \"price\": \"6.00\",\n    \"currency\": \"usd\",\n    \"originZone\": {\n      \"id\": \"01a1afc8-4cb2-71b3-8f6f-6596ffdeb6af\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1afc8-4ccd-7489-97d0-37f269b62dd1\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\"\n    },\n    \"originHub\": {\n      \"id\": \"01a1afc8-4ccb-748e-abc9-dc88741cc917\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"destinationHub\": {\n      \"id\": \"01a1afc8-4cce-73d1-a9f5-4325155d7d96\",\n      \"name\": \"Dhaka South Hub\",\n      \"code\": \"HUB-DHK-S\",\n      \"city\": \"Dhaka\"\n    },\n    \"customer\": {\n      \"id\": \"0eb15ade-8603-4a17-9c6e-64ddfe4d0f45\",\n      \"name\": \"Delia Delivered\"\n    },\n    \"courier\": {\n      \"id\": \"a27cd2c0-0b5e-4494-affb-c4178d42f2e5\",\n      \"name\": \"Rahim Courier\",\n      \"phone\": \"+8801711000001\"\n    },\n    \"createdAt\": \"2026-11-06T07:35:11.978Z\",\n    \"updatedAt\": \"2026-11-06T07:36:55.408Z\",\n    \"senderPhone\": \"+8801711000099\",\n    \"receiverEmail\": null,\n    \"description\": null,\n    \"declaredValue\": null,\n    \"isFragile\": false,\n    \"priceBreakdown\": {\n      \"total\": \"6.00\",\n      \"baseFee\": \"4.00\",\n      \"currency\": \"usd\",\n      \"perKgFee\": \"1.00\",\n      \"ruleName\": \"Standard - Default\",\n      \"weightKg\": \"2.30\",\n      \"serviceType\": \"STANDARD\",\n      \"baseWeightKg\": \"1.00\",\n      \"calculatedAt\": \"2026-11-06T07:35:11.973Z\",\n      \"weightCharge\": \"2.00\",\n      \"chargeableExtraKg\": \"2.00\"\n    },\n    \"failedAttempts\": 1,\n    \"failureReason\": \"Receiver not home\",\n    \"cancelReason\": null,\n    \"proofOfDeliveryUrl\": \"https://res.cloudinary.com/<cloud-name>/image/upload/v1762412345/carrivo/proof-of-delivery/<random-id>.png\",\n    \"proofOfDeliveryUploadedAt\": \"2026-11-06T07:36:55.408Z\",\n    \"estimatedDeliveryAt\": null,\n    \"pickedUpAt\": \"2026-11-06T07:36:22.144Z\",\n    \"deliveredAt\": \"2026-11-06T07:36:36.755Z\",\n    \"cancelledAt\": null,\n    \"currentHub\": null,\n    \"pickupRequest\": {\n      \"scheduledAt\": \"2026-11-06T09:36:19.172Z\",\n      \"scheduledUntil\": \"2026-11-06T11:36:19.177Z\",\n      \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara\",\n      \"contactName\": \"Delia Delivered\",\n      \"contactPhone\": \"+8801711000099\",\n      \"notes\": null,\n      \"status\": \"COMPLETED\",\n      \"completedAt\": \"2026-11-06T07:36:22.144Z\"\n    },\n    \"statusHistory\": [\n      {\n        \"id\": \"01a1afc8-7370-75d9-9ed4-065e792821fd\",\n        \"fromStatus\": null,\n        \"toStatus\": \"PENDING\",\n        \"note\": \"Shipment created\",\n        \"hub\": {\n          \"id\": \"01a1afc8-4ccb-748e-abc9-dc88741cc917\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"0eb15ade-8603-4a17-9c6e-64ddfe4d0f45\",\n          \"name\": \"Delia Delivered\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T07:35:11.984Z\"\n      },\n      {\n        \"id\": \"01a1afc9-7a32-7466-8175-6311247a580e\",\n        \"fromStatus\": \"PENDING\",\n        \"toStatus\": \"PICKUP_SCHEDULED\",\n        \"note\": \"Pickup scheduled\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"0eb15ade-8603-4a17-9c6e-64ddfe4d0f45\",\n          \"name\": \"Delia Delivered\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T07:36:19.250Z\"\n      },\n      {\n        \"id\": \"01a1afc9-7ad5-7168-9535-16698f357035\",\n        \"fromStatus\": \"PICKUP_SCHEDULED\",\n        \"toStatus\": \"COURIER_ASSIGNED\",\n        \"note\": \"Courier assigned\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"22313418-3358-4f35-bb24-ff8f9e102629\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T07:36:19.413Z\"\n      },\n      {\n        \"id\": \"01a1afc9-8587-7428-b775-83629f355cb4\",\n        \"fromStatus\": \"COURIER_ASSIGNED\",\n        \"toStatus\": \"PICKED_UP\",\n        \"note\": null,\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"a27cd2c0-0b5e-4494-affb-c4178d42f2e5\",\n          \"name\": \"Rahim Courier\",\n          \"role\": \"COURIER\"\n        },\n        \"createdAt\": \"2026-11-06T07:36:22.151Z\"\n      },\n      {\n        \"id\": \"01a1afc9-8617-7785-81cb-111938df5cfe\",\n        \"fromStatus\": \"PICKED_UP\",\n        \"toStatus\": \"AT_ORIGIN_HUB\",\n        \"note\": null,\n        \"hub\": {\n          \"id\": \"01a1afc8-4ccb-748e-abc9-dc88741cc917\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"22313418-3358-4f35-bb24-ff8f9e102629\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T07:36:22.295Z\"\n      },\n      {\n        \"id\": \"01a1afc9-86a6-76ba-8770-7a0bfa9de205\",\n        \"fromStatus\": \"AT_ORIGIN_HUB\",\n        \"toStatus\": \"IN_TRANSIT\",\n        \"note\": null,\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"22313418-3358-4f35-bb24-ff8f9e102629\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T07:36:22.438Z\"\n      },\n      {\n        \"id\": \"01a1afc9-8733-708b-87e6-3808dbfcc5e6\",\n        \"fromStatus\": \"IN_TRANSIT\",\n        \"toStatus\": \"AT_DESTINATION_HUB\",\n        \"note\": null,\n        \"hub\": {\n          \"id\": \"01a1afc8-4cce-73d1-a9f5-4325155d7d96\",\n          \"name\": \"Dhaka South Hub\",\n          \"code\": \"HUB-DHK-S\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"22313418-3358-4f35-bb24-ff8f9e102629\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T07:36:22.579Z\"\n      },\n      {\n        \"id\": \"01a1afc9-87c1-730f-8996-1ece4c42c5ee\",\n        \"fromStatus\": \"AT_DESTINATION_HUB\",\n        \"toStatus\": \"OUT_FOR_DELIVERY\",\n        \"note\": null,\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"22313418-3358-4f35-bb24-ff8f9e102629\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T07:36:22.721Z\"\n      },\n      {\n        \"id\": \"01a1afc9-8844-77b8-a3df-b1358547ac9e\",\n        \"fromStatus\": \"OUT_FOR_DELIVERY\",\n        \"toStatus\": \"FAILED_DELIVERY\",\n        \"note\": \"Receiver not home\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"a27cd2c0-0b5e-4494-affb-c4178d42f2e5\",\n          \"name\": \"Rahim Courier\",\n          \"role\": \"COURIER\"\n        },\n        \"createdAt\": \"2026-11-06T07:36:22.852Z\"\n      },\n      {\n        \"id\": \"01a1afc9-88d3-7597-82b2-f394dce6f539\",\n        \"fromStatus\": \"FAILED_DELIVERY\",\n        \"toStatus\": \"OUT_FOR_DELIVERY\",\n        \"note\": null,\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"a27cd2c0-0b5e-4494-affb-c4178d42f2e5\",\n          \"name\": \"Rahim Courier\",\n          \"role\": \"COURIER\"\n        },\n        \"createdAt\": \"2026-11-06T07:36:22.995Z\"\n      },\n      {\n        \"id\": \"01a1afc9-be9c-7585-b801-d3cb89bc1cc4\",\n        \"fromStatus\": \"OUT_FOR_DELIVERY\",\n        \"toStatus\": \"DELIVERED\",\n        \"note\": \"Handed to receiver\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"a27cd2c0-0b5e-4494-affb-c4178d42f2e5\",\n          \"name\": \"Rahim Courier\",\n          \"role\": \"COURIER\"\n        },\n        \"createdAt\": \"2026-11-06T07:36:36.764Z\"\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
           "name": "Status: DELIVERED (assigned COURIER)",
           "request": {
             "method": "PATCH",
@@ -6317,7 +6941,7 @@
                 }
               ]
             },
-            "description": "Shipments assigned to me, with pickup window and contacts, addresses, phones and failed attempts.",
+            "description": "Shipments assigned to me, with pickup window and contacts, addresses, phones and failed attempts.\nEach task includes proofOfDeliveryUrl and proofOfDeliveryUploadedAt.",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -6395,6 +7019,72 @@
                 }
               ],
               "body": "{\n  \"success\": true,\n  \"message\": \"Tasks retrieved successfully\",\n  \"data\": [\n    {\n      \"id\": \"01a1af2f-914b-714e-8508-55ae4d0f2220\",\n      \"trackingId\": \"CRV-261101-SEED04\",\n      \"status\": \"PICKED_UP\",\n      \"paymentStatus\": \"PAID\",\n      \"serviceType\": \"STANDARD\",\n      \"senderName\": \"Ayesha Customer\",\n      \"receiverName\": \"Sabbir Rahman\",\n      \"receiverPhone\": \"+8801811000004\",\n      \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara, Dhaka\",\n      \"deliveryAddress\": \"14 Motijheel C/A, Dhaka\",\n      \"weightKg\": \"4\",\n      \"price\": \"7.00\",\n      \"currency\": \"usd\",\n      \"originZone\": {\n        \"id\": \"01a1af2f-8f9b-7008-9e47-33dca105366c\",\n        \"name\": \"Dhaka North\",\n        \"code\": \"DHK-N\"\n      },\n      \"destinationZone\": {\n        \"id\": \"01a1af2f-8fb9-753f-ac61-11f60b90a3ec\",\n        \"name\": \"Dhaka South\",\n        \"code\": \"DHK-S\"\n      },\n      \"originHub\": {\n        \"id\": \"01a1af2f-8fb7-777a-a896-d68d4f8fe9ab\",\n        \"name\": \"Dhaka North Hub\",\n        \"code\": \"HUB-DHK-N\",\n        \"city\": \"Dhaka\"\n      },\n      \"destinationHub\": {\n        \"id\": \"01a1af2f-8fba-7328-bdf1-6f8ff4139120\",\n        \"name\": \"Dhaka South Hub\",\n        \"code\": \"HUB-DHK-S\",\n        \"city\": \"Dhaka\"\n      },\n      \"customer\": {\n        \"id\": \"abc697a4-b32f-430d-8270-d060205461b0\",\n        \"name\": \"Ayesha Customer\"\n      },\n      \"courier\": {\n        \"id\": \"cd4d724b-aff3-47a6-94f2-d2d1d60edfdc\",\n        \"name\": \"Rahim Courier\"\n      },\n      \"createdAt\": \"2026-11-02T20:48:12.618Z\",\n      \"updatedAt\": \"2026-11-03T02:48:12.618Z\",\n      \"senderPhone\": \"+8801711000003\",\n      \"isFragile\": true,\n      \"description\": \"Sample parcel (seed data)\",\n      \"failedAttempts\": 0,\n      \"failureReason\": null,\n      \"currentHub\": null,\n      \"pickupRequest\": {\n        \"scheduledAt\": \"2026-11-03T02:48:12.618Z\",\n        \"scheduledUntil\": \"2026-11-03T04:48:12.618Z\",\n        \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara, Dhaka\",\n        \"contactName\": \"Ayesha Customer\",\n        \"contactPhone\": \"+8801711000003\",\n        \"notes\": null,\n        \"status\": \"COMPLETED\",\n        \"completedAt\": \"2026-11-03T02:48:12.618Z\"\n      }\n    }\n  ],\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 3,\n    \"totalPages\": 1\n  }\n}"
+            },
+            {
+              "name": "200 OK (with proof of delivery)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/couriers/me/tasks?",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "couriers",
+                    "me",
+                    "tasks"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number (default 1)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Page size (default 10, max 100)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortBy",
+                      "value": "updatedAt",
+                      "description": "One of: updatedAt, createdAt, status",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": "desc",
+                      "description": "asc | desc (default desc)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "searchTerm",
+                      "value": "",
+                      "description": "Case-insensitive contains search",
+                      "disabled": true
+                    },
+                    {
+                      "key": "status",
+                      "value": "OUT_FOR_DELIVERY",
+                      "description": "Omit for active tasks (not DELIVERED / RETURNED / CANCELLED)",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Tasks retrieved successfully\",\n  \"data\": [\n    null\n  ],\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 3,\n    \"totalPages\": 1\n  }\n}"
             }
           ]
         },
@@ -8802,6 +9492,329 @@
                 }
               ],
               "body": "{\n  \"success\": false,\n  \"message\": \"Invalid Stripe signature\",\n  \"errors\": []\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "description": "In-app notifications for the signed-in user (any role), created in the same transaction as the event:\nSHIPMENT_CREATED, COURIER_ASSIGNED (customer + courier), PICKED_UP, OUT_FOR_DELIVERY, DELIVERED, FAILED_DELIVERY, PAYMENT_RECEIVED, REFUND_COMPLETED.\nEach also sends a Carrivo email (Resend) after the commit; email failures never fail a request. Links in emails use FRONTEND_URL + the paths in src/app/config/frontendRoutes.ts.",
+      "item": [
+        {
+          "name": "My notifications",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data[0]) pm.collectionVariables.set('notificationId', body.data[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/my?",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "my"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Page size (max 100)",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "description": "asc | desc (by createdAt)",
+                  "disabled": true
+                },
+                {
+                  "key": "unread",
+                  "value": "true",
+                  "description": "true = unread only, false = read only, omit = all",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Newest first. Saves the first id as {{notificationId}}.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK (first two shown)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/notifications/my?",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notifications",
+                    "my"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Page size (max 100)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": "desc",
+                      "description": "asc | desc (by createdAt)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "unread",
+                      "value": "true",
+                      "description": "true = unread only, false = read only, omit = all",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Notifications retrieved successfully\",\n  \"data\": [\n    {\n      \"id\": \"01a1afc9-bea1-7569-bea3-9b3eaad0036d\",\n      \"type\": \"DELIVERED\",\n      \"title\": \"CRV-261106-SKNT7M delivered\",\n      \"message\": \"Your shipment CRV-261106-SKNT7M was delivered to Rahim <b>Uddin</b>. Proof of delivery is on your shipment page.\",\n      \"readAt\": \"2026-11-06T07:36:44.965Z\",\n      \"createdAt\": \"2026-11-06T07:36:36.769Z\",\n      \"shipment\": {\n        \"id\": \"01a1afc8-7369-7652-b7be-ea7f8abaa731\",\n        \"trackingId\": \"CRV-261106-SKNT7M\"\n      },\n      \"isRead\": true\n    },\n    {\n      \"id\": \"01a1afc9-88d6-7328-adb1-d3bc8c3a96b9\",\n      \"type\": \"OUT_FOR_DELIVERY\",\n      \"title\": \"CRV-261106-SKNT7M is out for delivery\",\n      \"message\": \"Your shipment CRV-261106-SKNT7M is out for delivery to Rahim <b>Uddin</b>.\",\n      \"readAt\": \"2026-11-06T07:36:45.416Z\",\n      \"createdAt\": \"2026-11-06T07:36:22.998Z\",\n      \"shipment\": {\n        \"id\": \"01a1afc8-7369-7652-b7be-ea7f8abaa731\",\n        \"trackingId\": \"CRV-261106-SKNT7M\"\n      },\n      \"isRead\": true\n    }\n  ],\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 3,\n    \"total\": 8,\n    \"totalPages\": 3\n  }\n}"
+            },
+            {
+              "name": "400 Invalid filter",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/notifications/my?",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notifications",
+                    "my"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Page size (max 100)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": "desc",
+                      "description": "asc | desc (by createdAt)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "unread",
+                      "value": "true",
+                      "description": "true = unread only, false = read only, omit = all",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    {\n      \"path\": \"query.unread\",\n      \"message\": \"Invalid option: expected one of \\\"true\\\"|\\\"false\\\"\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Mark one as read",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/{{notificationId}}/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "{{notificationId}}",
+                "read"
+              ]
+            },
+            "description": "Own notifications only (others → 404). Marking an already-read one again keeps its original readAt.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/notifications/{{notificationId}}/read",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notifications",
+                    "{{notificationId}}",
+                    "read"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Notification marked as read\",\n  \"data\": {\n    \"id\": \"01a1afc9-bea1-7569-bea3-9b3eaad0036d\",\n    \"type\": \"DELIVERED\",\n    \"title\": \"CRV-261106-SKNT7M delivered\",\n    \"message\": \"Your shipment CRV-261106-SKNT7M was delivered to Rahim <b>Uddin</b>. Proof of delivery is on your shipment page.\",\n    \"readAt\": \"2026-11-06T07:36:44.965Z\",\n    \"createdAt\": \"2026-11-06T07:36:36.769Z\",\n    \"shipment\": {\n      \"id\": \"01a1afc8-7369-7652-b7be-ea7f8abaa731\",\n      \"trackingId\": \"CRV-261106-SKNT7M\"\n    },\n    \"isRead\": true\n  }\n}"
+            },
+            {
+              "name": "404 Not yours",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/notifications/{{notificationId}}/read",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notifications",
+                    "{{notificationId}}",
+                    "read"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Notification not found\",\n  \"errors\": []\n}"
+            }
+          ]
+        },
+        {
+          "name": "Mark all as read",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/read-all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "read-all"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/notifications/read-all",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notifications",
+                    "read-all"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"All notifications marked as read\",\n  \"data\": {\n    \"updated\": 0\n  }\n}"
             }
           ]
         }

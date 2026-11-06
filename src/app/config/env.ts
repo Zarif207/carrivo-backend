@@ -34,7 +34,11 @@ const envSchema = z.object({
       }
       return origins;
     }),
-  FRONTEND_URL: z.url().default("http://localhost:3000"),
+  // Frontend origin: email links and the Google sign-in landing page are built from it.
+  FRONTEND_URL: z
+    .url()
+    .default("http://localhost:3000")
+    .transform((value) => value.replace(/\/+$/, "")),
 
   BETTER_AUTH_SECRET: z
     .string()
@@ -57,17 +61,29 @@ const envSchema = z.object({
   // Only needed by `npm run db:seed`.
   SEED_DEMO_PASSWORD: optionalString,
 
-  // Later phases: optional until their phase makes them required.
-  GOOGLE_CLIENT_ID: optionalString,
-  GOOGLE_CLIENT_SECRET: optionalString,
+  // ── Google sign-in (Better Auth social provider). Required.
+  GOOGLE_CLIENT_ID: z
+    .string()
+    .trim()
+    .regex(/^[\w.-]+\.apps\.googleusercontent\.com$/, { message: "GOOGLE_CLIENT_ID must be a Google OAuth client id (...apps.googleusercontent.com)" }),
+  GOOGLE_CLIENT_SECRET: z.string().trim().min(10, { message: "GOOGLE_CLIENT_SECRET is required" }),
+
   // Redis is optional: without both values the app runs with no cache and in-memory rate limits.
   UPSTASH_REDIS_REST_URL: optionalString,
   UPSTASH_REDIS_REST_TOKEN: optionalString,
   REDIS_KEY_PREFIX: z.string().trim().min(1).default("carrivo:v1:"),
-  CLOUDINARY_CLOUD_NAME: optionalString,
-  CLOUDINARY_API_KEY: optionalString,
-  CLOUDINARY_API_SECRET: optionalString,
-  EMAIL_FROM: optionalString,
+
+  // ── Cloudinary (proof-of-delivery images). Required.
+  CLOUDINARY_CLOUD_NAME: z.string().trim().min(1, { message: "CLOUDINARY_CLOUD_NAME is required" }),
+  CLOUDINARY_API_KEY: z.string().trim().regex(/^\d+$/, { message: "CLOUDINARY_API_KEY must be numeric" }),
+  CLOUDINARY_API_SECRET: z.string().trim().min(10, { message: "CLOUDINARY_API_SECRET is required" }),
+
+  // ── Email (Resend). Optional: without a key, notifications are stored but no email is sent.
+  RESEND_API_KEY: optionalString.pipe(
+    z.string().regex(/^re_[\w-]+$/, { message: "RESEND_API_KEY must be a Resend API key (re_...)" }).optional(),
+  ),
+  // "Name <address>". onboarding@resend.dev only delivers to your own Resend account address.
+  EMAIL_FROM: optionalString.transform((value) => value ?? "Carrivo <onboarding@resend.dev>"),
 });
 
 export type Env = z.infer<typeof envSchema>;

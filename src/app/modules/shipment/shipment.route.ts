@@ -2,6 +2,7 @@ import { Router } from "express";
 import { Role } from "../../../generated/prisma/enums.js";
 import { authenticate } from "../../middlewares/authenticate.js";
 import { authorize } from "../../middlewares/authorize.js";
+import { uploadSingleImage } from "../../middlewares/uploadImage.js";
 import { validateRequest } from "../../middlewares/validateRequest.js";
 import { ShipmentController } from "./shipment.controller.js";
 import { ShipmentValidation } from "./shipment.validation.js";
@@ -42,6 +43,15 @@ router.patch(
   authorize(Role.COURIER, Role.ADMIN),
   validateRequest(ShipmentValidation.updateStatus),
   ShipmentController.updateStatus,
+);
+
+// Proof of delivery: multipart/form-data, one `image` file (JPEG/PNG/WebP, ≤ 4 MB). Assigned courier only.
+router.post(
+  "/:id/proof",
+  authorize(Role.COURIER),
+  validateRequest(ShipmentValidation.byId),
+  uploadSingleImage("image"),
+  ShipmentController.uploadProof,
 );
 
 export const ShipmentRoutes = router;

@@ -2,6 +2,7 @@ import httpStatus from "http-status";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import { PickupStatus, Role, ShipmentPaymentStatus, ShipmentStatus, UserStatus } from "../../../generated/prisma/enums.js";
 import { CACHE_KEYS, cache } from "../../lib/cache.js";
+import { PROOF_FOLDER, deleteImage, uploadImageBuffer } from "../../lib/cloudinary.js";
 import { prisma } from "../../lib/prisma.js";
 import type { ErrorDetail } from "../../types/response.types.js";
 import { ApiError } from "../../utils/ApiError.js";
@@ -11,6 +12,7 @@ import type { RequestMeta } from "../../utils/requestMeta.js";
 import { AUDIT_ACTIONS, AUDIT_ENTITIES } from "../audit/audit.constants.js";
 import { AuditService } from "../audit/audit.service.js";
 import type { Actor } from "../audit/audit.types.js";
+import { NotificationService } from "../notification/notification.service.js";
 import { PaymentService } from "../payment/payment.service.js";
 import { PricingService } from "../pricing/pricing.service.js";
 import { calculateCourierEarning } from "../courier/courier.utils.js";
@@ -191,10 +193,11 @@ const illegalTransition = (s: StatusSnapshot, toStatus: ShipmentStatus, role: Ro
  * 3. apply the per-status effects (timestamps, currentHubId, attempt counter),
  * 4. guarded update `WHERE id AND status = <from> [AND guard]`: if a concurrent
  *    request changed the row first, 0 rows match and we return 409,
- * 5. side effects (pickup request, courier earning), status history, audit log.
+ * 5. side effects (pickup request, courier earning), status history, audit log,
+ *    notification rows. Their emails are sent only after the commit.
  */
 const changeStatus = async (input: ChangeStatusInput): Promise<ShipmentDetail> => {
-  const id = await prisma.$transaction(async (tx) => {
+  const { id, emails } = await prisma.$transaction(async (tx) => {
     const { actor, toStatus } = input;
     const s = await tx.shipment.findFirst({
       where: { id: input.shipmentId, deletedAt: null, ...scopeWhere(actor) },
@@ -305,8 +308,10 @@ const changeStatus = async (input: ChangeStatusInput): Promise<ShipmentDetail> =
       after: { status: toStatus, note: input.note ?? null, ...input.data, ...auditExtra },
       meta: input.meta,
     });
-    return s.id;
+    const emails = await NotificationService.forStatusChange(tx, s.id, toStatus);
+    return { id: s.id, emails };
   });
+  void NotificationService.sendAfterCommit(emails);
   return loadDetailAndInvalidate(id);
 };
 
@@ -424,7 +429,7 @@ const updateStatus = (actor: Actor, id: string, payload: UpdateStatusInput, meta
 
 const create = async (actor: Actor, payload: CreateShipmentInput, meta: RequestMeta): Promise<ShipmentDetail> => {
   // Retries the whole transaction only on a trackingId collision (see withTrackingIdRetry).
-  const id = await withTrackingIdRetry((trackingId) =>
+  const { id, emails } = await withTrackingIdRetry((trackingId) =>
     prisma.$transaction(async (tx) => {
       await assertHubsMatchZones(tx, payload);
       // Server-side price; the strict body schema already rejects any client price.
@@ -476,9 +481,10 @@ const create = async (actor: Actor, payload: CreateShipmentInput, meta: RequestM
         after: { trackingId, status: ShipmentStatus.PENDING, price: snapshot.total, serviceType: payload.serviceType },
         meta,
       });
-      return shipment.id;
+      return { id: shipment.id, emails: await NotificationService.forShipmentCreated(tx, shipment.id) };
     }),
   );
+  void NotificationService.sendAfterCommit(emails);
   return loadDetailAndInvalidate(id);
 };
 
@@ -661,7 +667,77 @@ const remove = (actor: Actor, id: string, meta: RequestMeta): Promise<{ id: stri
     return result;
   });
 
+/** Statuses in which the assigned courier may upload (or replace) the proof of delivery. */
+const PROOF_STATUSES: ShipmentStatus[] = [ShipmentStatus.OUT_FOR_DELIVERY, ShipmentStatus.DELIVERED];
+
+/**
+ * Assigned courier only. Order matters:
+ * 1. cheap checks first (404 outside scope, 409 wrong status) so a bad request never uploads;
+ * 2. stream the in-memory image to Cloudinary (outside the transaction: no DB lock held during I/O);
+ * 3. row-lock, re-check courier + status, store url/publicId, audit, in one transaction;
+ *    if that fails, the just-uploaded image is deleted;
+ * 4. after commit, the replaced image (if any) is deleted from Cloudinary.
+ */
+const uploadProof = async (actor: Actor, id: string, image: Buffer, meta: RequestMeta): Promise<ShipmentDetail> => {
+  const where: Prisma.ShipmentWhereInput = { id, deletedAt: null, courierId: actor.id };
+  const current = await prisma.shipment.findFirst({ where, select: { status: true } });
+  if (!current) throw notFound();
+  if (!PROOF_STATUSES.includes(current.status)) {
+    throw conflict(`Proof of delivery can only be uploaded when the shipment is OUT_FOR_DELIVERY or DELIVERED (current status: ${current.status})`);
+  }
+
+  let uploaded;
+  try {
+    uploaded = await uploadImageBuffer(image, { folder: PROOF_FOLDER, tags: ["proof-of-delivery", `shipment-${id}`] });
+  } catch (error) {
+    console.warn(`[proof] Cloudinary upload failed for shipment ${id}: ${error instanceof Error ? error.message : "unknown error"}`);
+    throw new ApiError(httpStatus.BAD_GATEWAY, "Image upload failed, please try again");
+  }
+
+  let replacedPublicId: string | null = null;
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "shipments" WHERE "id" = ${id} FOR UPDATE`;
+      const locked = await tx.shipment.findFirst({
+        where,
+        select: { status: true, proofOfDeliveryUrl: true, proofOfDeliveryPublicId: true },
+      });
+      if (!locked) throw notFound();
+      if (!PROOF_STATUSES.includes(locked.status)) throw conflict(`Shipment status changed to ${locked.status}, please retry`);
+      replacedPublicId = locked.proofOfDeliveryPublicId;
+      const uploadedAt = new Date();
+      await tx.shipment.update({
+        where: { id },
+        data: { proofOfDeliveryUrl: uploaded.url, proofOfDeliveryPublicId: uploaded.publicId, proofOfDeliveryUploadedAt: uploadedAt },
+        select: { id: true },
+      });
+      await AuditService.log(tx, {
+        actor,
+        action: AUDIT_ACTIONS.SHIPMENT_PROOF_UPLOADED,
+        entityType: AUDIT_ENTITIES.SHIPMENT,
+        entityId: id,
+        before: { proofOfDeliveryPublicId: locked.proofOfDeliveryPublicId },
+        after: {
+          proofOfDeliveryPublicId: uploaded.publicId,
+          status: locked.status,
+          bytes: uploaded.bytes,
+          format: uploaded.format,
+          replaced: locked.proofOfDeliveryPublicId !== null,
+        },
+        meta,
+      });
+    });
+  } catch (error) {
+    await deleteImage(uploaded.publicId);
+    throw error;
+  }
+
+  if (replacedPublicId && replacedPublicId !== uploaded.publicId) await deleteImage(replacedPublicId);
+  return loadDetailAndInvalidate(id);
+};
+
 export const ShipmentService = {
+  uploadProof,
   changeStatus,
   create,
   list,
