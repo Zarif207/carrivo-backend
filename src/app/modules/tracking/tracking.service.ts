@@ -1,10 +1,11 @@
 import httpStatus from "http-status";
+import { CACHE_KEYS, CACHE_TTL, cache } from "../../lib/cache.js";
 import { prisma } from "../../lib/prisma.js";
 import { ApiError } from "../../utils/ApiError.js";
 import { trackingSelect, type PublicTracking } from "./tracking.types.js";
 
 /** Public lookup by tracking id (already upper-cased by validation; unique index). */
-const track = async (trackingId: string): Promise<PublicTracking> => {
+const load = async (trackingId: string): Promise<PublicTracking> => {
   const row = await prisma.shipment.findFirst({
     where: { trackingId, deletedAt: null },
     select: trackingSelect,
@@ -28,5 +29,9 @@ const track = async (trackingId: string): Promise<PublicTracking> => {
     })),
   };
 };
+
+/** Cached 15 s; every shipment write deletes this key after it commits. */
+const track = (trackingId: string): Promise<PublicTracking> =>
+  cache.getOrLoad(CACHE_KEYS.tracking(trackingId), CACHE_TTL.tracking, () => load(trackingId));
 
 export const TrackingService = { track };

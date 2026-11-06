@@ -9,6 +9,22 @@ import { prisma } from "./prisma.js";
 export const AUTH_BASE_PATH = "/api/v1/auth";
 
 /**
+ * The ONLY Better Auth endpoints reachable over HTTP (allow-list, see app.ts).
+ * Everything else under /api/v1/auth that our own router does not handle gets our
+ * 404 envelope. Deliberately excluded:
+ * - /list-sessions (returns the raw token of every active session),
+ * - /revoke-session (needs a raw token), /verify-password (password oracle),
+ * - social/account/email endpoints until they are configured (Phase 7).
+ */
+export const BETTER_AUTH_ALLOWED_PATHS = [
+  "/get-session",
+  "/change-password",
+  "/revoke-sessions",
+  "/revoke-other-sessions",
+  "/ok",
+] as const;
+
+/**
  * Better Auth endpoints that our own wrappers replace (or that could bypass our
  * whitelists). Disabled for HTTP only; server-side `auth.api.*` calls still work.
  */

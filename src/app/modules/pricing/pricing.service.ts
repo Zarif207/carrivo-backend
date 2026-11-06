@@ -1,8 +1,10 @@
 import httpStatus from "http-status";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { ServiceType } from "../../../generated/prisma/enums.js";
+import { CACHE_KEYS, CACHE_TTL, cache } from "../../lib/cache.js";
 import { prisma } from "../../lib/prisma.js";
 import { ApiError } from "../../utils/ApiError.js";
+import { hashKey } from "../../utils/cache.js";
 import { formatMoneyFields } from "../../utils/money.js";
 import { buildMeta, buildOrderBy, getSkipTake, type Paginated } from "../../utils/pagination.js";
 import type { RequestMeta } from "../../utils/requestMeta.js";
@@ -131,10 +133,15 @@ const quote = async (db: Db, input: QuoteInput): Promise<PriceSnapshot> => {
   };
 };
 
-const estimate = async (input: EstimateInput): Promise<EstimateResult> => {
-  const { ruleId: _ruleId, ruleName: _ruleName, calculatedAt: _at, ...publicBreakdown } = await quote(prisma, input);
-  return publicBreakdown;
-};
+/**
+ * Public estimate, cached 120 s per validated body. Shipment create/update always
+ * call quote() directly, so the charged price never comes from the cache.
+ */
+const estimate = (input: EstimateInput): Promise<EstimateResult> =>
+  cache.getOrLoadField(CACHE_KEYS.pricingEstimate, hashKey(input), CACHE_TTL.pricingEstimate, async () => {
+    const { ruleId: _ruleId, ruleName: _ruleName, calculatedAt: _at, ...publicBreakdown } = await quote(prisma, input);
+    return publicBreakdown;
+  });
 
 const list = async (query: PricingListQuery): Promise<Paginated<PricingRuleDto>> => {
   const where: Prisma.PricingRuleWhereInput = {
@@ -161,7 +168,7 @@ const list = async (query: PricingListQuery): Promise<Paginated<PricingRuleDto>>
 
 const getById = async (id: string): Promise<PricingRuleDto> => toDto(await findExisting(prisma, id));
 
-const create = (payload: CreatePricingRuleInput, actor: Actor, meta: RequestMeta): Promise<PricingRuleDto> =>
+const createTx = (payload: CreatePricingRuleInput, actor: Actor, meta: RequestMeta): Promise<PricingRuleDto> =>
   prisma.$transaction(async (tx) => {
     await assertZonesUsable(tx, { originZoneId: payload.originZoneId, destinationZoneId: payload.destinationZoneId });
     if (payload.isActive) {
@@ -179,7 +186,7 @@ const create = (payload: CreatePricingRuleInput, actor: Actor, meta: RequestMeta
     return toDto(rule);
   });
 
-const update = (
+const updateTx = (
   id: string,
   payload: UpdatePricingRuleInput,
   actor: Actor,
@@ -233,7 +240,7 @@ const update = (
     return toDto(rule);
   });
 
-const remove = (id: string, actor: Actor, meta: RequestMeta): Promise<PricingRuleDto> =>
+const removeTx = (id: string, actor: Actor, meta: RequestMeta): Promise<PricingRuleDto> =>
   prisma.$transaction(async (tx) => {
     const before = await findExisting(tx, id);
     const rule = await tx.pricingRule.update({
@@ -251,5 +258,17 @@ const remove = (id: string, actor: Actor, meta: RequestMeta): Promise<PricingRul
     });
     return toDto(rule);
   });
+
+const withEstimateInvalidation =
+  <A extends unknown[]>(fn: (...args: A) => Promise<PricingRuleDto>) =>
+  async (...args: A): Promise<PricingRuleDto> => {
+    const rule = await fn(...args);
+    await cache.invalidate(CACHE_KEYS.pricingEstimate);
+    return rule;
+  };
+
+const create = withEstimateInvalidation(createTx);
+const update = withEstimateInvalidation(updateTx);
+const remove = withEstimateInvalidation(removeTx);
 
 export const PricingService = { quote, estimate, list, getById, create, update, remove };

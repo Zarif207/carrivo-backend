@@ -1,8 +1,10 @@
 import httpStatus from "http-status";
 import type { Prisma } from "../../../generated/prisma/client.js";
+import { CACHE_KEYS, CACHE_TTL, cache } from "../../lib/cache.js";
 import { prisma } from "../../lib/prisma.js";
 import type { ErrorDetail } from "../../types/response.types.js";
 import { ApiError } from "../../utils/ApiError.js";
+import { hashKey } from "../../utils/cache.js";
 import { buildMeta, buildOrderBy, getSkipTake, type Paginated } from "../../utils/pagination.js";
 import type { RequestMeta } from "../../utils/requestMeta.js";
 import { AUDIT_ACTIONS, AUDIT_ENTITIES } from "../audit/audit.constants.js";
@@ -29,7 +31,7 @@ const assertZoneUsable = async (db: Prisma.TransactionClient, zoneId: string): P
   }
 };
 
-const list = async (query: HubListQuery): Promise<Paginated<HubDto>> => {
+const loadList = async (query: HubListQuery): Promise<Paginated<HubDto>> => {
   const where: Prisma.HubWhereInput = {
     deletedAt: null,
     ...(query.isActive === "all" ? {} : { isActive: query.isActive }),
@@ -59,7 +61,12 @@ const list = async (query: HubListQuery): Promise<Paginated<HubDto>> => {
   return { data, meta: buildMeta(query, total) };
 };
 
-const getById = (id: string): Promise<HubDto> => findExisting(prisma, id);
+/** Public reads are cached (120 s) in one hash per resource; writes delete the hash. */
+const list = (query: HubListQuery): Promise<Paginated<HubDto>> =>
+  cache.getOrLoadField(CACHE_KEYS.hubs, `list:${hashKey(query)}`, CACHE_TTL.hubs, () => loadList(query));
+
+const getById = (id: string): Promise<HubDto> =>
+  cache.getOrLoadField(CACHE_KEYS.hubs, `id:${id}`, CACHE_TTL.hubs, () => findExisting(prisma, id));
 
 /** Couriers (non-deleted profiles) and unfinished shipments that still point at the hub. */
 const getUsage = async (db: Prisma.TransactionClient, hubId: string): Promise<ErrorDetail[]> => {
@@ -78,7 +85,7 @@ const getUsage = async (db: Prisma.TransactionClient, hubId: string): Promise<Er
   return usage;
 };
 
-const create = (payload: CreateHubInput, actor: Actor, meta: RequestMeta): Promise<HubDto> =>
+const createTx = (payload: CreateHubInput, actor: Actor, meta: RequestMeta): Promise<HubDto> =>
   prisma.$transaction(async (tx) => {
     await assertZoneUsable(tx, payload.zoneId);
     const hub = await tx.hub.create({
@@ -104,7 +111,7 @@ const create = (payload: CreateHubInput, actor: Actor, meta: RequestMeta): Promi
     return hub;
   });
 
-const update = (id: string, payload: UpdateHubInput, actor: Actor, meta: RequestMeta): Promise<HubDto> =>
+const updateTx = (id: string, payload: UpdateHubInput, actor: Actor, meta: RequestMeta): Promise<HubDto> =>
   prisma.$transaction(async (tx) => {
     const before = await findExisting(tx, id);
     if (payload.zoneId !== undefined && payload.zoneId !== before.zone.id) {
@@ -140,7 +147,7 @@ const update = (id: string, payload: UpdateHubInput, actor: Actor, meta: Request
     return hub;
   });
 
-const remove = (id: string, actor: Actor, meta: RequestMeta): Promise<HubDto> =>
+const removeTx = (id: string, actor: Actor, meta: RequestMeta): Promise<HubDto> =>
   prisma.$transaction(async (tx) => {
     const before = await findExisting(tx, id);
     const usage = await getUsage(tx, id);
@@ -162,5 +169,23 @@ const remove = (id: string, actor: Actor, meta: RequestMeta): Promise<HubDto> =>
     });
     return hub;
   });
+
+const create = async (payload: CreateHubInput, actor: Actor, meta: RequestMeta): Promise<HubDto> => {
+  const hub = await createTx(payload, actor, meta);
+  await cache.invalidate(CACHE_KEYS.hubs);
+  return hub;
+};
+
+const update = async (id: string, payload: UpdateHubInput, actor: Actor, meta: RequestMeta): Promise<HubDto> => {
+  const hub = await updateTx(id, payload, actor, meta);
+  await cache.invalidate(CACHE_KEYS.hubs);
+  return hub;
+};
+
+const remove = async (id: string, actor: Actor, meta: RequestMeta): Promise<HubDto> => {
+  const hub = await removeTx(id, actor, meta);
+  await cache.invalidate(CACHE_KEYS.hubs);
+  return hub;
+};
 
 export const HubService = { list, getById, create, update, remove };

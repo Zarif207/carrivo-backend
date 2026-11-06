@@ -1,8 +1,10 @@
 import httpStatus from "http-status";
 import type { Prisma } from "../../../generated/prisma/client.js";
+import { CACHE_KEYS, CACHE_TTL, cache } from "../../lib/cache.js";
 import { prisma } from "../../lib/prisma.js";
 import type { ErrorDetail } from "../../types/response.types.js";
 import { ApiError } from "../../utils/ApiError.js";
+import { hashKey } from "../../utils/cache.js";
 import { buildMeta, buildOrderBy, getSkipTake, type Paginated } from "../../utils/pagination.js";
 import type { RequestMeta } from "../../utils/requestMeta.js";
 import { AUDIT_ACTIONS, AUDIT_ENTITIES } from "../audit/audit.constants.js";
@@ -20,7 +22,7 @@ const findExisting = async (db: Prisma.TransactionClient, id: string): Promise<Z
   return zone;
 };
 
-const list = async (query: ZoneListQuery): Promise<Paginated<ZoneDto>> => {
+const loadList = async (query: ZoneListQuery): Promise<Paginated<ZoneDto>> => {
   const where: Prisma.ZoneWhereInput = {
     deletedAt: null,
     ...(query.isActive === "all" ? {} : { isActive: query.isActive }),
@@ -47,9 +49,14 @@ const list = async (query: ZoneListQuery): Promise<Paginated<ZoneDto>> => {
   return { data, meta: buildMeta(query, total) };
 };
 
-const getById = (id: string): Promise<ZoneDto> => findExisting(prisma, id);
+/** Public reads are cached (120 s) in one hash per resource; writes delete the hash. */
+const list = (query: ZoneListQuery): Promise<Paginated<ZoneDto>> =>
+  cache.getOrLoadField(CACHE_KEYS.zones, `list:${hashKey(query)}`, CACHE_TTL.zones, () => loadList(query));
 
-const create = (payload: CreateZoneInput, actor: Actor, meta: RequestMeta): Promise<ZoneDto> =>
+const getById = (id: string): Promise<ZoneDto> =>
+  cache.getOrLoadField(CACHE_KEYS.zones, `id:${id}`, CACHE_TTL.zones, () => findExisting(prisma, id));
+
+const createTx = (payload: CreateZoneInput, actor: Actor, meta: RequestMeta): Promise<ZoneDto> =>
   prisma.$transaction(async (tx) => {
     const zone = await tx.zone.create({
       data: {
@@ -71,7 +78,7 @@ const create = (payload: CreateZoneInput, actor: Actor, meta: RequestMeta): Prom
     return zone;
   });
 
-const update = (id: string, payload: UpdateZoneInput, actor: Actor, meta: RequestMeta): Promise<ZoneDto> =>
+const updateTx = (id: string, payload: UpdateZoneInput, actor: Actor, meta: RequestMeta): Promise<ZoneDto> =>
   prisma.$transaction(async (tx) => {
     const before = await findExisting(tx, id);
     const zone = await tx.zone.update({
@@ -115,7 +122,7 @@ const getUsage = async (db: Prisma.TransactionClient, zoneId: string): Promise<E
   return usage;
 };
 
-const remove = (id: string, actor: Actor, meta: RequestMeta): Promise<ZoneDto> =>
+const removeTx = (id: string, actor: Actor, meta: RequestMeta): Promise<ZoneDto> =>
   prisma.$transaction(async (tx) => {
     const before = await findExisting(tx, id);
     const usage = await getUsage(tx, id);
@@ -137,5 +144,24 @@ const remove = (id: string, actor: Actor, meta: RequestMeta): Promise<ZoneDto> =
     });
     return zone;
   });
+
+// Invalidate after commit. Hubs embed their zone and estimates depend on zone state.
+const create = async (payload: CreateZoneInput, actor: Actor, meta: RequestMeta): Promise<ZoneDto> => {
+  const zone = await createTx(payload, actor, meta);
+  await cache.invalidate(CACHE_KEYS.zones);
+  return zone;
+};
+
+const update = async (id: string, payload: UpdateZoneInput, actor: Actor, meta: RequestMeta): Promise<ZoneDto> => {
+  const zone = await updateTx(id, payload, actor, meta);
+  await cache.invalidate(CACHE_KEYS.zones, CACHE_KEYS.hubs, CACHE_KEYS.pricingEstimate);
+  return zone;
+};
+
+const remove = async (id: string, actor: Actor, meta: RequestMeta): Promise<ZoneDto> => {
+  const zone = await removeTx(id, actor, meta);
+  await cache.invalidate(CACHE_KEYS.zones, CACHE_KEYS.hubs, CACHE_KEYS.pricingEstimate);
+  return zone;
+};
 
 export const ZoneService = { list, getById, create, update, remove };

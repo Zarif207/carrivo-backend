@@ -4,7 +4,8 @@ import express, { type Application } from "express";
 import helmet from "helmet";
 import httpStatus from "http-status";
 import { env } from "./app/config/env.js";
-import { AUTH_BASE_PATH, auth } from "./app/lib/auth.js";
+import { AUTH_BASE_PATH, BETTER_AUTH_ALLOWED_PATHS, auth } from "./app/lib/auth.js";
+import { limitBodySize } from "./app/middlewares/limitBodySize.js";
 import { globalErrorHandler } from "./app/middlewares/globalErrorHandler.js";
 import { globalLimiter } from "./app/middlewares/rateLimiter.js";
 import { AuthRoutes } from "./app/modules/auth/auth.route.js";
@@ -12,6 +13,10 @@ import { notFound } from "./app/middlewares/notFound.js";
 import router from "./app/routes/index.js";
 import { ApiError } from "./app/utils/ApiError.js";
 import { sendResponse } from "./app/utils/sendResponse.js";
+
+/** No request body we accept is anywhere near this (uploads will use multipart). */
+const BODY_LIMIT = "100kb";
+const BODY_LIMIT_BYTES = 100 * 1024;
 
 const app: Application = express();
 
@@ -35,16 +40,21 @@ app.use(cors(corsOptions));
 app.use(globalLimiter);
 
 // ── Must come BEFORE express.json() ─────────────────────────────────────────
-// 1. Our auth wrappers (register/login/logout/refresh-token/admin-check). They
+// 1. Our auth wrappers (register/login/logout/refresh-token, change-password limiter). They
 //    parse JSON per route, so unmatched /auth/* requests keep an unread body.
-// 2. Better Auth catch-all for its remaining endpoints (get-session,
-//    change-password, sessions, ...). Express 5 needs a named wildcard.
+// 2. Better Auth, for an ALLOW-LIST of its endpoints only (lib/auth.ts). It reads
+//    the body itself, so a Content-Length guard enforces our size limit first.
+//    Any other /auth/* path falls through to our 404 envelope.
 // 3. Phase 6: the Stripe webhook raw-body route goes here too.
 app.use(AUTH_BASE_PATH, AuthRoutes);
-app.all(`${AUTH_BASE_PATH}/*splat`, toNodeHandler(auth));
+app.all(
+  BETTER_AUTH_ALLOWED_PATHS.map((path) => `${AUTH_BASE_PATH}${path}`),
+  limitBodySize(BODY_LIMIT_BYTES),
+  toNodeHandler(auth),
+);
 
-app.use(express.json({ limit: "1mb" }));
-app.use(express.urlencoded({ extended: true, limit: "1mb" }));
+app.use(express.json({ limit: BODY_LIMIT }));
+app.use(express.urlencoded({ extended: true, limit: BODY_LIMIT }));
 
 app.get("/", (_req, res) => {
   sendResponse(res, {

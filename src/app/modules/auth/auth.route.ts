@@ -1,9 +1,5 @@
 import express, { Router } from "express";
-import { Role } from "../../../generated/prisma/enums.js";
-import { DISABLED_PATHS } from "../../lib/auth.js";
 import { authenticate } from "../../middlewares/authenticate.js";
-import { notFound } from "../../middlewares/notFound.js";
-import { authorize } from "../../middlewares/authorize.js";
 import { authLimiter } from "../../middlewares/rateLimiter.js";
 import { validateRequest } from "../../middlewares/validateRequest.js";
 import { AuthController } from "./auth.controller.js";
@@ -21,9 +17,9 @@ router.post("/register", authLimiter, json, validateRequest(AuthValidation.regis
 router.post("/login", authLimiter, json, validateRequest(AuthValidation.login), AuthController.login);
 router.post("/logout", authenticate, AuthController.logout);
 router.post("/refresh-token", authenticate, AuthController.refreshToken);
-router.get("/admin-check", authenticate, authorize(Role.ADMIN), AuthController.adminCheck);
-
-// Better Auth endpoints we disabled: answer with our 404 envelope instead of its plain-text 404.
-router.all(DISABLED_PATHS, notFound);
+// Better Auth's change-password is a password check: failed attempts count toward
+// the strict limiter. The limiter only calls next(), so the body stays unread and the
+// request continues to the Better Auth allow-list handler in app.ts.
+router.post("/change-password", authLimiter);
 
 export const AuthRoutes = router;

@@ -19,6 +19,9 @@ export const AUDIT_ACTIONS = {
   COURIER_AVAILABILITY_CHANGED: "COURIER_AVAILABILITY_CHANGED",
   /** Written only by scripts/dev-mark-paid.ts (never by the app). */
   DEV_MARK_PAID: "DEV_MARK_PAID",
+  USER_CREATED: "USER_CREATED",
+  USER_ROLE_CHANGED: "USER_ROLE_CHANGED",
+  USER_STATUS_CHANGED: "USER_STATUS_CHANGED",
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
@@ -29,6 +32,7 @@ export const AUDIT_ENTITIES = {
   PRICING_RULE: "PRICING_RULE",
   SHIPMENT: "SHIPMENT",
   COURIER_PROFILE: "COURIER_PROFILE",
+  USER: "USER",
 } as const;
 
 export type AuditEntity = (typeof AUDIT_ENTITIES)[keyof typeof AUDIT_ENTITIES];

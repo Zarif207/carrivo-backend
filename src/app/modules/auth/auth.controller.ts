@@ -42,14 +42,4 @@ const refreshToken = catchAsync(async (req, res) => {
   });
 });
 
-/** TEMPORARY: verifies ADMIN-only authorization. Remove once real admin routes exist (Phase 5). */
-const adminCheck = catchAsync(async (req, res) => {
-  const user = getAuthUser(req);
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    message: "Admin access confirmed",
-    data: { ok: true, userId: user.id, role: user.role },
-  });
-});
-
-export const AuthController = { register, login, logout, refreshToken, adminCheck };
+export const AuthController = { register, login, logout, refreshToken };

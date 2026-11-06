@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { AdminRoutes } from "../modules/admin/admin.route.js";
 import { CourierRoutes } from "../modules/courier/courier.route.js";
 import { HealthRoutes } from "../modules/health/health.route.js";
 import { HubRoutes } from "../modules/hub/hub.route.js";
@@ -24,6 +25,7 @@ const moduleRoutes: ModuleRoute[] = [
   { path: "/pricing", route: PricingRoutes },
   { path: "/shipments", route: ShipmentRoutes },
   { path: "/couriers", route: CourierRoutes },
+  { path: "/admin", route: AdminRoutes },
   { path: "/tracking", route: TrackingRoutes },
 ];
 

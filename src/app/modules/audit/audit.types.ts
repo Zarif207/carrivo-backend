@@ -17,3 +17,17 @@ export interface AuditEntry {
   after?: unknown;
   meta?: RequestMeta;
 }
+
+export interface AuditLogItem {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  actorRole: Role | null;
+  actor: { id: string; name: string; email: string; role: Role } | null;
+  before: unknown;
+  after: unknown;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: Date;
+}

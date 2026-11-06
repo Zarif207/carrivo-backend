@@ -2,7 +2,7 @@ import { isAPIError } from "better-auth/api";
 import type { ErrorRequestHandler } from "express";
 import httpStatus from "http-status";
 import { ZodError } from "zod";
-import { isDevelopment } from "../config/env.js";
+import { exposeErrorDetails } from "../config/env.js";
 import { handleBetterAuthError } from "../errors/handleBetterAuthError.js";
 import { handlePrismaKnownError, handlePrismaValidationError } from "../errors/handlePrismaError.js";
 import { handleZodError } from "../errors/handleZodError.js";
@@ -61,7 +61,7 @@ export const globalErrorHandler: ErrorRequestHandler = (error: unknown, _req, re
     success: false,
     message,
     errors,
-    ...(isDevelopment && error instanceof Error && error.stack ? { stack: error.stack } : {}),
+    ...(exposeErrorDetails && error instanceof Error && error.stack ? { stack: error.stack } : {}),
   };
 
   res.status(statusCode).json(body);

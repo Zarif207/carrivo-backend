@@ -101,7 +101,7 @@ model User {
   earnings          CourierEarning[]
   auditLogs         AuditLog[]
 
-  @@index([role])
+  @@index([role, status]) // admin user list, last-admin lock, dashboard counts
   @@index([status])
   @@index([deletedAt])
   @@index([createdAt])
@@ -426,9 +426,10 @@ model AuditLog {
   userAgent  String?
   createdAt  DateTime @default(now())
 
-  @@index([actorId])
-  @@index([entityType, entityId])
-  @@index([action])
+  // (filter, createdAt): each admin audit-log filter is served together with the newest-first sort.
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId, createdAt])
+  @@index([action, createdAt])
   @@index([createdAt])
   @@map("audit_logs")
 }

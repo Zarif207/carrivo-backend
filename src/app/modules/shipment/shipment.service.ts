@@ -1,6 +1,7 @@
 import httpStatus from "http-status";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import { PickupStatus, Role, ShipmentPaymentStatus, ShipmentStatus, UserStatus } from "../../../generated/prisma/enums.js";
+import { CACHE_KEYS, cache } from "../../lib/cache.js";
 import { prisma } from "../../lib/prisma.js";
 import type { ErrorDetail } from "../../types/response.types.js";
 import { ApiError } from "../../utils/ApiError.js";
@@ -27,6 +28,7 @@ import {
   statusSnapshotSelect,
   type ChangeStatusInput,
   type ShipmentDetail,
+  type ShipmentDetailRow,
   type ShipmentListItem,
   type StatusSnapshot,
 } from "./shipment.types.js";
@@ -66,10 +68,25 @@ const scopeWhere = (actor: Actor): Prisma.ShipmentWhereInput => {
  * (deprecated by pg, removed in pg@9).
  */
 const loadDetail = async (id: string): Promise<ShipmentDetail> =>
-  formatMoneyFields(
-    await prisma.shipment.findUniqueOrThrow({ where: { id }, select: shipmentDetailSelect }),
-    SHIPMENT_DETAIL_MONEY_FIELDS,
-  );
+  toDetail(await prisma.shipment.findUniqueOrThrow({ where: { id }, select: shipmentDetailSelect }));
+
+/** Money as 2-decimal strings; the internal pricing-rule id is not exposed. */
+const toDetail = (row: ShipmentDetailRow): ShipmentDetail => {
+  const detail = formatMoneyFields(row, SHIPMENT_DETAIL_MONEY_FIELDS);
+  const breakdown = detail.priceBreakdown;
+  if (breakdown && typeof breakdown === "object" && !Array.isArray(breakdown)) {
+    const { ruleId: _ruleId, ...rest } = breakdown;
+    return { ...detail, priceBreakdown: rest };
+  }
+  return detail;
+};
+
+/** Loads the committed detail and drops the shipment's cached public tracking. */
+const loadDetailAndInvalidate = async (id: string): Promise<ShipmentDetail> => {
+  const detail = await loadDetail(id);
+  await cache.invalidate(CACHE_KEYS.tracking(detail.trackingId));
+  return detail;
+};
 
 /** Flat (relation-free) snapshot of the editable columns, for update checks and audit. */
 const editSnapshotSelect = {
@@ -289,7 +306,7 @@ const changeStatus = async (input: ChangeStatusInput): Promise<ShipmentDetail> =
     });
     return s.id;
   });
-  return loadDetail(id);
+  return loadDetailAndInvalidate(id);
 };
 
 interface LockedCourier {
@@ -461,7 +478,7 @@ const create = async (actor: Actor, payload: CreateShipmentInput, meta: RequestM
       return shipment.id;
     }),
   );
-  return loadDetail(id);
+  return loadDetailAndInvalidate(id);
 };
 
 const list = async (actor: Actor, query: ShipmentListQuery): Promise<Paginated<ShipmentListItem>> => {
@@ -508,7 +525,7 @@ const getById = async (actor: Actor, id: string): Promise<ShipmentDetail> => {
     select: shipmentDetailSelect,
   });
   if (!shipment) throw notFound();
-  return formatMoneyFields(shipment, SHIPMENT_DETAIL_MONEY_FIELDS);
+  return toDetail(shipment);
 };
 
 /** Owner only, PENDING only. Weight/service changes re-price, and are blocked once paid. */
@@ -577,7 +594,7 @@ const update = async (
       meta,
     });
   });
-  return loadDetail(id);
+  return loadDetailAndInvalidate(id);
 };
 
 /** Owner (customer) or admin, before PICKED_UP. Paid shipments keep paymentStatus PAID. */
@@ -620,6 +637,9 @@ const remove = (actor: Actor, id: string, meta: RequestMeta): Promise<{ id: stri
       meta,
     });
     return { id, trackingId: shipment.trackingId, deletedAt };
+  }).then(async (result) => {
+    await cache.invalidate(CACHE_KEYS.tracking(result.trackingId));
+    return result;
   });
 
 export const ShipmentService = {
