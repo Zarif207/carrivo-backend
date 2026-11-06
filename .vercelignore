@@ -1,0 +1,11 @@
+# Not part of the deployed API. The function bundle is traced from api/index.ts,
+# so none of these are imported at runtime; ignoring them keeps dev-only code
+# (e.g. scripts/dev-mark-paid.ts) out of the upload entirely.
+scripts/
+docs/
+dist/
+.env
+.env.*
+!.env.example
+*.test.ts
+BACKEND_PLAN.md

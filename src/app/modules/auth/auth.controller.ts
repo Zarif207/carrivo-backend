@@ -13,7 +13,7 @@ import { AuthService, googleErrorRedirect } from "./auth.service.js";
 import type { GoogleCompleteQuery, GoogleExchangeInput, GoogleStartQuery, LoginInput, RegisterInput } from "./auth.validation.js";
 
 const register = catchAsync(async (req, res) => {
-  const result = await AuthService.register(req.body as RegisterInput, fromNodeHeaders(req.headers));
+  const result = await AuthService.register(req.body as RegisterInput, fromNodeHeaders(req.headers), getRequestMeta(req));
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
     message: "Registration successful",

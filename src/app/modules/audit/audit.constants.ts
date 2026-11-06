@@ -21,12 +21,17 @@ export const AUDIT_ACTIONS = {
   /** Written only by scripts/dev-mark-paid.ts (never by the app). */
   DEV_MARK_PAID: "DEV_MARK_PAID",
   USER_CREATED: "USER_CREATED",
+  /** Self-registration with email/password (Google sign-up is USER_REGISTERED_GOOGLE). */
+  USER_REGISTERED: "USER_REGISTERED",
+  USER_PROFILE_UPDATED: "USER_PROFILE_UPDATED",
   USER_ROLE_CHANGED: "USER_ROLE_CHANGED",
   USER_STATUS_CHANGED: "USER_STATUS_CHANGED",
   USER_REGISTERED_GOOGLE: "USER_REGISTERED_GOOGLE",
   USER_LOGIN_GOOGLE: "USER_LOGIN_GOOGLE",
   /** A deactivated or deleted user tried to sign in (password or Google). */
   USER_LOGIN_REFUSED: "USER_LOGIN_REFUSED",
+  /** Written only by prisma/seed.ts with SEED_RESET_DEMO_PASSWORDS=true (never by the app). */
+  USER_PASSWORD_RESET_BY_SEED: "USER_PASSWORD_RESET_BY_SEED",
   PAYMENT_INITIATED: "PAYMENT_INITIATED",
   PAYMENT_PAID: "PAYMENT_PAID",
   PAYMENT_EXPIRED: "PAYMENT_EXPIRED",

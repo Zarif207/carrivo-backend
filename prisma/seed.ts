@@ -7,7 +7,14 @@
  * - Sample shipments use fixed tracking ids (CRV-261101-SEEDxx); an existing one is
  *   left untouched (it may have been changed through the API since).
  *
- * The demo password comes from SEED_DEMO_PASSWORD; it is never stored in code.
+ * The demo password comes from SEED_DEMO_PASSWORD; it is never stored in code
+ * and never printed.
+ *
+ * Production (NODE_ENV=production): SEED_CONFIRM_DB_HOST must name the target
+ * host and the password must be strong (see seed.safety.ts and docs/DEPLOYMENT.md).
+ * Existing accounts keep their password unless SEED_RESET_DEMO_PASSWORDS=true,
+ * which re-hashes it through Better Auth, revokes their sessions and writes a
+ * USER_PASSWORD_RESET_BY_SEED audit row per account.
  */
 import { PLATFORM_CURRENCY } from "../src/app/config/currency.js";
 import { env } from "../src/app/config/env.js";
@@ -26,6 +33,7 @@ import { AUDIT_ACTIONS, AUDIT_ENTITIES } from "../src/app/modules/audit/audit.co
 import { calculateCourierEarning } from "../src/app/modules/courier/courier.utils.js";
 import { calculatePrice } from "../src/app/modules/pricing/pricing.utils.js";
 import { allowedTransitions } from "../src/app/modules/shipment/shipment.constants.js";
+import { checkSeedTarget, demoPasswordProblems } from "./seed.safety.js";
 
 interface SeedZone {
   code: string;
@@ -570,11 +578,53 @@ const syncSeedMoney = async (): Promise<{ repriced: number; payments: number; ea
   return { repriced, payments, earnings };
 };
 
+/**
+ * Sets a demo account's password to SEED_DEMO_PASSWORD (Better Auth's hasher, the
+ * same as sign-up), revokes its sessions and audits it. Returns false when the
+ * account has no email/password credential (e.g. Google-only).
+ */
+const resetDemoPassword = async (userId: string, email: string, password: string): Promise<boolean> => {
+  const ctx = await auth.$context;
+  if (!(await ctx.internalAdapter.findCredentialAccount(userId))) return false;
+  const hash = await ctx.password.hash(password);
+  await ctx.internalAdapter.updatePassword(userId, hash);
+  await prisma.$transaction([
+    prisma.session.deleteMany({ where: { userId } }),
+    prisma.auditLog.create({
+      data: {
+        actorId: null,
+        actorRole: null,
+        action: AUDIT_ACTIONS.USER_PASSWORD_RESET_BY_SEED,
+        entityType: AUDIT_ENTITIES.USER,
+        entityId: userId,
+        // Never the password or its hash.
+        after: { email, sessionsRevoked: true, source: "prisma/seed.ts" },
+      },
+    }),
+  ]);
+  return true;
+};
+
 async function main(): Promise<void> {
+  const production = env.NODE_ENV === "production";
+
+  // Both checks run before the first query, so a refused seed writes nothing.
+  const target = checkSeedTarget({
+    nodeEnv: env.NODE_ENV,
+    databaseUrl: env.DATABASE_URL,
+    confirmHost: process.env["SEED_CONFIRM_DB_HOST"],
+  });
+  if (!target.ok) throw new Error(`Seed refused: ${target.reason}`);
+
   const password = env.SEED_DEMO_PASSWORD;
-  if (!password || password.length < 8) {
-    throw new Error("SEED_DEMO_PASSWORD must be set in .env (at least 8 characters) before seeding.");
+  const problems = demoPasswordProblems(password, production);
+  if (!password || problems.length > 0) {
+    throw new Error(
+      `Seed refused: SEED_DEMO_PASSWORD is not acceptable${production ? " for production" : ""}: ${problems.join(" ")}`,
+    );
   }
+  const resetPasswords = process.env["SEED_RESET_DEMO_PASSWORDS"] === "true";
+  console.log(`Seed: target database host ${target.host}${production ? " (production)" : ""}.`);
 
   const ids = await seedZonesAndHubs();
   console.log(`Seed: ${ZONES.length} zones and ${ZONES.length} hubs upserted.`);
@@ -583,9 +633,18 @@ async function main(): Promise<void> {
   console.log(`Seed: ${rules} pricing rules upserted.`);
 
   const rows: { role: string; email: string; status: string }[] = [];
+  const reset: string[] = [];
   for (const user of USERS) {
     const status = await seedUser(user, password, ids);
-    rows.push({ role: user.role, email: user.email, status });
+    let shown: string = status;
+    if (status === "existing" && resetPasswords) {
+      const found = await prisma.user.findUniqueOrThrow({ where: { email: user.email }, select: { id: true } });
+      if (await resetDemoPassword(found.id, user.email, password)) {
+        reset.push(user.email);
+        shown = "existing (password reset)";
+      }
+    }
+    rows.push({ role: user.role, email: user.email, status: shown });
   }
 
   const users = await prisma.user.findMany({
@@ -601,9 +660,13 @@ async function main(): Promise<void> {
     `Seed: ${money.repriced} sample shipment(s) re-priced in ${PLATFORM_CURRENCY}, ${money.payments} seed payment(s) and ${money.earnings} earning(s) aligned.`,
   );
 
-  console.log("\nDemo accounts (all share the password from SEED_DEMO_PASSWORD):");
+  console.log("\nDemo accounts (all use the password in SEED_DEMO_PASSWORD; it is not printed):");
   console.table(rows);
-  console.log(`Password: ${password}\n`);
+  if (reset.length > 0) {
+    console.log(`Passwords reset (sessions revoked, audited) for: ${reset.join(", ")}`);
+  } else if (rows.some((row) => row.status === "existing")) {
+    console.log("Existing accounts kept their current password. Set SEED_RESET_DEMO_PASSWORDS=true to rotate them.");
+  }
 }
 
 main()

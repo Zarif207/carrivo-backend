@@ -54,6 +54,10 @@ const retryRefund = catchAsync(async (req, res) => {
 const webhook = catchAsync(async (req, res) => {
   const signature = req.headers["stripe-signature"];
   let event: Stripe.Event;
+  if (!Buffer.isBuffer(req.body)) {
+    // Deployment problem, not a bad request: something parsed the body before express.raw.
+    console.warn(`[payment] webhook raw body unavailable (got ${req.body === undefined ? "undefined" : typeof req.body}); check middleware order`);
+  }
   try {
     if (typeof signature !== "string" || !Buffer.isBuffer(req.body)) throw new Error("missing signature or raw body");
     event = stripe.webhooks.constructEvent(req.body, signature, env.STRIPE_WEBHOOK_SECRET);

@@ -13,9 +13,10 @@
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",
-    "vercel-build": "prisma generate",
-    "test": "node --import tsx --test \"src/**/*.test.ts\"",
-    "dev:mark-paid": "tsx scripts/dev-mark-paid.ts"
+    "vercel-build": "prisma generate && tsc --noEmit",
+    "test": "node --import tsx --test \"src/**/*.test.ts\" \"prisma/**/*.test.ts\"",
+    "dev:mark-paid": "tsx scripts/dev-mark-paid.ts",
+    "smoke": "tsx scripts/smoke.ts"
   },
   "keywords": [],
   "author": "Zarif Hasan",

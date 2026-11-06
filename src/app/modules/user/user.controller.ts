@@ -1,6 +1,7 @@
 import httpStatus from "http-status";
 import { getAuthUser } from "../../middlewares/authenticate.js";
 import { catchAsync } from "../../utils/catchAsync.js";
+import { getRequestMeta } from "../../utils/requestMeta.js";
 import { sendResponse } from "../../utils/sendResponse.js";
 import { UserService } from "./user.service.js";
 import type { UpdateMeInput } from "./user.validation.js";
@@ -15,7 +16,7 @@ const getMe = catchAsync(async (req, res) => {
 });
 
 const updateMe = catchAsync(async (req, res) => {
-  const result = await UserService.updateMe(getAuthUser(req).id, req.body as UpdateMeInput);
+  const result = await UserService.updateMe(getAuthUser(req), req.body as UpdateMeInput, getRequestMeta(req));
   sendResponse(res, {
     statusCode: httpStatus.OK,
     message: "Profile updated successfully",

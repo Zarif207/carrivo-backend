@@ -54,7 +54,7 @@ const buildAuthResult = async (userId: string, rawToken: string): Promise<AuthRe
 };
 
 /** Self-registration always creates a CUSTOMER (role is `input: false` in Better Auth). */
-const register = async (payload: RegisterInput, headers: Headers): Promise<AuthResult> => {
+const register = async (payload: RegisterInput, headers: Headers, meta: RequestMeta): Promise<AuthResult> => {
   const result = await auth.api.signUpEmail({
     body: {
       name: payload.name,
@@ -67,6 +67,15 @@ const register = async (payload: RegisterInput, headers: Headers): Promise<AuthR
   if (!result.token) {
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, "Registration succeeded but no session was created");
   }
+  // Better Auth commits the user itself, so this row follows it (same as Google sign-up).
+  await AuditService.log(prisma, {
+    actor: { id: result.user.id, role: Role.CUSTOMER },
+    action: AUDIT_ACTIONS.USER_REGISTERED,
+    entityType: AUDIT_ENTITIES.USER,
+    entityId: result.user.id,
+    after: { provider: "email", role: Role.CUSTOMER },
+    meta,
+  });
   return buildAuthResult(result.user.id, result.token);
 };
 

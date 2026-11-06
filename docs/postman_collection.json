@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Carrivo API",
-    "description": "REST API for the Carrivo courier & logistics platform. All routes are under {{baseUrl}} (= http://localhost:5000/api/v1 locally).",
+    "description": "REST API for **Carrivo**, a courier & logistics platform (customers ship and pay, couriers pick up and deliver, admins run hubs, zones, pricing, users and reports).\n\n## How to use\n1. **Set `baseUrl`** (collection variables): `http://localhost:5000/api/v1` locally, or `https://<your-api>.vercel.app/api/v1` for the live API.\n2. **Set `demoPassword`** to the demo password you were given (it is empty here on purpose; the collection never stores real passwords or tokens).\n3. **Run Auth → `Login as Admin (demo)`, `Login as Courier (demo)`, `Login as Customer (demo)`.** Each saves its token into `adminToken`, `courierToken` or `customerToken` automatically, and every request already uses the right one (Authorization: Bearer).\n4. Explore the module folders in order: Zones → Hubs → Pricing → Shipments (create, pickup, assign, status flow, proof) → Tracking → Payments → Couriers → Admin → Notifications. Requests that create something save its id (`shipmentId`, `paymentId`, ...) for the next requests.\n5. **RBAC matrix**: run the folder (Runner) after logging in. Every request must be refused (401 / 403 / 404) and has a test asserting the exact status; none of them can change data (forbidden-write probes carry an invalid body as a second safety net).\n\n**Response envelope**: success `{ success: true, message, data, meta? }` (meta = `{ page, limit, total, totalPages }` on lists); error `{ success: false, message, errors: [] }`.\n**Lists** accept `page`, `limit` (max 100), `sortBy`, `sortOrder`, `searchTerm` and module filters (see each request's disabled query params).\n**Money** is a decimal string in USD (e.g. `\"6.00\"`).\n\nPayments use Stripe **test mode** (card 4242 4242 4242 4242). Uploads (proof of delivery) are multipart, ≤ 4 MB; the frontend should compress photos first.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -127,6 +127,11 @@
     },
     {
       "key": "notificationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "otherShipmentId",
       "value": "",
       "type": "string"
     }
@@ -472,7 +477,7 @@
                 "exec": [
                   "const body = pm.response.json();",
                   "pm.test('success envelope', () => pm.expect(body.success).to.eql(true));",
-                  "if (body.data && body.data.token) { pm.collectionVariables.set('token', body.data.token); pm.collectionVariables.set('token', body.data.token); }"
+                  "if (body.data && body.data.token) { pm.collectionVariables.set('token', body.data.token); }"
                 ]
               }
             }
@@ -918,7 +923,7 @@
                 "exec": [
                   "const body = pm.response.json();",
                   "pm.test('success envelope', () => pm.expect(body.success).to.eql(true));",
-                  "if (body.data && body.data.token) { pm.collectionVariables.set('token', body.data.token); pm.collectionVariables.set('token', body.data.token); }"
+                  "if (body.data && body.data.token) { pm.collectionVariables.set('token', body.data.token); }"
                 ]
               }
             }
@@ -9815,6 +9820,2849 @@
                 }
               ],
               "body": "{\n  \"success\": true,\n  \"message\": \"All notifications marked as read\",\n  \"data\": {\n    \"updated\": 0\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "RBAC matrix",
+      "description": "Proves each role is blocked from the other roles' endpoints: 401 without/with an invalid token, 403 for the wrong role, 404 for other users' resources. Log in as all three roles first, then run this folder in the Runner: every request has a status test.",
+      "item": [
+        {
+          "name": "Setup · admin finds another customer's shipment (saves otherShipmentId)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "const s = (body.data || []).find((x) => x.trackingId === 'CRV-261101-SEED03');",
+                  "pm.test('seeded shipment SEED03 found (owned by customer2, assigned to courier2)', () => pm.expect(s).to.be.an('object'));",
+                  "if (s) pm.collectionVariables.set('otherShipmentId', s.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shipments?searchTerm=CRV-261101-SEED03",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments"
+              ],
+              "query": [
+                {
+                  "key": "searchTerm",
+                  "value": "CRV-261101-SEED03"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Run first. CRV-261101-SEED03 belongs to customer2 and is assigned to courier2, so customer1 and courier1 must not see it."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments?searchTerm=CRV-261101-SEED03",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments"
+                  ],
+                  "query": [
+                    {
+                      "key": "searchTerm",
+                      "value": "CRV-261101-SEED03"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Shipments retrieved successfully\",\n  \"data\": [\n    {\n      \"id\": \"01a1b0b8-9120-71e9-af20-9fc6d8f61b00\",\n      \"trackingId\": \"CRV-261101-SEED03\",\n      \"status\": \"COURIER_ASSIGNED\",\n      \"paymentStatus\": \"PAID\",\n      \"serviceType\": \"STANDARD\",\n      \"senderName\": \"Tanvir Customer\",\n      \"receiverName\": \"Farhana Akter\",\n      \"receiverPhone\": \"+8801811000003\",\n      \"pickupAddress\": \"House 7, Road 2, Dhanmondi, Dhaka\",\n      \"deliveryAddress\": \"22 Lalbagh Road, Old Dhaka\",\n      \"weightKg\": \"3.5\",\n      \"price\": \"4.75\",\n      \"currency\": \"usd\",\n      \"originZone\": {\n        \"id\": \"01a1b0b8-8f47-743d-8977-0207e1771c7b\",\n        \"name\": \"Dhaka South\",\n        \"code\": \"DHK-S\"\n      },\n      \"destinationZone\": {\n        \"id\": \"01a1b0b8-8f47-743d-8977-0207e1771c7b\",\n        \"name\": \"Dhaka South\",\n        \"code\": \"DHK-S\"\n      },\n      \"originHub\": {\n        \"id\": \"01a1b0b8-8f48-71f7-8d65-bb0489443c73\",\n        \"name\": \"Dhaka South Hub\",\n        \"code\": \"HUB-DHK-S\",\n        \"city\": \"Dhaka\"\n      },\n      \"destinationHub\": {\n        \"id\": \"01a1b0b8-8f48-71f7-8d65-bb0489443c73\",\n        \"name\": \"Dhaka South Hub\",\n        \"code\": \"HUB-DHK-S\",\n        \"city\": \"Dhaka\"\n      },\n      \"customer\": {\n        \"id\": \"a2a911af-40c9-4cb2-a7f8-a24ad02f05a4\",\n        \"name\": \"Tanvir Customer\"\n      },\n      \"courier\": {\n        \"id\": \"b6c9dc28-ac25-475f-ba52-5ebe9068a18d\",\n        \"name\": \"Karim Courier\"\n      },\n      \"createdAt\": \"2026-11-04T05:57:28.223Z\",\n      \"updatedAt\": \"2026-11-04T09:57:28.223Z\"\n    }\n  ],\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 1,\n    \"totalPages\": 1\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "401 · no token · GET /users/me",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "No or invalid Bearer token: authenticate rejects the request before any role or validation check."
+          },
+          "response": [
+            {
+              "name": "401 Unauthorized",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/users/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "me"
+                  ]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Authentication token is missing\",\n  \"errors\": [],\n  \"stack\": \"ApiError: Authentication token is missing\\n    at unauthorized (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:16:3)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:25:11)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/utils/catchAsync.ts:9:5)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "401 · no token · GET /admin/users",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "users"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "No or invalid Bearer token: authenticate rejects the request before any role or validation check."
+          },
+          "response": [
+            {
+              "name": "401 Unauthorized",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/users",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "users"
+                  ]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Authentication token is missing\",\n  \"errors\": [],\n  \"stack\": \"ApiError: Authentication token is missing\\n    at unauthorized (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:16:3)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:25:11)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/utils/catchAsync.ts:9:5)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at trimPrefix (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:342:13)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:297:9\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at router.handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:186:3)\\n    at router (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:60:12)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "401 · no token · POST /payments/initiate",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payments/initiate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "initiate"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "No or invalid Bearer token: authenticate rejects the request before any role or validation check."
+          },
+          "response": [
+            {
+              "name": "401 Unauthorized",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/payments/initiate",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "payments",
+                    "initiate"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Authentication token is missing\",\n  \"errors\": [],\n  \"stack\": \"ApiError: Authentication token is missing\\n    at unauthorized (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:16:3)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:25:11)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/utils/catchAsync.ts:9:5)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at trimPrefix (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:342:13)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:297:9\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at router.handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:186:3)\\n    at router (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:60:12)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "401 · invalid token · GET /shipments",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shipments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "not-a-real-session-token",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "No or invalid Bearer token: authenticate rejects the request before any role or validation check."
+          },
+          "response": [
+            {
+              "name": "401 Unauthorized",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments"
+                  ]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid or expired authentication token\",\n  \"errors\": [],\n  \"stack\": \"ApiError: Invalid or expired authentication token\\n    at unauthorized (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:16:3)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:30:11)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "403 · customer → GET /admin/users",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "users"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "The role check runs before validation and before the handler, so this request cannot change data. The body is deliberately invalid as a second safety net."
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/users",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "users"
+                  ]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at trimPrefix (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:342:13)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:297:9\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "403 · customer → GET /admin/audit-logs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/audit-logs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "audit-logs"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "The role check runs before validation and before the handler, so this request cannot change data. The body is deliberately invalid as a second safety net."
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/audit-logs",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "audit-logs"
+                  ]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at trimPrefix (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:342:13)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:297:9\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "403 · customer → GET /admin/dashboard-stats",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/dashboard-stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "dashboard-stats"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "The role check runs before validation and before the handler, so this request cannot change data. The body is deliberately invalid as a second safety net."
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/dashboard-stats",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "dashboard-stats"
+                  ]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at trimPrefix (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:342:13)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:297:9\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "403 · customer → POST /zones",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/zones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "zones"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "The role check runs before validation and before the handler, so this request cannot change data. The body is deliberately invalid as a second safety net."
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/zones",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "zones"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "403 · customer → POST /hubs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/hubs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hubs"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "The role check runs before validation and before the handler, so this request cannot change data. The body is deliberately invalid as a second safety net."
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/hubs",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "hubs"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "403 · customer → POST /pricing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pricing",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pricing"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "The role check runs before validation and before the handler, so this request cannot change data. The body is deliberately invalid as a second safety net."
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/pricing",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "pricing"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "403 · customer → POST /shipments/:id/assign",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/{{otherShipmentId}}/assign",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{otherShipmentId}}",
+                "assign"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "The role check runs before validation and before the handler, so this request cannot change data. The body is deliberately invalid as a second safety net."
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{otherShipmentId}}/assign",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{otherShipmentId}}",
+                    "assign"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at param (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:600:14)\\n    at param (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:610:14)\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:664:3)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "403 · customer → PATCH /shipments/:id/status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/{{otherShipmentId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{otherShipmentId}}",
+                "status"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "The role check runs before validation and before the handler, so this request cannot change data. The body is deliberately invalid as a second safety net."
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{otherShipmentId}}/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{otherShipmentId}}",
+                    "status"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at param (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:600:14)\\n    at param (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:610:14)\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:664:3)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "403 · customer → DELETE /shipments/:id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/{{otherShipmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{otherShipmentId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "The role check runs before validation and before the handler, so this request cannot change data. The body is deliberately invalid as a second safety net."
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{otherShipmentId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{otherShipmentId}}"
+                  ]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at param (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:600:14)\\n    at param (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:610:14)\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:664:3)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "403 · customer → GET /couriers/me/tasks",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/couriers/me/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "couriers",
+                "me",
+                "tasks"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "The role check runs before validation and before the handler, so this request cannot change data. The body is deliberately invalid as a second safety net."
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/couriers/me/tasks",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "couriers",
+                    "me",
+                    "tasks"
+                  ]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "403 · customer → PATCH /couriers/me/availability",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/couriers/me/availability",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "couriers",
+                "me",
+                "availability"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "The role check runs before validation and before the handler, so this request cannot change data. The body is deliberately invalid as a second safety net."
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/couriers/me/availability",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "couriers",
+                    "me",
+                    "availability"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "403 · courier → POST /shipments",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/shipments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{courierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "The role check runs before validation and before the handler, so this request cannot change data. The body is deliberately invalid as a second safety net."
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "403 · courier → POST /shipments/:id/cancel",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/{{otherShipmentId}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{otherShipmentId}}",
+                "cancel"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{courierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "The role check runs before validation and before the handler, so this request cannot change data. The body is deliberately invalid as a second safety net."
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{otherShipmentId}}/cancel",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{otherShipmentId}}",
+                    "cancel"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at param (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:600:14)\\n    at param (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:610:14)\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:664:3)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "403 · courier → POST /shipments/:id/pickup",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/{{otherShipmentId}}/pickup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{otherShipmentId}}",
+                "pickup"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{courierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "The role check runs before validation and before the handler, so this request cannot change data. The body is deliberately invalid as a second safety net."
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{otherShipmentId}}/pickup",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{otherShipmentId}}",
+                    "pickup"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at param (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:600:14)\\n    at param (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:610:14)\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:664:3)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "403 · courier → POST /payments/initiate",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payments/initiate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "initiate"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{courierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "The role check runs before validation and before the handler, so this request cannot change data. The body is deliberately invalid as a second safety net."
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/payments/initiate",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "payments",
+                    "initiate"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "403 · courier → GET /payments/my",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payments/my",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "my"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{courierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "The role check runs before validation and before the handler, so this request cannot change data. The body is deliberately invalid as a second safety net."
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/payments/my",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "payments",
+                    "my"
+                  ]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "403 · courier → GET /pricing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pricing",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pricing"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{courierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "The role check runs before validation and before the handler, so this request cannot change data. The body is deliberately invalid as a second safety net."
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/pricing",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "pricing"
+                  ]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "403 · courier → PATCH /zones/:id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/zones/019a0000-0000-7000-8000-000000000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "zones",
+                "019a0000-0000-7000-8000-000000000000"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{courierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "The role check runs before validation and before the handler, so this request cannot change data. The body is deliberately invalid as a second safety net."
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/zones/019a0000-0000-7000-8000-000000000000",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "zones",
+                    "019a0000-0000-7000-8000-000000000000"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "403 · courier → GET /admin/dashboard-stats",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/dashboard-stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "dashboard-stats"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{courierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "The role check runs before validation and before the handler, so this request cannot change data. The body is deliberately invalid as a second safety net."
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/dashboard-stats",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "dashboard-stats"
+                  ]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at trimPrefix (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:342:13)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:297:9\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "403 · courier → GET /couriers (admin list)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/couriers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "couriers"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{courierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "The role check runs before validation and before the handler, so this request cannot change data. The body is deliberately invalid as a second safety net."
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/couriers",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "couriers"
+                  ]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "403 · admin → POST /shipments (customers only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/shipments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "The role check runs before validation and before the handler, so this request cannot change data. The body is deliberately invalid as a second safety net."
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "403 · admin → POST /payments/initiate",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payments/initiate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "initiate"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "The role check runs before validation and before the handler, so this request cannot change data. The body is deliberately invalid as a second safety net."
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/payments/initiate",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "payments",
+                    "initiate"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "403 · admin → GET /payments/my",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payments/my",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "my"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "The role check runs before validation and before the handler, so this request cannot change data. The body is deliberately invalid as a second safety net."
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/payments/my",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "payments",
+                    "my"
+                  ]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "403 · admin → GET /couriers/me/tasks",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/couriers/me/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "couriers",
+                "me",
+                "tasks"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "The role check runs before validation and before the handler, so this request cannot change data. The body is deliberately invalid as a second safety net."
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/couriers/me/tasks",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "couriers",
+                    "me",
+                    "tasks"
+                  ]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "403 · admin → GET /couriers/me/earnings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/couriers/me/earnings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "couriers",
+                "me",
+                "earnings"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "The role check runs before validation and before the handler, so this request cannot change data. The body is deliberately invalid as a second safety net."
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/couriers/me/earnings",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "couriers",
+                    "me",
+                    "earnings"
+                  ]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "403 · admin → POST /shipments/:id/proof (assigned courier only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/{{otherShipmentId}}/proof",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{otherShipmentId}}",
+                "proof"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "The role check runs before validation and before the handler, so this request cannot change data. The body is deliberately invalid as a second safety net."
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{otherShipmentId}}/proof",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{otherShipmentId}}",
+                    "proof"
+                  ]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at param (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:600:14)\\n    at param (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:610:14)\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:664:3)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "404 · customer → another customer's shipment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/{{otherShipmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{otherShipmentId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Ownership: resources of other users are invisible (404, not 403), so their existence is not leaked."
+          },
+          "response": [
+            {
+              "name": "404 Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{otherShipmentId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{otherShipmentId}}"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Shipment not found\",\n  \"errors\": [],\n  \"stack\": \"ApiError: Shipment not found\\n    at notFound (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/modules/shipment/shipment.service.ts:52:34)\\n    at Object.getById (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/modules/shipment/shipment.service.ts:534:24)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\\n    at async <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/modules/shipment/shipment.controller.ts:31:16)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "404 · courier → a shipment not assigned to them",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/{{otherShipmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{otherShipmentId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{courierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Ownership: resources of other users are invisible (404, not 403), so their existence is not leaked."
+          },
+          "response": [
+            {
+              "name": "404 Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{otherShipmentId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{otherShipmentId}}"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Shipment not found\",\n  \"errors\": [],\n  \"stack\": \"ApiError: Shipment not found\\n    at notFound (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/modules/shipment/shipment.service.ts:52:34)\\n    at Object.getById (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/modules/shipment/shipment.service.ts:534:24)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\\n    at async <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/modules/shipment/shipment.controller.ts:31:16)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "404 · customer → a payment that is not theirs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payments/019a0000-0000-7000-8000-000000000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "019a0000-0000-7000-8000-000000000000"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Ownership: resources of other users are invisible (404, not 403), so their existence is not leaked."
+          },
+          "response": [
+            {
+              "name": "404 Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/payments/019a0000-0000-7000-8000-000000000000",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "payments",
+                    "019a0000-0000-7000-8000-000000000000"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Payment not found\",\n  \"errors\": [],\n  \"stack\": \"ApiError: Payment not found\\n    at NOT_FOUND (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/modules/payment/payment.service.ts:37:35)\\n    at Object.getById (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/modules/payment/payment.service.ts:105:19)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\\n    at async <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/modules/payment/payment.controller.ts:35:16)\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "404 · customer → a notification that is not theirs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "const body = pm.response.json();",
+                  "pm.test('error envelope', () => { pm.expect(body.success).to.eql(false); pm.expect(body.message).to.be.a('string'); pm.expect(body.errors).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/019a0000-0000-7000-8000-000000000000/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "019a0000-0000-7000-8000-000000000000",
+                "read"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Ownership: resources of other users are invisible (404, not 403), so their existence is not leaked."
+          },
+          "response": [
+            {
+              "name": "404 Not Found",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/notifications/019a0000-0000-7000-8000-000000000000/read",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notifications",
+                    "019a0000-0000-7000-8000-000000000000",
+                    "read"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Notification not found\",\n  \"errors\": [],\n  \"stack\": \"ApiError: Notification not found\\n    at Object.markRead (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/modules/notification/notification.service.ts:203:19)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\\n    at async <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/modules/notification/notification.controller.ts:15:16)\"\n}"
             }
           ]
         }
