@@ -79,6 +79,21 @@
       "key": "trackingId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "courierId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pickupStart",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pickupEnd",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -1601,7 +1616,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Zones retrieved successfully\",\n  \"data\": [\n    {\n      \"id\": \"01a1aeb5-ff0d-766a-8a86-134720acf7f4\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\",\n      \"description\": \"Motijheel, Dhanmondi, Old Dhaka\",\n      \"isActive\": true,\n      \"createdAt\": \"2026-11-06T02:35:25.325Z\",\n      \"updatedAt\": \"2026-11-06T02:35:25.325Z\"\n    },\n    {\n      \"id\": \"01a1aeb5-feef-72ce-b712-faa027b4d4f2\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\",\n      \"description\": \"Uttara, Mirpur, Gulshan, Banani\",\n      \"isActive\": true,\n      \"createdAt\": \"2026-11-06T02:35:25.296Z\",\n      \"updatedAt\": \"2026-11-06T02:35:25.296Z\"\n    }\n  ],\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 2,\n    \"totalPages\": 1\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Zones retrieved successfully\",\n  \"data\": [\n    {\n      \"id\": \"01a1aec3-c811-748e-b013-de0ed94ab217\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\",\n      \"description\": \"Motijheel, Dhanmondi, Old Dhaka\",\n      \"isActive\": true,\n      \"createdAt\": \"2026-11-06T02:50:28.753Z\",\n      \"updatedAt\": \"2026-11-06T02:50:28.753Z\"\n    },\n    {\n      \"id\": \"01a1aec3-c7f5-7643-9bd2-46a735b321e8\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\",\n      \"description\": \"Uttara, Mirpur, Gulshan, Banani\",\n      \"isActive\": true,\n      \"createdAt\": \"2026-11-06T02:50:28.725Z\",\n      \"updatedAt\": \"2026-11-06T02:50:28.725Z\"\n    }\n  ],\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 2,\n    \"totalPages\": 1\n  }\n}"
             },
             {
               "name": "400 Invalid query",
@@ -1714,7 +1729,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Zone retrieved successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb5-ff0d-766a-8a86-134720acf7f4\",\n    \"name\": \"Dhaka South\",\n    \"code\": \"DHK-S\",\n    \"description\": \"Motijheel, Dhanmondi, Old Dhaka\",\n    \"isActive\": true,\n    \"createdAt\": \"2026-11-06T02:35:25.325Z\",\n    \"updatedAt\": \"2026-11-06T02:35:25.325Z\"\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Zone retrieved successfully\",\n  \"data\": {\n    \"id\": \"01a1aec3-c811-748e-b013-de0ed94ab217\",\n    \"name\": \"Dhaka South\",\n    \"code\": \"DHK-S\",\n    \"description\": \"Motijheel, Dhanmondi, Old Dhaka\",\n    \"isActive\": true,\n    \"createdAt\": \"2026-11-06T02:50:28.753Z\",\n    \"updatedAt\": \"2026-11-06T02:50:28.753Z\"\n  }\n}"
             },
             {
               "name": "404 Not found",
@@ -1837,7 +1852,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Zone created successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-071f-773b-b1bc-c07e2c26494e\",\n    \"name\": \"Gazipur\",\n    \"code\": \"GZP-1\",\n    \"description\": \"Tongi, Board Bazar\",\n    \"isActive\": true,\n    \"createdAt\": \"2026-11-06T02:35:27.391Z\",\n    \"updatedAt\": \"2026-11-06T02:35:27.391Z\"\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Zone created successfully\",\n  \"data\": {\n    \"id\": \"01a1aec3-cfbd-771e-bcde-171ad1456d40\",\n    \"name\": \"Gazipur\",\n    \"code\": \"GZP-1\",\n    \"description\": \"Tongi, Board Bazar\",\n    \"isActive\": true,\n    \"createdAt\": \"2026-11-06T02:50:30.717Z\",\n    \"updatedAt\": \"2026-11-06T02:50:30.717Z\"\n  }\n}"
             },
             {
               "name": "409 Duplicate code",
@@ -2002,7 +2017,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Zone updated successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-071f-773b-b1bc-c07e2c26494e\",\n    \"name\": \"Gazipur\",\n    \"code\": \"GZP-1\",\n    \"description\": \"Gazipur city corporation\",\n    \"isActive\": true,\n    \"createdAt\": \"2026-11-06T02:35:27.391Z\",\n    \"updatedAt\": \"2026-11-06T02:35:27.391Z\"\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Zone updated successfully\",\n  \"data\": {\n    \"id\": \"01a1aec3-cfbd-771e-bcde-171ad1456d40\",\n    \"name\": \"Gazipur\",\n    \"code\": \"GZP-1\",\n    \"description\": \"Gazipur city corporation\",\n    \"isActive\": true,\n    \"createdAt\": \"2026-11-06T02:50:30.717Z\",\n    \"updatedAt\": \"2026-11-06T02:50:30.717Z\"\n  }\n}"
             }
           ]
         },
@@ -2059,7 +2074,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Zone deleted successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-071f-773b-b1bc-c07e2c26494e\",\n    \"name\": \"Gazipur\",\n    \"code\": \"GZP-1\",\n    \"description\": \"Tongi, Board Bazar\",\n    \"isActive\": false,\n    \"createdAt\": \"2026-11-06T02:35:27.391Z\",\n    \"updatedAt\": \"2026-11-06T02:35:27.391Z\"\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Zone deleted successfully\",\n  \"data\": {\n    \"id\": \"01a1aec3-cfbd-771e-bcde-171ad1456d40\",\n    \"name\": \"Gazipur\",\n    \"code\": \"GZP-1\",\n    \"description\": \"Tongi, Board Bazar\",\n    \"isActive\": false,\n    \"createdAt\": \"2026-11-06T02:50:30.717Z\",\n    \"updatedAt\": \"2026-11-06T02:50:30.717Z\"\n  }\n}"
             },
             {
               "name": "409 In use",
@@ -2086,7 +2101,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"Zone is still in use and cannot be deleted\",\n  \"errors\": [\n    {\n      \"path\": \"hubs\",\n      \"message\": \"1 hub(s) still belong to this zone\"\n    },\n    {\n      \"path\": \"couriers\",\n      \"message\": \"1 courier(s) still operate in this zone\"\n    },\n    {\n      \"path\": \"shipments\",\n      \"message\": \"6 active shipment(s) use this zone\"\n    }\n  ]\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"Zone is still in use and cannot be deleted\",\n  \"errors\": [\n    {\n      \"path\": \"hubs\",\n      \"message\": \"1 hub(s) still belong to this zone\"\n    },\n    {\n      \"path\": \"couriers\",\n      \"message\": \"1 courier(s) still operate in this zone\"\n    },\n    {\n      \"path\": \"shipments\",\n      \"message\": \"7 active shipment(s) use this zone\"\n    }\n  ]\n}"
             }
           ]
         }
@@ -2253,7 +2268,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Hubs retrieved successfully\",\n  \"data\": [\n    {\n      \"id\": \"01a1aeb5-ff0b-734d-be06-30862b47af26\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"address\": \"Plot 12, Sector 7, Uttara\",\n      \"city\": \"Dhaka\",\n      \"phone\": \"+8801700000001\",\n      \"isActive\": true,\n      \"zone\": {\n        \"id\": \"01a1aeb5-feef-72ce-b712-faa027b4d4f2\",\n        \"name\": \"Dhaka North\",\n        \"code\": \"DHK-N\"\n      },\n      \"createdAt\": \"2026-11-06T02:35:25.323Z\",\n      \"updatedAt\": \"2026-11-06T02:35:25.323Z\"\n    }\n  ],\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 1,\n    \"totalPages\": 1\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Hubs retrieved successfully\",\n  \"data\": [\n    {\n      \"id\": \"01a1aec3-c80e-70ac-b5f1-b89066fa329a\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"address\": \"Plot 12, Sector 7, Uttara\",\n      \"city\": \"Dhaka\",\n      \"phone\": \"+8801700000001\",\n      \"isActive\": true,\n      \"zone\": {\n        \"id\": \"01a1aec3-c7f5-7643-9bd2-46a735b321e8\",\n        \"name\": \"Dhaka North\",\n        \"code\": \"DHK-N\"\n      },\n      \"createdAt\": \"2026-11-06T02:50:28.750Z\",\n      \"updatedAt\": \"2026-11-06T02:50:28.750Z\"\n    }\n  ],\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 1,\n    \"totalPages\": 1\n  }\n}"
             }
           ]
         },
@@ -2302,7 +2317,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Hub retrieved successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb5-ff0b-734d-be06-30862b47af26\",\n    \"name\": \"Dhaka North Hub\",\n    \"code\": \"HUB-DHK-N\",\n    \"address\": \"Plot 12, Sector 7, Uttara\",\n    \"city\": \"Dhaka\",\n    \"phone\": \"+8801700000001\",\n    \"isActive\": true,\n    \"zone\": {\n      \"id\": \"01a1aeb5-feef-72ce-b712-faa027b4d4f2\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"createdAt\": \"2026-11-06T02:35:25.323Z\",\n    \"updatedAt\": \"2026-11-06T02:35:25.323Z\"\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Hub retrieved successfully\",\n  \"data\": {\n    \"id\": \"01a1aec3-c80e-70ac-b5f1-b89066fa329a\",\n    \"name\": \"Dhaka North Hub\",\n    \"code\": \"HUB-DHK-N\",\n    \"address\": \"Plot 12, Sector 7, Uttara\",\n    \"city\": \"Dhaka\",\n    \"phone\": \"+8801700000001\",\n    \"isActive\": true,\n    \"zone\": {\n      \"id\": \"01a1aec3-c7f5-7643-9bd2-46a735b321e8\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"createdAt\": \"2026-11-06T02:50:28.750Z\",\n    \"updatedAt\": \"2026-11-06T02:50:28.750Z\"\n  }\n}"
             },
             {
               "name": "404 Not found",
@@ -2425,7 +2440,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Hub created successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-074d-7743-92da-fa700cb5619c\",\n    \"name\": \"Gazipur Hub\",\n    \"code\": \"HUB-GZP\",\n    \"address\": \"Tongi Station Road\",\n    \"city\": \"Gazipur\",\n    \"phone\": null,\n    \"isActive\": true,\n    \"zone\": {\n      \"id\": \"01a1aeb6-071f-773b-b1bc-c07e2c26494e\",\n      \"name\": \"Gazipur\",\n      \"code\": \"GZP-1\"\n    },\n    \"createdAt\": \"2026-11-06T02:35:27.437Z\",\n    \"updatedAt\": \"2026-11-06T02:35:27.437Z\"\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Hub created successfully\",\n  \"data\": {\n    \"id\": \"01a1aec3-cfe3-7306-9102-fa43579c9c64\",\n    \"name\": \"Gazipur Hub\",\n    \"code\": \"HUB-GZP\",\n    \"address\": \"Tongi Station Road\",\n    \"city\": \"Gazipur\",\n    \"phone\": null,\n    \"isActive\": true,\n    \"zone\": {\n      \"id\": \"01a1aec3-cfbd-771e-bcde-171ad1456d40\",\n      \"name\": \"Gazipur\",\n      \"code\": \"GZP-1\"\n    },\n    \"createdAt\": \"2026-11-06T02:50:30.755Z\",\n    \"updatedAt\": \"2026-11-06T02:50:30.755Z\"\n  }\n}"
             },
             {
               "name": "400 Zone not usable",
@@ -2549,7 +2564,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Hub updated successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-074d-7743-92da-fa700cb5619c\",\n    \"name\": \"Gazipur Hub\",\n    \"code\": \"HUB-GZP\",\n    \"address\": \"Tongi Station Road\",\n    \"city\": \"Gazipur\",\n    \"phone\": \"+8801700000010\",\n    \"isActive\": true,\n    \"zone\": {\n      \"id\": \"01a1aeb6-071f-773b-b1bc-c07e2c26494e\",\n      \"name\": \"Gazipur\",\n      \"code\": \"GZP-1\"\n    },\n    \"createdAt\": \"2026-11-06T02:35:27.437Z\",\n    \"updatedAt\": \"2026-11-06T02:35:27.437Z\"\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Hub updated successfully\",\n  \"data\": {\n    \"id\": \"01a1aec3-cfe3-7306-9102-fa43579c9c64\",\n    \"name\": \"Gazipur Hub\",\n    \"code\": \"HUB-GZP\",\n    \"address\": \"Tongi Station Road\",\n    \"city\": \"Gazipur\",\n    \"phone\": \"+8801700000010\",\n    \"isActive\": true,\n    \"zone\": {\n      \"id\": \"01a1aec3-cfbd-771e-bcde-171ad1456d40\",\n      \"name\": \"Gazipur\",\n      \"code\": \"GZP-1\"\n    },\n    \"createdAt\": \"2026-11-06T02:50:30.755Z\",\n    \"updatedAt\": \"2026-11-06T02:50:30.755Z\"\n  }\n}"
             },
             {
               "name": "409 Zone change while in use",
@@ -2590,7 +2605,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"Hub is in use; its zone cannot be changed\",\n  \"errors\": [\n    {\n      \"path\": \"couriers\",\n      \"message\": \"1 courier(s) are based at this hub\"\n    },\n    {\n      \"path\": \"shipments\",\n      \"message\": \"6 active shipment(s) use this hub\"\n    }\n  ]\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"Hub is in use; its zone cannot be changed\",\n  \"errors\": [\n    {\n      \"path\": \"couriers\",\n      \"message\": \"1 courier(s) are based at this hub\"\n    },\n    {\n      \"path\": \"shipments\",\n      \"message\": \"7 active shipment(s) use this hub\"\n    }\n  ]\n}"
             }
           ]
         },
@@ -2646,7 +2661,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Hub deleted successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-074d-7743-92da-fa700cb5619c\",\n    \"name\": \"Gazipur Hub\",\n    \"code\": \"HUB-GZP\",\n    \"address\": \"Tongi Station Road\",\n    \"city\": \"Gazipur\",\n    \"phone\": null,\n    \"isActive\": false,\n    \"zone\": {\n      \"id\": \"01a1aeb6-071f-773b-b1bc-c07e2c26494e\",\n      \"name\": \"Gazipur\",\n      \"code\": \"GZP-1\"\n    },\n    \"createdAt\": \"2026-11-06T02:35:27.437Z\",\n    \"updatedAt\": \"2026-11-06T02:35:27.437Z\"\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Hub deleted successfully\",\n  \"data\": {\n    \"id\": \"01a1aec3-cfe3-7306-9102-fa43579c9c64\",\n    \"name\": \"Gazipur Hub\",\n    \"code\": \"HUB-GZP\",\n    \"address\": \"Tongi Station Road\",\n    \"city\": \"Gazipur\",\n    \"phone\": null,\n    \"isActive\": false,\n    \"zone\": {\n      \"id\": \"01a1aec3-cfbd-771e-bcde-171ad1456d40\",\n      \"name\": \"Gazipur\",\n      \"code\": \"GZP-1\"\n    },\n    \"createdAt\": \"2026-11-06T02:50:30.755Z\",\n    \"updatedAt\": \"2026-11-06T02:50:30.755Z\"\n  }\n}"
             },
             {
               "name": "409 In use",
@@ -2673,7 +2688,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"Hub is still in use and cannot be deleted\",\n  \"errors\": [\n    {\n      \"path\": \"couriers\",\n      \"message\": \"1 courier(s) are based at this hub\"\n    },\n    {\n      \"path\": \"shipments\",\n      \"message\": \"6 active shipment(s) use this hub\"\n    }\n  ]\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"Hub is still in use and cannot be deleted\",\n  \"errors\": [\n    {\n      \"path\": \"couriers\",\n      \"message\": \"1 courier(s) are based at this hub\"\n    },\n    {\n      \"path\": \"shipments\",\n      \"message\": \"7 active shipment(s) use this hub\"\n    }\n  ]\n}"
             }
           ]
         }
@@ -3017,7 +3032,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Pricing rules retrieved successfully\",\n  \"data\": [\n    {\n      \"id\": \"01a1aeb5-ff21-726a-be68-05856cbf2162\",\n      \"name\": \"Same Day - Within Dhaka South\",\n      \"serviceType\": \"SAME_DAY\",\n      \"originZone\": {\n        \"id\": \"01a1aeb5-ff0d-766a-8a86-134720acf7f4\",\n        \"name\": \"Dhaka South\",\n        \"code\": \"DHK-S\"\n      },\n      \"destinationZone\": {\n        \"id\": \"01a1aeb5-ff0d-766a-8a86-134720acf7f4\",\n        \"name\": \"Dhaka South\",\n        \"code\": \"DHK-S\"\n      },\n      \"baseFee\": \"150.00\",\n      \"baseWeightKg\": \"1\",\n      \"perKgFee\": \"30.00\",\n      \"maxWeightKg\": \"10\",\n      \"isActive\": true,\n      \"createdAt\": \"2026-11-06T02:35:25.345Z\",\n      \"updatedAt\": \"2026-11-06T02:35:25.345Z\"\n    },\n    {\n      \"id\": \"01a1aeb5-ff20-7000-8a76-193da2a7857d\",\n      \"name\": \"Same Day - Within Dhaka North\",\n      \"serviceType\": \"SAME_DAY\",\n      \"originZone\": {\n        \"id\": \"01a1aeb5-feef-72ce-b712-faa027b4d4f2\",\n        \"name\": \"Dhaka North\",\n        \"code\": \"DHK-N\"\n      },\n      \"destinationZone\": {\n        \"id\": \"01a1aeb5-feef-72ce-b712-faa027b4d4f2\",\n        \"name\": \"Dhaka North\",\n        \"code\": \"DHK-N\"\n      },\n      \"baseFee\": \"150.00\",\n      \"baseWeightKg\": \"1\",\n      \"perKgFee\": \"30.00\",\n      \"maxWeightKg\": \"10\",\n      \"isActive\": true,\n      \"createdAt\": \"2026-11-06T02:35:25.344Z\",\n      \"updatedAt\": \"2026-11-06T02:35:25.344Z\"\n    }\n  ],\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 8,\n    \"totalPages\": 1\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Pricing rules retrieved successfully\",\n  \"data\": [\n    {\n      \"id\": \"01a1aec3-c827-766d-b0b9-f3e9d496d7d5\",\n      \"name\": \"Same Day - Within Dhaka South\",\n      \"serviceType\": \"SAME_DAY\",\n      \"originZone\": {\n        \"id\": \"01a1aec3-c811-748e-b013-de0ed94ab217\",\n        \"name\": \"Dhaka South\",\n        \"code\": \"DHK-S\"\n      },\n      \"destinationZone\": {\n        \"id\": \"01a1aec3-c811-748e-b013-de0ed94ab217\",\n        \"name\": \"Dhaka South\",\n        \"code\": \"DHK-S\"\n      },\n      \"baseFee\": \"150.00\",\n      \"baseWeightKg\": \"1\",\n      \"perKgFee\": \"30.00\",\n      \"maxWeightKg\": \"10\",\n      \"isActive\": true,\n      \"createdAt\": \"2026-11-06T02:50:28.775Z\",\n      \"updatedAt\": \"2026-11-06T02:50:28.775Z\"\n    },\n    {\n      \"id\": \"01a1aec3-c826-706b-a498-85d07de2defd\",\n      \"name\": \"Same Day - Within Dhaka North\",\n      \"serviceType\": \"SAME_DAY\",\n      \"originZone\": {\n        \"id\": \"01a1aec3-c7f5-7643-9bd2-46a735b321e8\",\n        \"name\": \"Dhaka North\",\n        \"code\": \"DHK-N\"\n      },\n      \"destinationZone\": {\n        \"id\": \"01a1aec3-c7f5-7643-9bd2-46a735b321e8\",\n        \"name\": \"Dhaka North\",\n        \"code\": \"DHK-N\"\n      },\n      \"baseFee\": \"150.00\",\n      \"baseWeightKg\": \"1\",\n      \"perKgFee\": \"30.00\",\n      \"maxWeightKg\": \"10\",\n      \"isActive\": true,\n      \"createdAt\": \"2026-11-06T02:50:28.774Z\",\n      \"updatedAt\": \"2026-11-06T02:50:28.774Z\"\n    }\n  ],\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 8,\n    \"totalPages\": 1\n  }\n}"
             }
           ]
         },
@@ -3113,7 +3128,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Pricing rule created successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-07ca-72ce-b112-6e7375b12888\",\n    \"name\": \"Same Day - North to South\",\n    \"serviceType\": \"SAME_DAY\",\n    \"originZone\": {\n      \"id\": \"01a1aeb5-feef-72ce-b712-faa027b4d4f2\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aeb5-ff0d-766a-8a86-134720acf7f4\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\"\n    },\n    \"baseFee\": \"250.00\",\n    \"baseWeightKg\": \"1\",\n    \"perKgFee\": \"40.00\",\n    \"maxWeightKg\": \"5\",\n    \"isActive\": true,\n    \"createdAt\": \"2026-11-06T02:35:27.562Z\",\n    \"updatedAt\": \"2026-11-06T02:35:27.562Z\"\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Pricing rule created successfully\",\n  \"data\": {\n    \"id\": \"01a1aec3-d03f-7276-a6ee-1a1073ff2f7d\",\n    \"name\": \"Same Day - North to South\",\n    \"serviceType\": \"SAME_DAY\",\n    \"originZone\": {\n      \"id\": \"01a1aec3-c7f5-7643-9bd2-46a735b321e8\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aec3-c811-748e-b013-de0ed94ab217\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\"\n    },\n    \"baseFee\": \"250.00\",\n    \"baseWeightKg\": \"1\",\n    \"perKgFee\": \"40.00\",\n    \"maxWeightKg\": \"5\",\n    \"isActive\": true,\n    \"createdAt\": \"2026-11-06T02:50:30.847Z\",\n    \"updatedAt\": \"2026-11-06T02:50:30.847Z\"\n  }\n}"
             },
             {
               "name": "409 Duplicate active rule",
@@ -3153,7 +3168,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"An active pricing rule already exists for this service and route (\\\"Standard - Default\\\")\",\n  \"errors\": [\n    {\n      \"path\": \"body\",\n      \"message\": \"Conflicts with pricing rule 01a1aeb5-ff16-727f-a4ba-08d3ef1f8bc0\"\n    }\n  ]\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"An active pricing rule already exists for this service and route (\\\"Standard - Default\\\")\",\n  \"errors\": [\n    {\n      \"path\": \"body\",\n      \"message\": \"Conflicts with pricing rule 01a1aec3-c81a-77e9-9cb2-0bd4f8bc875e\"\n    }\n  ]\n}"
             },
             {
               "name": "400 Only one zone set",
@@ -3249,7 +3264,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Pricing rule retrieved successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-07ca-72ce-b112-6e7375b12888\",\n    \"name\": \"Same Day - North to South\",\n    \"serviceType\": \"SAME_DAY\",\n    \"originZone\": {\n      \"id\": \"01a1aeb5-feef-72ce-b712-faa027b4d4f2\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aeb5-ff0d-766a-8a86-134720acf7f4\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\"\n    },\n    \"baseFee\": \"250.00\",\n    \"baseWeightKg\": \"1\",\n    \"perKgFee\": \"40.00\",\n    \"maxWeightKg\": \"5\",\n    \"isActive\": true,\n    \"createdAt\": \"2026-11-06T02:35:27.562Z\",\n    \"updatedAt\": \"2026-11-06T02:35:27.562Z\"\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Pricing rule retrieved successfully\",\n  \"data\": {\n    \"id\": \"01a1aec3-d03f-7276-a6ee-1a1073ff2f7d\",\n    \"name\": \"Same Day - North to South\",\n    \"serviceType\": \"SAME_DAY\",\n    \"originZone\": {\n      \"id\": \"01a1aec3-c7f5-7643-9bd2-46a735b321e8\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aec3-c811-748e-b013-de0ed94ab217\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\"\n    },\n    \"baseFee\": \"250.00\",\n    \"baseWeightKg\": \"1\",\n    \"perKgFee\": \"40.00\",\n    \"maxWeightKg\": \"5\",\n    \"isActive\": true,\n    \"createdAt\": \"2026-11-06T02:50:30.847Z\",\n    \"updatedAt\": \"2026-11-06T02:50:30.847Z\"\n  }\n}"
             },
             {
               "name": "404 Not found",
@@ -3361,7 +3376,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Pricing rule updated successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-07ca-72ce-b112-6e7375b12888\",\n    \"name\": \"Same Day - North to South\",\n    \"serviceType\": \"SAME_DAY\",\n    \"originZone\": {\n      \"id\": \"01a1aeb5-feef-72ce-b712-faa027b4d4f2\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aeb5-ff0d-766a-8a86-134720acf7f4\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\"\n    },\n    \"baseFee\": \"250.00\",\n    \"baseWeightKg\": \"1\",\n    \"perKgFee\": \"40.00\",\n    \"maxWeightKg\": \"5\",\n    \"isActive\": false,\n    \"createdAt\": \"2026-11-06T02:35:27.562Z\",\n    \"updatedAt\": \"2026-11-06T02:35:27.562Z\"\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Pricing rule updated successfully\",\n  \"data\": {\n    \"id\": \"01a1aec3-d03f-7276-a6ee-1a1073ff2f7d\",\n    \"name\": \"Same Day - North to South\",\n    \"serviceType\": \"SAME_DAY\",\n    \"originZone\": {\n      \"id\": \"01a1aec3-c7f5-7643-9bd2-46a735b321e8\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aec3-c811-748e-b013-de0ed94ab217\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\"\n    },\n    \"baseFee\": \"250.00\",\n    \"baseWeightKg\": \"1\",\n    \"perKgFee\": \"40.00\",\n    \"maxWeightKg\": \"5\",\n    \"isActive\": false,\n    \"createdAt\": \"2026-11-06T02:50:30.847Z\",\n    \"updatedAt\": \"2026-11-06T02:50:30.847Z\"\n  }\n}"
             }
           ]
         },
@@ -3417,7 +3432,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Pricing rule deleted successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-07ca-72ce-b112-6e7375b12888\",\n    \"name\": \"Same Day - North to South\",\n    \"serviceType\": \"SAME_DAY\",\n    \"originZone\": {\n      \"id\": \"01a1aeb5-feef-72ce-b712-faa027b4d4f2\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aeb5-ff0d-766a-8a86-134720acf7f4\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\"\n    },\n    \"baseFee\": \"250.00\",\n    \"baseWeightKg\": \"1\",\n    \"perKgFee\": \"40.00\",\n    \"maxWeightKg\": \"5\",\n    \"isActive\": false,\n    \"createdAt\": \"2026-11-06T02:35:27.562Z\",\n    \"updatedAt\": \"2026-11-06T02:35:27.562Z\"\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Pricing rule deleted successfully\",\n  \"data\": {\n    \"id\": \"01a1aec3-d03f-7276-a6ee-1a1073ff2f7d\",\n    \"name\": \"Same Day - North to South\",\n    \"serviceType\": \"SAME_DAY\",\n    \"originZone\": {\n      \"id\": \"01a1aec3-c7f5-7643-9bd2-46a735b321e8\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aec3-c811-748e-b013-de0ed94ab217\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\"\n    },\n    \"baseFee\": \"250.00\",\n    \"baseWeightKg\": \"1\",\n    \"perKgFee\": \"40.00\",\n    \"maxWeightKg\": \"5\",\n    \"isActive\": false,\n    \"createdAt\": \"2026-11-06T02:50:30.847Z\",\n    \"updatedAt\": \"2026-11-06T02:50:30.847Z\"\n  }\n}"
             }
           ]
         }
@@ -3425,7 +3440,7 @@
     },
     {
       "name": "Shipments",
-      "description": "All routes need a Bearer token. Scope: CUSTOMER sees own shipments, COURIER sees assigned ones, ADMIN sees all.\nShipments outside your scope return 404 (not 403) so ids can't be probed.\nPrice is always calculated on the server; sending price/status/trackingId returns 400.",
+      "description": "All routes need a Bearer token. Scope: CUSTOMER sees own shipments, COURIER sees assigned ones, ADMIN sees all.\nShipments outside your scope return 404 (not 403) so ids can't be probed.\nPrice is always calculated on the server; sending price/status/trackingId returns 400.\nWorkflow: pickup (customer) → assign (admin) → PATCH /status (courier/admin, see each request) → DELIVERED or RETURNED.",
       "item": [
         {
           "name": "Get destination hub id (helper)",
@@ -3560,7 +3575,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Shipment created successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-07e6-74df-b72f-44241d63eb80\",\n    \"trackingId\": \"CRV-261106-TDZZUR\",\n    \"status\": \"PENDING\",\n    \"paymentStatus\": \"UNPAID\",\n    \"serviceType\": \"STANDARD\",\n    \"senderName\": \"Ayesha Customer\",\n    \"receiverName\": \"Zahid Hasan\",\n    \"receiverPhone\": \"+8801911222333\",\n    \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara\",\n    \"deliveryAddress\": \"House 2, Road 5, Dhanmondi\",\n    \"weightKg\": \"2.3\",\n    \"price\": \"160.00\",\n    \"currency\": \"bdt\",\n    \"originZone\": {\n      \"id\": \"01a1aeb5-feef-72ce-b712-faa027b4d4f2\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aeb5-ff0d-766a-8a86-134720acf7f4\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\"\n    },\n    \"originHub\": {\n      \"id\": \"01a1aeb5-ff0b-734d-be06-30862b47af26\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"destinationHub\": {\n      \"id\": \"01a1aeb5-ff0d-766a-8a86-14af7870e9ee\",\n      \"name\": \"Dhaka South Hub\",\n      \"code\": \"HUB-DHK-S\",\n      \"city\": \"Dhaka\"\n    },\n    \"customer\": {\n      \"id\": \"a630e864-2bd2-4174-89ab-ceeda9fe76a0\",\n      \"name\": \"Ayesha Customer\"\n    },\n    \"courier\": null,\n    \"createdAt\": \"2026-11-06T02:35:27.590Z\",\n    \"updatedAt\": \"2026-11-06T02:35:27.590Z\",\n    \"senderPhone\": \"+8801711000003\",\n    \"receiverEmail\": \"zahid@example.com\",\n    \"description\": \"Books\",\n    \"declaredValue\": \"1500.00\",\n    \"isFragile\": false,\n    \"priceBreakdown\": {\n      \"total\": \"160.00\",\n      \"ruleId\": \"01a1aeb5-ff16-727f-a4ba-08d3ef1f8bc0\",\n      \"baseFee\": \"120.00\",\n      \"currency\": \"bdt\",\n      \"perKgFee\": \"20.00\",\n      \"ruleName\": \"Standard - Default\",\n      \"weightKg\": \"2.30\",\n      \"serviceType\": \"STANDARD\",\n      \"baseWeightKg\": \"1.00\",\n      \"calculatedAt\": \"2026-11-06T02:35:27.589Z\",\n      \"weightCharge\": \"40.00\",\n      \"chargeableExtraKg\": \"2.00\"\n    },\n    \"failedAttempts\": 0,\n    \"failureReason\": null,\n    \"cancelReason\": null,\n    \"proofOfDeliveryUrl\": null,\n    \"estimatedDeliveryAt\": null,\n    \"pickedUpAt\": null,\n    \"deliveredAt\": null,\n    \"cancelledAt\": null,\n    \"currentHub\": null,\n    \"statusHistory\": [\n      {\n        \"id\": \"01a1aeb6-07e9-774b-88bd-6d38599e9414\",\n        \"fromStatus\": null,\n        \"toStatus\": \"PENDING\",\n        \"note\": \"Shipment created\",\n        \"hub\": {\n          \"id\": \"01a1aeb5-ff0b-734d-be06-30862b47af26\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"a630e864-2bd2-4174-89ab-ceeda9fe76a0\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T02:35:27.593Z\"\n      }\n    ]\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Shipment created successfully\",\n  \"data\": {\n    \"id\": \"01a1aec3-d05b-7453-ac6a-4d69f5603f77\",\n    \"trackingId\": \"CRV-261106-B7M3J3\",\n    \"status\": \"PENDING\",\n    \"paymentStatus\": \"UNPAID\",\n    \"serviceType\": \"STANDARD\",\n    \"senderName\": \"Ayesha Customer\",\n    \"receiverName\": \"Zahid Hasan\",\n    \"receiverPhone\": \"+8801911222333\",\n    \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara\",\n    \"deliveryAddress\": \"House 2, Road 5, Dhanmondi\",\n    \"weightKg\": \"2.3\",\n    \"price\": \"160.00\",\n    \"currency\": \"bdt\",\n    \"originZone\": {\n      \"id\": \"01a1aec3-c7f5-7643-9bd2-46a735b321e8\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aec3-c811-748e-b013-de0ed94ab217\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\"\n    },\n    \"originHub\": {\n      \"id\": \"01a1aec3-c80e-70ac-b5f1-b89066fa329a\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"destinationHub\": {\n      \"id\": \"01a1aec3-c811-748e-b013-e0b52ccb78d7\",\n      \"name\": \"Dhaka South Hub\",\n      \"code\": \"HUB-DHK-S\",\n      \"city\": \"Dhaka\"\n    },\n    \"customer\": {\n      \"id\": \"a0849f29-4b30-4932-a1c1-48a15ce4e4f7\",\n      \"name\": \"Ayesha Customer\"\n    },\n    \"courier\": null,\n    \"createdAt\": \"2026-11-06T02:50:30.875Z\",\n    \"updatedAt\": \"2026-11-06T02:50:30.875Z\",\n    \"senderPhone\": \"+8801711000003\",\n    \"receiverEmail\": \"zahid@example.com\",\n    \"description\": \"Books\",\n    \"declaredValue\": \"1500.00\",\n    \"isFragile\": false,\n    \"priceBreakdown\": {\n      \"total\": \"160.00\",\n      \"ruleId\": \"01a1aec3-c81a-77e9-9cb2-0bd4f8bc875e\",\n      \"baseFee\": \"120.00\",\n      \"currency\": \"bdt\",\n      \"perKgFee\": \"20.00\",\n      \"ruleName\": \"Standard - Default\",\n      \"weightKg\": \"2.30\",\n      \"serviceType\": \"STANDARD\",\n      \"baseWeightKg\": \"1.00\",\n      \"calculatedAt\": \"2026-11-06T02:50:30.873Z\",\n      \"weightCharge\": \"40.00\",\n      \"chargeableExtraKg\": \"2.00\"\n    },\n    \"failedAttempts\": 0,\n    \"failureReason\": null,\n    \"cancelReason\": null,\n    \"proofOfDeliveryUrl\": null,\n    \"estimatedDeliveryAt\": null,\n    \"pickedUpAt\": null,\n    \"deliveredAt\": null,\n    \"cancelledAt\": null,\n    \"currentHub\": null,\n    \"pickupRequest\": null,\n    \"statusHistory\": [\n      {\n        \"id\": \"01a1aec3-d05d-740a-9616-004603bea790\",\n        \"fromStatus\": null,\n        \"toStatus\": \"PENDING\",\n        \"note\": \"Shipment created\",\n        \"hub\": {\n          \"id\": \"01a1aec3-c80e-70ac-b5f1-b89066fa329a\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"a0849f29-4b30-4932-a1c1-48a15ce4e4f7\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:30.877Z\"\n      }\n    ]\n  }\n}"
             },
             {
               "name": "400 Hub not in zone",
@@ -3934,7 +3949,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Shipments retrieved successfully\",\n  \"data\": [\n    {\n      \"id\": \"01a1aeb6-07e6-74df-b72f-44241d63eb80\",\n      \"trackingId\": \"CRV-261106-TDZZUR\",\n      \"status\": \"PENDING\",\n      \"paymentStatus\": \"UNPAID\",\n      \"serviceType\": \"STANDARD\",\n      \"senderName\": \"Ayesha Customer\",\n      \"receiverName\": \"Zahid Hasan\",\n      \"receiverPhone\": \"+8801911222333\",\n      \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara\",\n      \"deliveryAddress\": \"House 2, Road 5, Dhanmondi\",\n      \"weightKg\": \"2.3\",\n      \"price\": \"160.00\",\n      \"currency\": \"bdt\",\n      \"originZone\": {\n        \"id\": \"01a1aeb5-feef-72ce-b712-faa027b4d4f2\",\n        \"name\": \"Dhaka North\",\n        \"code\": \"DHK-N\"\n      },\n      \"destinationZone\": {\n        \"id\": \"01a1aeb5-ff0d-766a-8a86-134720acf7f4\",\n        \"name\": \"Dhaka South\",\n        \"code\": \"DHK-S\"\n      },\n      \"originHub\": {\n        \"id\": \"01a1aeb5-ff0b-734d-be06-30862b47af26\",\n        \"name\": \"Dhaka North Hub\",\n        \"code\": \"HUB-DHK-N\",\n        \"city\": \"Dhaka\"\n      },\n      \"destinationHub\": {\n        \"id\": \"01a1aeb5-ff0d-766a-8a86-14af7870e9ee\",\n        \"name\": \"Dhaka South Hub\",\n        \"code\": \"HUB-DHK-S\",\n        \"city\": \"Dhaka\"\n      },\n      \"customer\": {\n        \"id\": \"a630e864-2bd2-4174-89ab-ceeda9fe76a0\",\n        \"name\": \"Ayesha Customer\"\n      },\n      \"courier\": null,\n      \"createdAt\": \"2026-11-06T02:35:27.590Z\",\n      \"updatedAt\": \"2026-11-06T02:35:27.590Z\"\n    }\n  ],\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 6,\n    \"totalPages\": 1\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Shipments retrieved successfully\",\n  \"data\": [\n    {\n      \"id\": \"01a1aec3-d05b-7453-ac6a-4d69f5603f77\",\n      \"trackingId\": \"CRV-261106-B7M3J3\",\n      \"status\": \"PENDING\",\n      \"paymentStatus\": \"UNPAID\",\n      \"serviceType\": \"STANDARD\",\n      \"senderName\": \"Ayesha Customer\",\n      \"receiverName\": \"Zahid Hasan\",\n      \"receiverPhone\": \"+8801911222333\",\n      \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara\",\n      \"deliveryAddress\": \"House 2, Road 5, Dhanmondi\",\n      \"weightKg\": \"2.3\",\n      \"price\": \"160.00\",\n      \"currency\": \"bdt\",\n      \"originZone\": {\n        \"id\": \"01a1aec3-c7f5-7643-9bd2-46a735b321e8\",\n        \"name\": \"Dhaka North\",\n        \"code\": \"DHK-N\"\n      },\n      \"destinationZone\": {\n        \"id\": \"01a1aec3-c811-748e-b013-de0ed94ab217\",\n        \"name\": \"Dhaka South\",\n        \"code\": \"DHK-S\"\n      },\n      \"originHub\": {\n        \"id\": \"01a1aec3-c80e-70ac-b5f1-b89066fa329a\",\n        \"name\": \"Dhaka North Hub\",\n        \"code\": \"HUB-DHK-N\",\n        \"city\": \"Dhaka\"\n      },\n      \"destinationHub\": {\n        \"id\": \"01a1aec3-c811-748e-b013-e0b52ccb78d7\",\n        \"name\": \"Dhaka South Hub\",\n        \"code\": \"HUB-DHK-S\",\n        \"city\": \"Dhaka\"\n      },\n      \"customer\": {\n        \"id\": \"a0849f29-4b30-4932-a1c1-48a15ce4e4f7\",\n        \"name\": \"Ayesha Customer\"\n      },\n      \"courier\": null,\n      \"createdAt\": \"2026-11-06T02:50:30.875Z\",\n      \"updatedAt\": \"2026-11-06T02:50:30.875Z\"\n    }\n  ],\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 7,\n    \"totalPages\": 1\n  }\n}"
             },
             {
               "name": "400 sortBy not allowed",
@@ -4091,7 +4106,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Shipment retrieved successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-07e6-74df-b72f-44241d63eb80\",\n    \"trackingId\": \"CRV-261106-TDZZUR\",\n    \"status\": \"PENDING\",\n    \"paymentStatus\": \"UNPAID\",\n    \"serviceType\": \"STANDARD\",\n    \"senderName\": \"Ayesha Customer\",\n    \"receiverName\": \"Zahid Hasan\",\n    \"receiverPhone\": \"+8801911222333\",\n    \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara\",\n    \"deliveryAddress\": \"House 2, Road 5, Dhanmondi\",\n    \"weightKg\": \"2.3\",\n    \"price\": \"160.00\",\n    \"currency\": \"bdt\",\n    \"originZone\": {\n      \"id\": \"01a1aeb5-feef-72ce-b712-faa027b4d4f2\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aeb5-ff0d-766a-8a86-134720acf7f4\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\"\n    },\n    \"originHub\": {\n      \"id\": \"01a1aeb5-ff0b-734d-be06-30862b47af26\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"destinationHub\": {\n      \"id\": \"01a1aeb5-ff0d-766a-8a86-14af7870e9ee\",\n      \"name\": \"Dhaka South Hub\",\n      \"code\": \"HUB-DHK-S\",\n      \"city\": \"Dhaka\"\n    },\n    \"customer\": {\n      \"id\": \"a630e864-2bd2-4174-89ab-ceeda9fe76a0\",\n      \"name\": \"Ayesha Customer\"\n    },\n    \"courier\": null,\n    \"createdAt\": \"2026-11-06T02:35:27.590Z\",\n    \"updatedAt\": \"2026-11-06T02:35:27.590Z\",\n    \"senderPhone\": \"+8801711000003\",\n    \"receiverEmail\": \"zahid@example.com\",\n    \"description\": \"Books\",\n    \"declaredValue\": \"1500.00\",\n    \"isFragile\": false,\n    \"priceBreakdown\": {\n      \"total\": \"160.00\",\n      \"ruleId\": \"01a1aeb5-ff16-727f-a4ba-08d3ef1f8bc0\",\n      \"baseFee\": \"120.00\",\n      \"currency\": \"bdt\",\n      \"perKgFee\": \"20.00\",\n      \"ruleName\": \"Standard - Default\",\n      \"weightKg\": \"2.30\",\n      \"serviceType\": \"STANDARD\",\n      \"baseWeightKg\": \"1.00\",\n      \"calculatedAt\": \"2026-11-06T02:35:27.589Z\",\n      \"weightCharge\": \"40.00\",\n      \"chargeableExtraKg\": \"2.00\"\n    },\n    \"failedAttempts\": 0,\n    \"failureReason\": null,\n    \"cancelReason\": null,\n    \"proofOfDeliveryUrl\": null,\n    \"estimatedDeliveryAt\": null,\n    \"pickedUpAt\": null,\n    \"deliveredAt\": null,\n    \"cancelledAt\": null,\n    \"currentHub\": null,\n    \"statusHistory\": [\n      {\n        \"id\": \"01a1aeb6-07e9-774b-88bd-6d38599e9414\",\n        \"fromStatus\": null,\n        \"toStatus\": \"PENDING\",\n        \"note\": \"Shipment created\",\n        \"hub\": {\n          \"id\": \"01a1aeb5-ff0b-734d-be06-30862b47af26\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"a630e864-2bd2-4174-89ab-ceeda9fe76a0\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T02:35:27.593Z\"\n      }\n    ]\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Shipment retrieved successfully\",\n  \"data\": {\n    \"id\": \"01a1aec3-d05b-7453-ac6a-4d69f5603f77\",\n    \"trackingId\": \"CRV-261106-B7M3J3\",\n    \"status\": \"PENDING\",\n    \"paymentStatus\": \"UNPAID\",\n    \"serviceType\": \"STANDARD\",\n    \"senderName\": \"Ayesha Customer\",\n    \"receiverName\": \"Zahid Hasan\",\n    \"receiverPhone\": \"+8801911222333\",\n    \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara\",\n    \"deliveryAddress\": \"House 2, Road 5, Dhanmondi\",\n    \"weightKg\": \"2.3\",\n    \"price\": \"160.00\",\n    \"currency\": \"bdt\",\n    \"originZone\": {\n      \"id\": \"01a1aec3-c7f5-7643-9bd2-46a735b321e8\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aec3-c811-748e-b013-de0ed94ab217\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\"\n    },\n    \"originHub\": {\n      \"id\": \"01a1aec3-c80e-70ac-b5f1-b89066fa329a\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"destinationHub\": {\n      \"id\": \"01a1aec3-c811-748e-b013-e0b52ccb78d7\",\n      \"name\": \"Dhaka South Hub\",\n      \"code\": \"HUB-DHK-S\",\n      \"city\": \"Dhaka\"\n    },\n    \"customer\": {\n      \"id\": \"a0849f29-4b30-4932-a1c1-48a15ce4e4f7\",\n      \"name\": \"Ayesha Customer\"\n    },\n    \"courier\": null,\n    \"createdAt\": \"2026-11-06T02:50:30.875Z\",\n    \"updatedAt\": \"2026-11-06T02:50:30.875Z\",\n    \"senderPhone\": \"+8801711000003\",\n    \"receiverEmail\": \"zahid@example.com\",\n    \"description\": \"Books\",\n    \"declaredValue\": \"1500.00\",\n    \"isFragile\": false,\n    \"priceBreakdown\": {\n      \"total\": \"160.00\",\n      \"ruleId\": \"01a1aec3-c81a-77e9-9cb2-0bd4f8bc875e\",\n      \"baseFee\": \"120.00\",\n      \"currency\": \"bdt\",\n      \"perKgFee\": \"20.00\",\n      \"ruleName\": \"Standard - Default\",\n      \"weightKg\": \"2.30\",\n      \"serviceType\": \"STANDARD\",\n      \"baseWeightKg\": \"1.00\",\n      \"calculatedAt\": \"2026-11-06T02:50:30.873Z\",\n      \"weightCharge\": \"40.00\",\n      \"chargeableExtraKg\": \"2.00\"\n    },\n    \"failedAttempts\": 0,\n    \"failureReason\": null,\n    \"cancelReason\": null,\n    \"proofOfDeliveryUrl\": null,\n    \"estimatedDeliveryAt\": null,\n    \"pickedUpAt\": null,\n    \"deliveredAt\": null,\n    \"cancelledAt\": null,\n    \"currentHub\": null,\n    \"pickupRequest\": null,\n    \"statusHistory\": [\n      {\n        \"id\": \"01a1aec3-d05d-740a-9616-004603bea790\",\n        \"fromStatus\": null,\n        \"toStatus\": \"PENDING\",\n        \"note\": \"Shipment created\",\n        \"hub\": {\n          \"id\": \"01a1aec3-c80e-70ac-b5f1-b89066fa329a\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"a0849f29-4b30-4932-a1c1-48a15ce4e4f7\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:30.877Z\"\n      }\n    ]\n  }\n}"
             },
             {
               "name": "404 Not yours / unknown",
@@ -4203,7 +4218,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Shipment updated successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-07e6-74df-b72f-44241d63eb80\",\n    \"trackingId\": \"CRV-261106-TDZZUR\",\n    \"status\": \"PENDING\",\n    \"paymentStatus\": \"UNPAID\",\n    \"serviceType\": \"STANDARD\",\n    \"senderName\": \"Ayesha Customer\",\n    \"receiverName\": \"Zahid H.\",\n    \"receiverPhone\": \"+8801911222333\",\n    \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara\",\n    \"deliveryAddress\": \"House 2, Road 5, Dhanmondi\",\n    \"weightKg\": \"5\",\n    \"price\": \"200.00\",\n    \"currency\": \"bdt\",\n    \"originZone\": {\n      \"id\": \"01a1aeb5-feef-72ce-b712-faa027b4d4f2\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aeb5-ff0d-766a-8a86-134720acf7f4\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\"\n    },\n    \"originHub\": {\n      \"id\": \"01a1aeb5-ff0b-734d-be06-30862b47af26\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"destinationHub\": {\n      \"id\": \"01a1aeb5-ff0d-766a-8a86-14af7870e9ee\",\n      \"name\": \"Dhaka South Hub\",\n      \"code\": \"HUB-DHK-S\",\n      \"city\": \"Dhaka\"\n    },\n    \"customer\": {\n      \"id\": \"a630e864-2bd2-4174-89ab-ceeda9fe76a0\",\n      \"name\": \"Ayesha Customer\"\n    },\n    \"courier\": null,\n    \"createdAt\": \"2026-11-06T02:35:27.590Z\",\n    \"updatedAt\": \"2026-11-06T02:35:27.757Z\",\n    \"senderPhone\": \"+8801711000003\",\n    \"receiverEmail\": \"zahid@example.com\",\n    \"description\": \"Books\",\n    \"declaredValue\": \"1500.00\",\n    \"isFragile\": false,\n    \"priceBreakdown\": {\n      \"total\": \"200.00\",\n      \"ruleId\": \"01a1aeb5-ff16-727f-a4ba-08d3ef1f8bc0\",\n      \"baseFee\": \"120.00\",\n      \"currency\": \"bdt\",\n      \"perKgFee\": \"20.00\",\n      \"ruleName\": \"Standard - Default\",\n      \"weightKg\": \"5.00\",\n      \"serviceType\": \"STANDARD\",\n      \"baseWeightKg\": \"1.00\",\n      \"calculatedAt\": \"2026-11-06T02:35:27.755Z\",\n      \"weightCharge\": \"80.00\",\n      \"chargeableExtraKg\": \"4.00\"\n    },\n    \"failedAttempts\": 0,\n    \"failureReason\": null,\n    \"cancelReason\": null,\n    \"proofOfDeliveryUrl\": null,\n    \"estimatedDeliveryAt\": null,\n    \"pickedUpAt\": null,\n    \"deliveredAt\": null,\n    \"cancelledAt\": null,\n    \"currentHub\": null,\n    \"statusHistory\": [\n      {\n        \"id\": \"01a1aeb6-07e9-774b-88bd-6d38599e9414\",\n        \"fromStatus\": null,\n        \"toStatus\": \"PENDING\",\n        \"note\": \"Shipment created\",\n        \"hub\": {\n          \"id\": \"01a1aeb5-ff0b-734d-be06-30862b47af26\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"a630e864-2bd2-4174-89ab-ceeda9fe76a0\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T02:35:27.593Z\"\n      }\n    ]\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Shipment updated successfully\",\n  \"data\": {\n    \"id\": \"01a1aec3-d05b-7453-ac6a-4d69f5603f77\",\n    \"trackingId\": \"CRV-261106-B7M3J3\",\n    \"status\": \"PENDING\",\n    \"paymentStatus\": \"UNPAID\",\n    \"serviceType\": \"STANDARD\",\n    \"senderName\": \"Ayesha Customer\",\n    \"receiverName\": \"Zahid H.\",\n    \"receiverPhone\": \"+8801911222333\",\n    \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara\",\n    \"deliveryAddress\": \"House 2, Road 5, Dhanmondi\",\n    \"weightKg\": \"5\",\n    \"price\": \"200.00\",\n    \"currency\": \"bdt\",\n    \"originZone\": {\n      \"id\": \"01a1aec3-c7f5-7643-9bd2-46a735b321e8\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aec3-c811-748e-b013-de0ed94ab217\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\"\n    },\n    \"originHub\": {\n      \"id\": \"01a1aec3-c80e-70ac-b5f1-b89066fa329a\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"destinationHub\": {\n      \"id\": \"01a1aec3-c811-748e-b013-e0b52ccb78d7\",\n      \"name\": \"Dhaka South Hub\",\n      \"code\": \"HUB-DHK-S\",\n      \"city\": \"Dhaka\"\n    },\n    \"customer\": {\n      \"id\": \"a0849f29-4b30-4932-a1c1-48a15ce4e4f7\",\n      \"name\": \"Ayesha Customer\"\n    },\n    \"courier\": null,\n    \"createdAt\": \"2026-11-06T02:50:30.875Z\",\n    \"updatedAt\": \"2026-11-06T02:50:31.032Z\",\n    \"senderPhone\": \"+8801711000003\",\n    \"receiverEmail\": \"zahid@example.com\",\n    \"description\": \"Books\",\n    \"declaredValue\": \"1500.00\",\n    \"isFragile\": false,\n    \"priceBreakdown\": {\n      \"total\": \"200.00\",\n      \"ruleId\": \"01a1aec3-c81a-77e9-9cb2-0bd4f8bc875e\",\n      \"baseFee\": \"120.00\",\n      \"currency\": \"bdt\",\n      \"perKgFee\": \"20.00\",\n      \"ruleName\": \"Standard - Default\",\n      \"weightKg\": \"5.00\",\n      \"serviceType\": \"STANDARD\",\n      \"baseWeightKg\": \"1.00\",\n      \"calculatedAt\": \"2026-11-06T02:50:31.031Z\",\n      \"weightCharge\": \"80.00\",\n      \"chargeableExtraKg\": \"4.00\"\n    },\n    \"failedAttempts\": 0,\n    \"failureReason\": null,\n    \"cancelReason\": null,\n    \"proofOfDeliveryUrl\": null,\n    \"estimatedDeliveryAt\": null,\n    \"pickedUpAt\": null,\n    \"deliveredAt\": null,\n    \"cancelledAt\": null,\n    \"currentHub\": null,\n    \"pickupRequest\": null,\n    \"statusHistory\": [\n      {\n        \"id\": \"01a1aec3-d05d-740a-9616-004603bea790\",\n        \"fromStatus\": null,\n        \"toStatus\": \"PENDING\",\n        \"note\": \"Shipment created\",\n        \"hub\": {\n          \"id\": \"01a1aec3-c80e-70ac-b5f1-b89066fa329a\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"a0849f29-4b30-4932-a1c1-48a15ce4e4f7\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:30.877Z\"\n      }\n    ]\n  }\n}"
             },
             {
               "name": "409 Not PENDING",
@@ -4310,7 +4325,7 @@
                 "cancel"
               ]
             },
-            "description": "Allowed before PICKED_UP (PENDING, PICKUP_SCHEDULED, COURIER_ASSIGNED). Body is optional. Writes status history + audit log in one transaction. A paid shipment keeps paymentStatus PAID (refunds come with payments).",
+            "description": "Allowed before PICKED_UP (PENDING, PICKUP_SCHEDULED, COURIER_ASSIGNED); later → 400 with the allowed next statuses. Body is optional. A SCHEDULED pickup request is cancelled too. Writes status history + audit log in one transaction. A paid shipment keeps paymentStatus PAID (refunds come with payments).",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -4372,10 +4387,10 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Shipment cancelled successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-08e5-741b-be48-9185c5043ee9\",\n    \"trackingId\": \"CRV-261106-ERMJRG\",\n    \"status\": \"CANCELLED\",\n    \"paymentStatus\": \"UNPAID\",\n    \"serviceType\": \"STANDARD\",\n    \"senderName\": \"Ayesha Customer\",\n    \"receiverName\": \"Zahid Hasan\",\n    \"receiverPhone\": \"+8801911222333\",\n    \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara\",\n    \"deliveryAddress\": \"House 2, Road 5, Dhanmondi\",\n    \"weightKg\": \"1\",\n    \"price\": \"120.00\",\n    \"currency\": \"bdt\",\n    \"originZone\": {\n      \"id\": \"01a1aeb5-feef-72ce-b712-faa027b4d4f2\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aeb5-ff0d-766a-8a86-134720acf7f4\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\"\n    },\n    \"originHub\": {\n      \"id\": \"01a1aeb5-ff0b-734d-be06-30862b47af26\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"destinationHub\": {\n      \"id\": \"01a1aeb5-ff0d-766a-8a86-14af7870e9ee\",\n      \"name\": \"Dhaka South Hub\",\n      \"code\": \"HUB-DHK-S\",\n      \"city\": \"Dhaka\"\n    },\n    \"customer\": {\n      \"id\": \"a630e864-2bd2-4174-89ab-ceeda9fe76a0\",\n      \"name\": \"Ayesha Customer\"\n    },\n    \"courier\": null,\n    \"createdAt\": \"2026-11-06T02:35:27.845Z\",\n    \"updatedAt\": \"2026-11-06T02:35:27.852Z\",\n    \"senderPhone\": \"+8801711000003\",\n    \"receiverEmail\": \"zahid@example.com\",\n    \"description\": \"Books\",\n    \"declaredValue\": \"1500.00\",\n    \"isFragile\": false,\n    \"priceBreakdown\": {\n      \"total\": \"120.00\",\n      \"ruleId\": \"01a1aeb5-ff16-727f-a4ba-08d3ef1f8bc0\",\n      \"baseFee\": \"120.00\",\n      \"currency\": \"bdt\",\n      \"perKgFee\": \"20.00\",\n      \"ruleName\": \"Standard - Default\",\n      \"weightKg\": \"1.00\",\n      \"serviceType\": \"STANDARD\",\n      \"baseWeightKg\": \"1.00\",\n      \"calculatedAt\": \"2026-11-06T02:35:27.844Z\",\n      \"weightCharge\": \"0.00\",\n      \"chargeableExtraKg\": \"0.00\"\n    },\n    \"failedAttempts\": 0,\n    \"failureReason\": null,\n    \"cancelReason\": \"Ordered twice\",\n    \"proofOfDeliveryUrl\": null,\n    \"estimatedDeliveryAt\": null,\n    \"pickedUpAt\": null,\n    \"deliveredAt\": null,\n    \"cancelledAt\": \"2026-11-06T02:35:27.851Z\",\n    \"currentHub\": null,\n    \"statusHistory\": [\n      {\n        \"id\": \"01a1aeb6-08e6-7150-a503-49a8bced2c51\",\n        \"fromStatus\": null,\n        \"toStatus\": \"PENDING\",\n        \"note\": \"Shipment created\",\n        \"hub\": {\n          \"id\": \"01a1aeb5-ff0b-734d-be06-30862b47af26\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"a630e864-2bd2-4174-89ab-ceeda9fe76a0\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T02:35:27.846Z\"\n      },\n      {\n        \"id\": \"01a1aeb6-08ed-75bd-b989-ee6aa2650ef6\",\n        \"fromStatus\": \"PENDING\",\n        \"toStatus\": \"CANCELLED\",\n        \"note\": \"Ordered twice\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"a630e864-2bd2-4174-89ab-ceeda9fe76a0\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T02:35:27.853Z\"\n      }\n    ]\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Shipment cancelled successfully\",\n  \"data\": {\n    \"id\": \"01a1aec3-d148-74cf-8b5e-60812bf0dd9a\",\n    \"trackingId\": \"CRV-261106-7ZPZTR\",\n    \"status\": \"CANCELLED\",\n    \"paymentStatus\": \"UNPAID\",\n    \"serviceType\": \"STANDARD\",\n    \"senderName\": \"Ayesha Customer\",\n    \"receiverName\": \"Zahid Hasan\",\n    \"receiverPhone\": \"+8801911222333\",\n    \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara\",\n    \"deliveryAddress\": \"House 2, Road 5, Dhanmondi\",\n    \"weightKg\": \"1\",\n    \"price\": \"120.00\",\n    \"currency\": \"bdt\",\n    \"originZone\": {\n      \"id\": \"01a1aec3-c7f5-7643-9bd2-46a735b321e8\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aec3-c811-748e-b013-de0ed94ab217\",\n      \"name\": \"Dhaka South\",\n      \"code\": \"DHK-S\"\n    },\n    \"originHub\": {\n      \"id\": \"01a1aec3-c80e-70ac-b5f1-b89066fa329a\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"destinationHub\": {\n      \"id\": \"01a1aec3-c811-748e-b013-e0b52ccb78d7\",\n      \"name\": \"Dhaka South Hub\",\n      \"code\": \"HUB-DHK-S\",\n      \"city\": \"Dhaka\"\n    },\n    \"customer\": {\n      \"id\": \"a0849f29-4b30-4932-a1c1-48a15ce4e4f7\",\n      \"name\": \"Ayesha Customer\"\n    },\n    \"courier\": null,\n    \"createdAt\": \"2026-11-06T02:50:31.112Z\",\n    \"updatedAt\": \"2026-11-06T02:50:31.119Z\",\n    \"senderPhone\": \"+8801711000003\",\n    \"receiverEmail\": \"zahid@example.com\",\n    \"description\": \"Books\",\n    \"declaredValue\": \"1500.00\",\n    \"isFragile\": false,\n    \"priceBreakdown\": {\n      \"total\": \"120.00\",\n      \"ruleId\": \"01a1aec3-c81a-77e9-9cb2-0bd4f8bc875e\",\n      \"baseFee\": \"120.00\",\n      \"currency\": \"bdt\",\n      \"perKgFee\": \"20.00\",\n      \"ruleName\": \"Standard - Default\",\n      \"weightKg\": \"1.00\",\n      \"serviceType\": \"STANDARD\",\n      \"baseWeightKg\": \"1.00\",\n      \"calculatedAt\": \"2026-11-06T02:50:31.111Z\",\n      \"weightCharge\": \"0.00\",\n      \"chargeableExtraKg\": \"0.00\"\n    },\n    \"failedAttempts\": 0,\n    \"failureReason\": null,\n    \"cancelReason\": \"Ordered twice\",\n    \"proofOfDeliveryUrl\": null,\n    \"estimatedDeliveryAt\": null,\n    \"pickedUpAt\": null,\n    \"deliveredAt\": null,\n    \"cancelledAt\": \"2026-11-06T02:50:31.117Z\",\n    \"currentHub\": null,\n    \"pickupRequest\": null,\n    \"statusHistory\": [\n      {\n        \"id\": \"01a1aec3-d148-74cf-8b5e-672359e3a0ae\",\n        \"fromStatus\": null,\n        \"toStatus\": \"PENDING\",\n        \"note\": \"Shipment created\",\n        \"hub\": {\n          \"id\": \"01a1aec3-c80e-70ac-b5f1-b89066fa329a\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"a0849f29-4b30-4932-a1c1-48a15ce4e4f7\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:31.112Z\"\n      },\n      {\n        \"id\": \"01a1aec3-d150-708f-ae5c-94c5b2038a7c\",\n        \"fromStatus\": \"PENDING\",\n        \"toStatus\": \"CANCELLED\",\n        \"note\": \"Ordered twice\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"a0849f29-4b30-4932-a1c1-48a15ce4e4f7\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:31.120Z\"\n      }\n    ]\n  }\n}"
             },
             {
-              "name": "409 Already picked up",
+              "name": "400 Already picked up (illegal transition)",
               "originalRequest": {
                 "method": "POST",
                 "header": [
@@ -4405,8 +4420,8 @@
                   }
                 }
               },
-              "status": "Conflict",
-              "code": 409,
+              "status": "Bad Request",
+              "code": 400,
               "_postman_previewlanguage": "json",
               "header": [
                 {
@@ -4414,7 +4429,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"Shipment can only be cancelled before it is picked up (current status: PICKED_UP)\",\n  \"errors\": []\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"Shipment can only be cancelled before it is picked up (current status: PICKED_UP)\",\n  \"errors\": [\n    {\n      \"path\": \"body.status\",\n      \"message\": \"No status changes are available to your role from PICKED_UP\"\n    }\n  ]\n}"
             }
           ]
         },
@@ -4471,7 +4486,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Shipment deleted successfully\",\n  \"data\": {\n    \"id\": \"01a1aeb6-08e5-741b-be48-9185c5043ee9\",\n    \"trackingId\": \"CRV-261106-ERMJRG\",\n    \"deletedAt\": \"2026-11-06T02:35:27.924Z\"\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Shipment deleted successfully\",\n  \"data\": {\n    \"id\": \"01a1aec3-d148-74cf-8b5e-60812bf0dd9a\",\n    \"trackingId\": \"CRV-261106-7ZPZTR\",\n    \"deletedAt\": \"2026-11-06T02:50:31.192Z\"\n  }\n}"
             },
             {
               "name": "409 Shipment is moving",
@@ -4499,6 +4514,1268 @@
                 }
               ],
               "body": "{\n  \"success\": false,\n  \"message\": \"Only PENDING or finished shipments can be deleted (current status: IN_TRANSIT). Cancel it first if possible.\",\n  \"errors\": []\n}"
+            }
+          ]
+        },
+        {
+          "name": "Find SEED10 (PENDING + PAID demo, helper)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.data?.[0]) { pm.collectionVariables.set('shipmentId', body.data[0].id); pm.collectionVariables.set('trackingId', body.data[0].trackingId); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shipments?searchTerm=SEED10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments"
+              ],
+              "query": [
+                {
+                  "key": "searchTerm",
+                  "value": "SEED10",
+                  "description": "Seeded PENDING + PAID shipment of customer1",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Helper: saves {{shipmentId}} = CRV-261101-SEED10 (seeded PENDING + PAID) so the workflow below can run before Stripe exists. For any other shipment, run locally: DEV_ALLOW_MARK_PAID=true npm run dev:mark-paid -- <trackingId>.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Schedule pickup (CUSTOMER, PENDING + PAID)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('pickupStart', new Date(Date.now() + 2 * 3600e3).toISOString());",
+                  "pm.collectionVariables.set('pickupEnd', new Date(Date.now() + 4 * 3600e3).toISOString());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/{{shipmentId}}/pickup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{shipmentId}}",
+                "pickup"
+              ]
+            },
+            "description": "Owner only, shipment must be PENDING and PAID (payment gate → 409). Moves to PICKUP_SCHEDULED and stores the pickup request.\nWindow: ISO date-times with timezone; start in the future and within 30 days; end after start; at most 12 hours.\npickupAddress / contactName / contactPhone default to the shipment's pickup address and sender. The pre-request script fills {{pickupStart}}/{{pickupEnd}} with now+2h / now+4h.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"windowStart\": \"{{pickupStart}}\",\n  \"windowEnd\": \"{{pickupEnd}}\",\n  \"notes\": \"Call before coming\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}/pickup",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}",
+                    "pickup"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"windowStart\": \"{{pickupStart}}\",\n  \"windowEnd\": \"{{pickupEnd}}\",\n  \"notes\": \"Call before coming\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Pickup scheduled successfully\",\n  \"data\": {\n    \"id\": \"01a1aec3-b21c-71cc-8f4f-c8ea7ef3820c\",\n    \"trackingId\": \"CRV-261101-SEED10\",\n    \"status\": \"PICKUP_SCHEDULED\",\n    \"paymentStatus\": \"PAID\",\n    \"serviceType\": \"STANDARD\",\n    \"senderName\": \"Ayesha Customer\",\n    \"receiverName\": \"Shirin Akhter\",\n    \"receiverPhone\": \"+8801811000010\",\n    \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara, Dhaka\",\n    \"deliveryAddress\": \"Road 12, Sector 10, Uttara, Dhaka\",\n    \"weightKg\": \"1.5\",\n    \"price\": \"75.00\",\n    \"currency\": \"bdt\",\n    \"originZone\": {\n      \"id\": \"01a1aec3-b05a-73c4-acda-9110a0519b63\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aec3-b05a-73c4-acda-9110a0519b63\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"originHub\": {\n      \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"destinationHub\": {\n      \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"customer\": {\n      \"id\": \"d318a704-09d2-4ad3-be15-7f4f7ef91610\",\n      \"name\": \"Ayesha Customer\"\n    },\n    \"courier\": null,\n    \"createdAt\": \"2026-11-06T00:50:23.131Z\",\n    \"updatedAt\": \"2026-11-06T02:50:24.683Z\",\n    \"senderPhone\": \"+8801711000003\",\n    \"receiverEmail\": null,\n    \"description\": \"Sample parcel (seed data)\",\n    \"declaredValue\": null,\n    \"isFragile\": false,\n    \"priceBreakdown\": {\n      \"total\": \"75.00\",\n      \"ruleId\": \"01a1aec3-b083-71e1-b417-9c445fa9ec1c\",\n      \"baseFee\": \"60.00\",\n      \"currency\": \"bdt\",\n      \"perKgFee\": \"15.00\",\n      \"ruleName\": \"Standard - Within Dhaka North\",\n      \"weightKg\": \"1.50\",\n      \"serviceType\": \"STANDARD\",\n      \"baseWeightKg\": \"1.00\",\n      \"calculatedAt\": \"2026-11-06T00:50:23.131Z\",\n      \"weightCharge\": \"15.00\",\n      \"chargeableExtraKg\": \"1.00\"\n    },\n    \"failedAttempts\": 0,\n    \"failureReason\": null,\n    \"cancelReason\": null,\n    \"proofOfDeliveryUrl\": null,\n    \"estimatedDeliveryAt\": null,\n    \"pickedUpAt\": null,\n    \"deliveredAt\": null,\n    \"cancelledAt\": null,\n    \"currentHub\": null,\n    \"pickupRequest\": {\n      \"scheduledAt\": \"2026-11-06T04:50:24.679Z\",\n      \"scheduledUntil\": \"2026-11-06T06:50:24.679Z\",\n      \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara, Dhaka\",\n      \"contactName\": \"Ayesha Customer\",\n      \"contactPhone\": \"+8801711000003\",\n      \"notes\": \"Call before coming\",\n      \"status\": \"SCHEDULED\",\n      \"completedAt\": null\n    },\n    \"statusHistory\": [\n      {\n        \"id\": \"01a1aec3-b21d-774d-9045-4a3862accd55\",\n        \"fromStatus\": null,\n        \"toStatus\": \"PENDING\",\n        \"note\": \"Shipment created\",\n        \"hub\": {\n          \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"d318a704-09d2-4ad3-be15-7f4f7ef91610\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T00:50:23.131Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b831-77b9-b585-8d84eea700c2\",\n        \"fromStatus\": \"PENDING\",\n        \"toStatus\": \"PICKUP_SCHEDULED\",\n        \"note\": \"Call before coming\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"d318a704-09d2-4ad3-be15-7f4f7ef91610\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.689Z\"\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "409 Not paid yet",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}/pickup",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}",
+                    "pickup"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"windowStart\": \"{{pickupStart}}\",\n  \"windowEnd\": \"{{pickupEnd}}\",\n  \"notes\": \"Call before coming\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Shipment must be paid before it can move past PENDING\",\n  \"errors\": []\n}"
+            },
+            {
+              "name": "400 Window in the past",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}/pickup",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}",
+                    "pickup"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"windowStart\": \"{{pickupStart}}\",\n  \"windowEnd\": \"{{pickupEnd}}\",\n  \"notes\": \"Call before coming\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    {\n      \"path\": \"body.windowStart\",\n      \"message\": \"Pickup window must start in the future\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Assign courier (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/{{shipmentId}}/assign",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{shipmentId}}",
+                "assign"
+              ]
+            },
+            "description": "PICKUP_SCHEDULED → COURIER_ASSIGNED. Get {{courierId}} from GET /couriers (filter by the shipment's origin zone).\nOne transaction: row-locks the courier (SELECT … FOR UPDATE on courier_profiles + users), re-checks active / available / origin zone,\nthen a guarded update WHERE status = PICKUP_SCHEDULED AND courierId IS NULL. A concurrent second assign matches 0 rows → 409.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courierId\": \"{{courierId}}\",\n  \"note\": \"Morning route\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}/assign",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}",
+                    "assign"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"courierId\": \"{{courierId}}\",\n  \"note\": \"Morning route\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Courier assigned successfully\",\n  \"data\": {\n    \"id\": \"01a1aec3-b21c-71cc-8f4f-c8ea7ef3820c\",\n    \"trackingId\": \"CRV-261101-SEED10\",\n    \"status\": \"COURIER_ASSIGNED\",\n    \"paymentStatus\": \"PAID\",\n    \"serviceType\": \"STANDARD\",\n    \"senderName\": \"Ayesha Customer\",\n    \"receiverName\": \"Shirin Akhter\",\n    \"receiverPhone\": \"+8801811000010\",\n    \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara, Dhaka\",\n    \"deliveryAddress\": \"Road 12, Sector 10, Uttara, Dhaka\",\n    \"weightKg\": \"1.5\",\n    \"price\": \"75.00\",\n    \"currency\": \"bdt\",\n    \"originZone\": {\n      \"id\": \"01a1aec3-b05a-73c4-acda-9110a0519b63\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aec3-b05a-73c4-acda-9110a0519b63\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"originHub\": {\n      \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"destinationHub\": {\n      \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"customer\": {\n      \"id\": \"d318a704-09d2-4ad3-be15-7f4f7ef91610\",\n      \"name\": \"Ayesha Customer\"\n    },\n    \"courier\": {\n      \"id\": \"ca595abb-2498-4a90-b889-cc243c9534f1\",\n      \"name\": \"Rahim Courier\",\n      \"phone\": \"+8801711000001\"\n    },\n    \"createdAt\": \"2026-11-06T00:50:23.131Z\",\n    \"updatedAt\": \"2026-11-06T02:50:24.785Z\",\n    \"senderPhone\": \"+8801711000003\",\n    \"receiverEmail\": null,\n    \"description\": \"Sample parcel (seed data)\",\n    \"declaredValue\": null,\n    \"isFragile\": false,\n    \"priceBreakdown\": {\n      \"total\": \"75.00\",\n      \"ruleId\": \"01a1aec3-b083-71e1-b417-9c445fa9ec1c\",\n      \"baseFee\": \"60.00\",\n      \"currency\": \"bdt\",\n      \"perKgFee\": \"15.00\",\n      \"ruleName\": \"Standard - Within Dhaka North\",\n      \"weightKg\": \"1.50\",\n      \"serviceType\": \"STANDARD\",\n      \"baseWeightKg\": \"1.00\",\n      \"calculatedAt\": \"2026-11-06T00:50:23.131Z\",\n      \"weightCharge\": \"15.00\",\n      \"chargeableExtraKg\": \"1.00\"\n    },\n    \"failedAttempts\": 0,\n    \"failureReason\": null,\n    \"cancelReason\": null,\n    \"proofOfDeliveryUrl\": null,\n    \"estimatedDeliveryAt\": null,\n    \"pickedUpAt\": null,\n    \"deliveredAt\": null,\n    \"cancelledAt\": null,\n    \"currentHub\": null,\n    \"pickupRequest\": {\n      \"scheduledAt\": \"2026-11-06T04:50:24.679Z\",\n      \"scheduledUntil\": \"2026-11-06T06:50:24.679Z\",\n      \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara, Dhaka\",\n      \"contactName\": \"Ayesha Customer\",\n      \"contactPhone\": \"+8801711000003\",\n      \"notes\": \"Call before coming\",\n      \"status\": \"SCHEDULED\",\n      \"completedAt\": null\n    },\n    \"statusHistory\": [\n      {\n        \"id\": \"01a1aec3-b21d-774d-9045-4a3862accd55\",\n        \"fromStatus\": null,\n        \"toStatus\": \"PENDING\",\n        \"note\": \"Shipment created\",\n        \"hub\": {\n          \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"d318a704-09d2-4ad3-be15-7f4f7ef91610\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T00:50:23.131Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b831-77b9-b585-8d84eea700c2\",\n        \"fromStatus\": \"PENDING\",\n        \"toStatus\": \"PICKUP_SCHEDULED\",\n        \"note\": \"Call before coming\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"d318a704-09d2-4ad3-be15-7f4f7ef91610\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.689Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b893-7063-a6b7-8041dc0aa498\",\n        \"fromStatus\": \"PICKUP_SCHEDULED\",\n        \"toStatus\": \"COURIER_ASSIGNED\",\n        \"note\": \"Morning route\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.787Z\"\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "409 Assigned concurrently",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}/assign",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}",
+                    "assign"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"courierId\": \"{{courierId}}\",\n  \"note\": \"Morning route\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Shipment was assigned concurrently, please refresh\",\n  \"errors\": []\n}"
+            },
+            {
+              "name": "409 Courier unavailable",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}/assign",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}",
+                    "assign"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"courierId\": \"{{courierId}}\",\n  \"note\": \"Morning route\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Courier is not available\",\n  \"errors\": []\n}"
+            },
+            {
+              "name": "400 Courier in another zone",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}/assign",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}",
+                    "assign"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"courierId\": \"{{courierId}}\",\n  \"note\": \"Morning route\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Courier does not operate in the shipment's origin zone\",\n  \"errors\": [\n    {\n      \"path\": \"body.courierId\",\n      \"message\": \"Courier zone does not match the origin zone\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Unassign courier (ADMIN, before PICKED_UP)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/{{shipmentId}}/unassign",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{shipmentId}}",
+                "unassign"
+              ]
+            },
+            "description": "COURIER_ASSIGNED → PICKUP_SCHEDULED and clears the courier. Body optional. Any other status → 400.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Courier sick\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}/unassign",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}",
+                    "unassign"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"note\": \"Courier sick\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Courier unassigned successfully\",\n  \"data\": {\n    \"id\": \"01a1aec3-b21c-71cc-8f4f-c8ea7ef3820c\",\n    \"trackingId\": \"CRV-261101-SEED10\",\n    \"status\": \"PICKUP_SCHEDULED\",\n    \"paymentStatus\": \"PAID\",\n    \"serviceType\": \"STANDARD\",\n    \"senderName\": \"Ayesha Customer\",\n    \"receiverName\": \"Shirin Akhter\",\n    \"receiverPhone\": \"+8801811000010\",\n    \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara, Dhaka\",\n    \"deliveryAddress\": \"Road 12, Sector 10, Uttara, Dhaka\",\n    \"weightKg\": \"1.5\",\n    \"price\": \"75.00\",\n    \"currency\": \"bdt\",\n    \"originZone\": {\n      \"id\": \"01a1aec3-b05a-73c4-acda-9110a0519b63\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aec3-b05a-73c4-acda-9110a0519b63\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"originHub\": {\n      \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"destinationHub\": {\n      \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"customer\": {\n      \"id\": \"d318a704-09d2-4ad3-be15-7f4f7ef91610\",\n      \"name\": \"Ayesha Customer\"\n    },\n    \"courier\": null,\n    \"createdAt\": \"2026-11-06T00:50:23.131Z\",\n    \"updatedAt\": \"2026-11-06T02:50:24.818Z\",\n    \"senderPhone\": \"+8801711000003\",\n    \"receiverEmail\": null,\n    \"description\": \"Sample parcel (seed data)\",\n    \"declaredValue\": null,\n    \"isFragile\": false,\n    \"priceBreakdown\": {\n      \"total\": \"75.00\",\n      \"ruleId\": \"01a1aec3-b083-71e1-b417-9c445fa9ec1c\",\n      \"baseFee\": \"60.00\",\n      \"currency\": \"bdt\",\n      \"perKgFee\": \"15.00\",\n      \"ruleName\": \"Standard - Within Dhaka North\",\n      \"weightKg\": \"1.50\",\n      \"serviceType\": \"STANDARD\",\n      \"baseWeightKg\": \"1.00\",\n      \"calculatedAt\": \"2026-11-06T00:50:23.131Z\",\n      \"weightCharge\": \"15.00\",\n      \"chargeableExtraKg\": \"1.00\"\n    },\n    \"failedAttempts\": 0,\n    \"failureReason\": null,\n    \"cancelReason\": null,\n    \"proofOfDeliveryUrl\": null,\n    \"estimatedDeliveryAt\": null,\n    \"pickedUpAt\": null,\n    \"deliveredAt\": null,\n    \"cancelledAt\": null,\n    \"currentHub\": null,\n    \"pickupRequest\": {\n      \"scheduledAt\": \"2026-11-06T04:50:24.679Z\",\n      \"scheduledUntil\": \"2026-11-06T06:50:24.679Z\",\n      \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara, Dhaka\",\n      \"contactName\": \"Ayesha Customer\",\n      \"contactPhone\": \"+8801711000003\",\n      \"notes\": \"Call before coming\",\n      \"status\": \"SCHEDULED\",\n      \"completedAt\": null\n    },\n    \"statusHistory\": [\n      {\n        \"id\": \"01a1aec3-b21d-774d-9045-4a3862accd55\",\n        \"fromStatus\": null,\n        \"toStatus\": \"PENDING\",\n        \"note\": \"Shipment created\",\n        \"hub\": {\n          \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"d318a704-09d2-4ad3-be15-7f4f7ef91610\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T00:50:23.131Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b831-77b9-b585-8d84eea700c2\",\n        \"fromStatus\": \"PENDING\",\n        \"toStatus\": \"PICKUP_SCHEDULED\",\n        \"note\": \"Call before coming\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"d318a704-09d2-4ad3-be15-7f4f7ef91610\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.689Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b893-7063-a6b7-8041dc0aa498\",\n        \"fromStatus\": \"PICKUP_SCHEDULED\",\n        \"toStatus\": \"COURIER_ASSIGNED\",\n        \"note\": \"Morning route\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.787Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b8b4-77bf-a30d-f8ebe64cac04\",\n        \"fromStatus\": \"COURIER_ASSIGNED\",\n        \"toStatus\": \"PICKUP_SCHEDULED\",\n        \"note\": \"Courier sick\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.820Z\"\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "400 Not COURIER_ASSIGNED",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}/unassign",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}",
+                    "unassign"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"note\": \"Courier sick\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"This action requires status COURIER_ASSIGNED (current status: PICKUP_SCHEDULED)\",\n  \"errors\": [\n    {\n      \"path\": \"status\",\n      \"message\": \"Current status is PICKUP_SCHEDULED\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Status: PICKED_UP (assigned COURIER)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/{{shipmentId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{shipmentId}}",
+                "status"
+              ]
+            },
+            "description": "PATCH /status accepts: PICKED_UP, AT_ORIGIN_HUB, IN_TRANSIT, AT_DESTINATION_HUB, OUT_FOR_DELIVERY, DELIVERED, FAILED_DELIVERY, RETURNED.\nRoles: COURIER (assigned only) → PICKED_UP, DELIVERED, FAILED_DELIVERY, retry OUT_FOR_DELIVERY. ADMIN → hub statuses, OUT_FOR_DELIVERY from the destination hub, RETURNED.\nIllegal transition → 400 listing the allowed next statuses for your role. Allowed move but wrong role → 403. Not your shipment → 404.\nPICKED_UP sets pickedUpAt and completes the pickup request.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{courierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PICKED_UP\",\n  \"note\": \"Collected from sender\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}",
+                    "status"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"PICKED_UP\",\n  \"note\": \"Collected from sender\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Shipment status updated successfully\",\n  \"data\": {\n    \"id\": \"01a1aec3-b21c-71cc-8f4f-c8ea7ef3820c\",\n    \"trackingId\": \"CRV-261101-SEED10\",\n    \"status\": \"PICKED_UP\",\n    \"paymentStatus\": \"PAID\",\n    \"serviceType\": \"STANDARD\",\n    \"senderName\": \"Ayesha Customer\",\n    \"receiverName\": \"Shirin Akhter\",\n    \"receiverPhone\": \"+8801811000010\",\n    \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara, Dhaka\",\n    \"deliveryAddress\": \"Road 12, Sector 10, Uttara, Dhaka\",\n    \"weightKg\": \"1.5\",\n    \"price\": \"75.00\",\n    \"currency\": \"bdt\",\n    \"originZone\": {\n      \"id\": \"01a1aec3-b05a-73c4-acda-9110a0519b63\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aec3-b05a-73c4-acda-9110a0519b63\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"originHub\": {\n      \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"destinationHub\": {\n      \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"customer\": {\n      \"id\": \"d318a704-09d2-4ad3-be15-7f4f7ef91610\",\n      \"name\": \"Ayesha Customer\"\n    },\n    \"courier\": {\n      \"id\": \"ca595abb-2498-4a90-b889-cc243c9534f1\",\n      \"name\": \"Rahim Courier\",\n      \"phone\": \"+8801711000001\"\n    },\n    \"createdAt\": \"2026-11-06T00:50:23.131Z\",\n    \"updatedAt\": \"2026-11-06T02:50:24.892Z\",\n    \"senderPhone\": \"+8801711000003\",\n    \"receiverEmail\": null,\n    \"description\": \"Sample parcel (seed data)\",\n    \"declaredValue\": null,\n    \"isFragile\": false,\n    \"priceBreakdown\": {\n      \"total\": \"75.00\",\n      \"ruleId\": \"01a1aec3-b083-71e1-b417-9c445fa9ec1c\",\n      \"baseFee\": \"60.00\",\n      \"currency\": \"bdt\",\n      \"perKgFee\": \"15.00\",\n      \"ruleName\": \"Standard - Within Dhaka North\",\n      \"weightKg\": \"1.50\",\n      \"serviceType\": \"STANDARD\",\n      \"baseWeightKg\": \"1.00\",\n      \"calculatedAt\": \"2026-11-06T00:50:23.131Z\",\n      \"weightCharge\": \"15.00\",\n      \"chargeableExtraKg\": \"1.00\"\n    },\n    \"failedAttempts\": 0,\n    \"failureReason\": null,\n    \"cancelReason\": null,\n    \"proofOfDeliveryUrl\": null,\n    \"estimatedDeliveryAt\": null,\n    \"pickedUpAt\": \"2026-11-06T02:50:24.891Z\",\n    \"deliveredAt\": null,\n    \"cancelledAt\": null,\n    \"currentHub\": null,\n    \"pickupRequest\": {\n      \"scheduledAt\": \"2026-11-06T04:50:24.679Z\",\n      \"scheduledUntil\": \"2026-11-06T06:50:24.679Z\",\n      \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara, Dhaka\",\n      \"contactName\": \"Ayesha Customer\",\n      \"contactPhone\": \"+8801711000003\",\n      \"notes\": \"Call before coming\",\n      \"status\": \"COMPLETED\",\n      \"completedAt\": \"2026-11-06T02:50:24.891Z\"\n    },\n    \"statusHistory\": [\n      {\n        \"id\": \"01a1aec3-b21d-774d-9045-4a3862accd55\",\n        \"fromStatus\": null,\n        \"toStatus\": \"PENDING\",\n        \"note\": \"Shipment created\",\n        \"hub\": {\n          \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"d318a704-09d2-4ad3-be15-7f4f7ef91610\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T00:50:23.131Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b831-77b9-b585-8d84eea700c2\",\n        \"fromStatus\": \"PENDING\",\n        \"toStatus\": \"PICKUP_SCHEDULED\",\n        \"note\": \"Call before coming\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"d318a704-09d2-4ad3-be15-7f4f7ef91610\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.689Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b893-7063-a6b7-8041dc0aa498\",\n        \"fromStatus\": \"PICKUP_SCHEDULED\",\n        \"toStatus\": \"COURIER_ASSIGNED\",\n        \"note\": \"Morning route\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.787Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b8b4-77bf-a30d-f8ebe64cac04\",\n        \"fromStatus\": \"COURIER_ASSIGNED\",\n        \"toStatus\": \"PICKUP_SCHEDULED\",\n        \"note\": \"Courier sick\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.820Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b8be-742a-bfc1-eff810a709f2\",\n        \"fromStatus\": \"PICKUP_SCHEDULED\",\n        \"toStatus\": \"COURIER_ASSIGNED\",\n        \"note\": \"Courier assigned\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.830Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b8fe-749a-a6ac-e95bd291308a\",\n        \"fromStatus\": \"COURIER_ASSIGNED\",\n        \"toStatus\": \"PICKED_UP\",\n        \"note\": \"Collected from sender\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"ca595abb-2498-4a90-b889-cc243c9534f1\",\n          \"name\": \"Rahim Courier\",\n          \"role\": \"COURIER\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.895Z\"\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "400 Illegal transition",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}",
+                    "status"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"PICKED_UP\",\n  \"note\": \"Collected from sender\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Cannot change status from COURIER_ASSIGNED to AT_ORIGIN_HUB\",\n  \"errors\": [\n    {\n      \"path\": \"body.status\",\n      \"message\": \"Allowed next statuses for your role: PICKED_UP\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "403 Wrong role",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}",
+                    "status"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"PICKED_UP\",\n  \"note\": \"Collected from sender\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Your role cannot change status from COURIER_ASSIGNED to PICKED_UP\",\n  \"errors\": []\n}"
+            }
+          ]
+        },
+        {
+          "name": "Status: AT_ORIGIN_HUB (ADMIN)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/{{shipmentId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{shipmentId}}",
+                "status"
+              ]
+            },
+            "description": "hubId is optional and defaults to the planned origin hub; it must be an active hub in the origin zone (AT_DESTINATION_HUB: destination zone). Sets currentHub. hubId on any other status → 400.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"AT_ORIGIN_HUB\",\n  \"hubId\": \"{{hubId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}",
+                    "status"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"AT_ORIGIN_HUB\",\n  \"hubId\": \"{{hubId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Shipment status updated successfully\",\n  \"data\": {\n    \"id\": \"01a1aec3-b21c-71cc-8f4f-c8ea7ef3820c\",\n    \"trackingId\": \"CRV-261101-SEED10\",\n    \"status\": \"AT_ORIGIN_HUB\",\n    \"paymentStatus\": \"PAID\",\n    \"serviceType\": \"STANDARD\",\n    \"senderName\": \"Ayesha Customer\",\n    \"receiverName\": \"Shirin Akhter\",\n    \"receiverPhone\": \"+8801811000010\",\n    \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara, Dhaka\",\n    \"deliveryAddress\": \"Road 12, Sector 10, Uttara, Dhaka\",\n    \"weightKg\": \"1.5\",\n    \"price\": \"75.00\",\n    \"currency\": \"bdt\",\n    \"originZone\": {\n      \"id\": \"01a1aec3-b05a-73c4-acda-9110a0519b63\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aec3-b05a-73c4-acda-9110a0519b63\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"originHub\": {\n      \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"destinationHub\": {\n      \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"customer\": {\n      \"id\": \"d318a704-09d2-4ad3-be15-7f4f7ef91610\",\n      \"name\": \"Ayesha Customer\"\n    },\n    \"courier\": {\n      \"id\": \"ca595abb-2498-4a90-b889-cc243c9534f1\",\n      \"name\": \"Rahim Courier\",\n      \"phone\": \"+8801711000001\"\n    },\n    \"createdAt\": \"2026-11-06T00:50:23.131Z\",\n    \"updatedAt\": \"2026-11-06T02:50:24.909Z\",\n    \"senderPhone\": \"+8801711000003\",\n    \"receiverEmail\": null,\n    \"description\": \"Sample parcel (seed data)\",\n    \"declaredValue\": null,\n    \"isFragile\": false,\n    \"priceBreakdown\": {\n      \"total\": \"75.00\",\n      \"ruleId\": \"01a1aec3-b083-71e1-b417-9c445fa9ec1c\",\n      \"baseFee\": \"60.00\",\n      \"currency\": \"bdt\",\n      \"perKgFee\": \"15.00\",\n      \"ruleName\": \"Standard - Within Dhaka North\",\n      \"weightKg\": \"1.50\",\n      \"serviceType\": \"STANDARD\",\n      \"baseWeightKg\": \"1.00\",\n      \"calculatedAt\": \"2026-11-06T00:50:23.131Z\",\n      \"weightCharge\": \"15.00\",\n      \"chargeableExtraKg\": \"1.00\"\n    },\n    \"failedAttempts\": 0,\n    \"failureReason\": null,\n    \"cancelReason\": null,\n    \"proofOfDeliveryUrl\": null,\n    \"estimatedDeliveryAt\": null,\n    \"pickedUpAt\": \"2026-11-06T02:50:24.891Z\",\n    \"deliveredAt\": null,\n    \"cancelledAt\": null,\n    \"currentHub\": {\n      \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"pickupRequest\": {\n      \"scheduledAt\": \"2026-11-06T04:50:24.679Z\",\n      \"scheduledUntil\": \"2026-11-06T06:50:24.679Z\",\n      \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara, Dhaka\",\n      \"contactName\": \"Ayesha Customer\",\n      \"contactPhone\": \"+8801711000003\",\n      \"notes\": \"Call before coming\",\n      \"status\": \"COMPLETED\",\n      \"completedAt\": \"2026-11-06T02:50:24.891Z\"\n    },\n    \"statusHistory\": [\n      {\n        \"id\": \"01a1aec3-b21d-774d-9045-4a3862accd55\",\n        \"fromStatus\": null,\n        \"toStatus\": \"PENDING\",\n        \"note\": \"Shipment created\",\n        \"hub\": {\n          \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"d318a704-09d2-4ad3-be15-7f4f7ef91610\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T00:50:23.131Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b831-77b9-b585-8d84eea700c2\",\n        \"fromStatus\": \"PENDING\",\n        \"toStatus\": \"PICKUP_SCHEDULED\",\n        \"note\": \"Call before coming\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"d318a704-09d2-4ad3-be15-7f4f7ef91610\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.689Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b893-7063-a6b7-8041dc0aa498\",\n        \"fromStatus\": \"PICKUP_SCHEDULED\",\n        \"toStatus\": \"COURIER_ASSIGNED\",\n        \"note\": \"Morning route\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.787Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b8b4-77bf-a30d-f8ebe64cac04\",\n        \"fromStatus\": \"COURIER_ASSIGNED\",\n        \"toStatus\": \"PICKUP_SCHEDULED\",\n        \"note\": \"Courier sick\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.820Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b8be-742a-bfc1-eff810a709f2\",\n        \"fromStatus\": \"PICKUP_SCHEDULED\",\n        \"toStatus\": \"COURIER_ASSIGNED\",\n        \"note\": \"Courier assigned\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.830Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b8fe-749a-a6ac-e95bd291308a\",\n        \"fromStatus\": \"COURIER_ASSIGNED\",\n        \"toStatus\": \"PICKED_UP\",\n        \"note\": \"Collected from sender\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"ca595abb-2498-4a90-b889-cc243c9534f1\",\n          \"name\": \"Rahim Courier\",\n          \"role\": \"COURIER\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.895Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b90f-737c-a9cb-3d642fc2949f\",\n        \"fromStatus\": \"PICKED_UP\",\n        \"toStatus\": \"AT_ORIGIN_HUB\",\n        \"note\": null,\n        \"hub\": {\n          \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.911Z\"\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "400 Hub in the wrong zone",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}",
+                    "status"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"AT_ORIGIN_HUB\",\n  \"hubId\": \"{{hubId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Hub must be in the shipment's origin zone\",\n  \"errors\": [\n    {\n      \"path\": \"body.hubId\",\n      \"message\": \"Hub is not in the origin zone\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Status: IN_TRANSIT / AT_DESTINATION_HUB / OUT_FOR_DELIVERY (ADMIN)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/{{shipmentId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{shipmentId}}",
+                "status"
+              ]
+            },
+            "description": "Same endpoint for each hub-side step in order: IN_TRANSIT (clears currentHub) → AT_DESTINATION_HUB (optional hubId) → OUT_FOR_DELIVERY.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"IN_TRANSIT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Status: FAILED_DELIVERY (assigned COURIER)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/{{shipmentId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{shipmentId}}",
+                "status"
+              ]
+            },
+            "description": "A reason (note) is required. Increments failedAttempts and sets failureReason. The courier may retry with OUT_FOR_DELIVERY; after 3 failed attempts only RETURNED (ADMIN) is allowed.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{courierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"FAILED_DELIVERY\",\n  \"note\": \"Receiver not home\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}",
+                    "status"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"FAILED_DELIVERY\",\n  \"note\": \"Receiver not home\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Shipment status updated successfully\",\n  \"data\": {\n    \"id\": \"01a1aec3-b21c-71cc-8f4f-c8ea7ef3820c\",\n    \"trackingId\": \"CRV-261101-SEED10\",\n    \"status\": \"FAILED_DELIVERY\",\n    \"paymentStatus\": \"PAID\",\n    \"serviceType\": \"STANDARD\",\n    \"senderName\": \"Ayesha Customer\",\n    \"receiverName\": \"Shirin Akhter\",\n    \"receiverPhone\": \"+8801811000010\",\n    \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara, Dhaka\",\n    \"deliveryAddress\": \"Road 12, Sector 10, Uttara, Dhaka\",\n    \"weightKg\": \"1.5\",\n    \"price\": \"75.00\",\n    \"currency\": \"bdt\",\n    \"originZone\": {\n      \"id\": \"01a1aec3-b05a-73c4-acda-9110a0519b63\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aec3-b05a-73c4-acda-9110a0519b63\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"originHub\": {\n      \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"destinationHub\": {\n      \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"customer\": {\n      \"id\": \"d318a704-09d2-4ad3-be15-7f4f7ef91610\",\n      \"name\": \"Ayesha Customer\"\n    },\n    \"courier\": {\n      \"id\": \"ca595abb-2498-4a90-b889-cc243c9534f1\",\n      \"name\": \"Rahim Courier\",\n      \"phone\": \"+8801711000001\"\n    },\n    \"createdAt\": \"2026-11-06T00:50:23.131Z\",\n    \"updatedAt\": \"2026-11-06T02:50:24.938Z\",\n    \"senderPhone\": \"+8801711000003\",\n    \"receiverEmail\": null,\n    \"description\": \"Sample parcel (seed data)\",\n    \"declaredValue\": null,\n    \"isFragile\": false,\n    \"priceBreakdown\": {\n      \"total\": \"75.00\",\n      \"ruleId\": \"01a1aec3-b083-71e1-b417-9c445fa9ec1c\",\n      \"baseFee\": \"60.00\",\n      \"currency\": \"bdt\",\n      \"perKgFee\": \"15.00\",\n      \"ruleName\": \"Standard - Within Dhaka North\",\n      \"weightKg\": \"1.50\",\n      \"serviceType\": \"STANDARD\",\n      \"baseWeightKg\": \"1.00\",\n      \"calculatedAt\": \"2026-11-06T00:50:23.131Z\",\n      \"weightCharge\": \"15.00\",\n      \"chargeableExtraKg\": \"1.00\"\n    },\n    \"failedAttempts\": 1,\n    \"failureReason\": \"Receiver not home (attempt 1)\",\n    \"cancelReason\": null,\n    \"proofOfDeliveryUrl\": null,\n    \"estimatedDeliveryAt\": null,\n    \"pickedUpAt\": \"2026-11-06T02:50:24.891Z\",\n    \"deliveredAt\": null,\n    \"cancelledAt\": null,\n    \"currentHub\": null,\n    \"pickupRequest\": {\n      \"scheduledAt\": \"2026-11-06T04:50:24.679Z\",\n      \"scheduledUntil\": \"2026-11-06T06:50:24.679Z\",\n      \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara, Dhaka\",\n      \"contactName\": \"Ayesha Customer\",\n      \"contactPhone\": \"+8801711000003\",\n      \"notes\": \"Call before coming\",\n      \"status\": \"COMPLETED\",\n      \"completedAt\": \"2026-11-06T02:50:24.891Z\"\n    },\n    \"statusHistory\": [\n      {\n        \"id\": \"01a1aec3-b21d-774d-9045-4a3862accd55\",\n        \"fromStatus\": null,\n        \"toStatus\": \"PENDING\",\n        \"note\": \"Shipment created\",\n        \"hub\": {\n          \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"d318a704-09d2-4ad3-be15-7f4f7ef91610\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T00:50:23.131Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b831-77b9-b585-8d84eea700c2\",\n        \"fromStatus\": \"PENDING\",\n        \"toStatus\": \"PICKUP_SCHEDULED\",\n        \"note\": \"Call before coming\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"d318a704-09d2-4ad3-be15-7f4f7ef91610\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.689Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b893-7063-a6b7-8041dc0aa498\",\n        \"fromStatus\": \"PICKUP_SCHEDULED\",\n        \"toStatus\": \"COURIER_ASSIGNED\",\n        \"note\": \"Morning route\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.787Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b8b4-77bf-a30d-f8ebe64cac04\",\n        \"fromStatus\": \"COURIER_ASSIGNED\",\n        \"toStatus\": \"PICKUP_SCHEDULED\",\n        \"note\": \"Courier sick\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.820Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b8be-742a-bfc1-eff810a709f2\",\n        \"fromStatus\": \"PICKUP_SCHEDULED\",\n        \"toStatus\": \"COURIER_ASSIGNED\",\n        \"note\": \"Courier assigned\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.830Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b8fe-749a-a6ac-e95bd291308a\",\n        \"fromStatus\": \"COURIER_ASSIGNED\",\n        \"toStatus\": \"PICKED_UP\",\n        \"note\": \"Collected from sender\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"ca595abb-2498-4a90-b889-cc243c9534f1\",\n          \"name\": \"Rahim Courier\",\n          \"role\": \"COURIER\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.895Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b90f-737c-a9cb-3d642fc2949f\",\n        \"fromStatus\": \"PICKED_UP\",\n        \"toStatus\": \"AT_ORIGIN_HUB\",\n        \"note\": null,\n        \"hub\": {\n          \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.911Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b916-71d6-bfab-011aa0b0a79c\",\n        \"fromStatus\": \"AT_ORIGIN_HUB\",\n        \"toStatus\": \"IN_TRANSIT\",\n        \"note\": null,\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.918Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b91d-732f-a1d5-29cb282711a6\",\n        \"fromStatus\": \"IN_TRANSIT\",\n        \"toStatus\": \"AT_DESTINATION_HUB\",\n        \"note\": null,\n        \"hub\": {\n          \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.925Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b923-7248-bec3-4e356c7e3103\",\n        \"fromStatus\": \"AT_DESTINATION_HUB\",\n        \"toStatus\": \"OUT_FOR_DELIVERY\",\n        \"note\": null,\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.931Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b92b-7105-8c23-968d74da857d\",\n        \"fromStatus\": \"OUT_FOR_DELIVERY\",\n        \"toStatus\": \"FAILED_DELIVERY\",\n        \"note\": \"Receiver not home (attempt 1)\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"ca595abb-2498-4a90-b889-cc243c9534f1\",\n          \"name\": \"Rahim Courier\",\n          \"role\": \"COURIER\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.939Z\"\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "400 Missing reason",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}",
+                    "status"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"FAILED_DELIVERY\",\n  \"note\": \"Receiver not home\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    {\n      \"path\": \"body.note\",\n      \"message\": \"A reason (note) is required for FAILED_DELIVERY\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "400 Max attempts reached",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}",
+                    "status"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"FAILED_DELIVERY\",\n  \"note\": \"Receiver not home\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Maximum of 3 delivery attempts reached; the shipment can only be RETURNED\",\n  \"errors\": [\n    {\n      \"path\": \"body.status\",\n      \"message\": \"No status changes are available to your role from FAILED_DELIVERY\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Status: DELIVERED (assigned COURIER)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/{{shipmentId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{shipmentId}}",
+                "status"
+              ]
+            },
+            "description": "Sets deliveredAt and, in the same transaction, creates the courier's earning: 20% of the shipment price (one per shipment).",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{courierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"DELIVERED\",\n  \"note\": \"Handed to receiver\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}",
+                    "status"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"DELIVERED\",\n  \"note\": \"Handed to receiver\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Shipment status updated successfully\",\n  \"data\": {\n    \"id\": \"01a1aec3-b1fb-7777-8104-4fbf3b86cf90\",\n    \"trackingId\": \"CRV-261101-SEED02\",\n    \"status\": \"DELIVERED\",\n    \"paymentStatus\": \"PAID\",\n    \"serviceType\": \"EXPRESS\",\n    \"senderName\": \"Ayesha Customer\",\n    \"receiverName\": \"Imran Hossain\",\n    \"receiverPhone\": \"+8801811000002\",\n    \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara, Dhaka\",\n    \"deliveryAddress\": \"Flat 3B, Road 11, Banani, Dhaka\",\n    \"weightKg\": \"1\",\n    \"price\": \"100.00\",\n    \"currency\": \"bdt\",\n    \"originZone\": {\n      \"id\": \"01a1aec3-b05a-73c4-acda-9110a0519b63\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aec3-b05a-73c4-acda-9110a0519b63\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"originHub\": {\n      \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"destinationHub\": {\n      \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"customer\": {\n      \"id\": \"d318a704-09d2-4ad3-be15-7f4f7ef91610\",\n      \"name\": \"Ayesha Customer\"\n    },\n    \"courier\": {\n      \"id\": \"ca595abb-2498-4a90-b889-cc243c9534f1\",\n      \"name\": \"Rahim Courier\",\n      \"phone\": \"+8801711000001\"\n    },\n    \"createdAt\": \"2026-11-04T22:50:23.098Z\",\n    \"updatedAt\": \"2026-11-06T02:50:25.011Z\",\n    \"senderPhone\": \"+8801711000003\",\n    \"receiverEmail\": null,\n    \"description\": \"Sample parcel (seed data)\",\n    \"declaredValue\": null,\n    \"isFragile\": false,\n    \"priceBreakdown\": {\n      \"total\": \"100.00\",\n      \"ruleId\": \"01a1aec3-b087-75bb-8773-815e7a624eac\",\n      \"baseFee\": \"100.00\",\n      \"currency\": \"bdt\",\n      \"perKgFee\": \"20.00\",\n      \"ruleName\": \"Express - Within Dhaka North\",\n      \"weightKg\": \"1.00\",\n      \"serviceType\": \"EXPRESS\",\n      \"baseWeightKg\": \"1.00\",\n      \"calculatedAt\": \"2026-11-04T22:50:23.098Z\",\n      \"weightCharge\": \"0.00\",\n      \"chargeableExtraKg\": \"0.00\"\n    },\n    \"failedAttempts\": 0,\n    \"failureReason\": null,\n    \"cancelReason\": null,\n    \"proofOfDeliveryUrl\": null,\n    \"estimatedDeliveryAt\": null,\n    \"pickedUpAt\": \"2026-11-06T02:50:24.985Z\",\n    \"deliveredAt\": \"2026-11-06T02:50:25.010Z\",\n    \"cancelledAt\": null,\n    \"currentHub\": null,\n    \"pickupRequest\": {\n      \"scheduledAt\": \"2026-11-05T04:50:23.098Z\",\n      \"scheduledUntil\": \"2026-11-05T06:50:23.098Z\",\n      \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara, Dhaka\",\n      \"contactName\": \"Ayesha Customer\",\n      \"contactPhone\": \"+8801711000003\",\n      \"notes\": null,\n      \"status\": \"COMPLETED\",\n      \"completedAt\": \"2026-11-06T02:50:24.985Z\"\n    },\n    \"statusHistory\": [\n      {\n        \"id\": \"01a1aec3-b1fc-75cc-bbda-c98ffdeab96b\",\n        \"fromStatus\": null,\n        \"toStatus\": \"PENDING\",\n        \"note\": \"Shipment created\",\n        \"hub\": {\n          \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"d318a704-09d2-4ad3-be15-7f4f7ef91610\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-04T22:50:23.098Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b1fc-75cc-bbda-ccdef482c564\",\n        \"fromStatus\": \"PENDING\",\n        \"toStatus\": \"PICKUP_SCHEDULED\",\n        \"note\": null,\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-05T00:50:23.098Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b954-749c-9bf3-b0e7ee8e6535\",\n        \"fromStatus\": \"PICKUP_SCHEDULED\",\n        \"toStatus\": \"COURIER_ASSIGNED\",\n        \"note\": \"Courier assigned\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.980Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b95a-727a-9856-e471f6f7d403\",\n        \"fromStatus\": \"COURIER_ASSIGNED\",\n        \"toStatus\": \"PICKED_UP\",\n        \"note\": null,\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"ca595abb-2498-4a90-b889-cc243c9534f1\",\n          \"name\": \"Rahim Courier\",\n          \"role\": \"COURIER\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.986Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b95f-704e-80ad-a4a32b560dee\",\n        \"fromStatus\": \"PICKED_UP\",\n        \"toStatus\": \"AT_ORIGIN_HUB\",\n        \"note\": null,\n        \"hub\": {\n          \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.991Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b965-76c1-8ae5-86d55759ecde\",\n        \"fromStatus\": \"AT_ORIGIN_HUB\",\n        \"toStatus\": \"IN_TRANSIT\",\n        \"note\": null,\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.997Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b96a-724d-af9a-8fb72c9b4aab\",\n        \"fromStatus\": \"IN_TRANSIT\",\n        \"toStatus\": \"AT_DESTINATION_HUB\",\n        \"note\": null,\n        \"hub\": {\n          \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:25.002Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b96f-714a-a1de-475514d925b4\",\n        \"fromStatus\": \"AT_DESTINATION_HUB\",\n        \"toStatus\": \"OUT_FOR_DELIVERY\",\n        \"note\": null,\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:25.007Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b975-74f8-a510-b1bf3d533569\",\n        \"fromStatus\": \"OUT_FOR_DELIVERY\",\n        \"toStatus\": \"DELIVERED\",\n        \"note\": \"Handed to receiver\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"ca595abb-2498-4a90-b889-cc243c9534f1\",\n          \"name\": \"Rahim Courier\",\n          \"role\": \"COURIER\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:25.013Z\"\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Status: RETURNED (ADMIN)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/shipments/{{shipmentId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{shipmentId}}",
+                "status"
+              ]
+            },
+            "description": "From FAILED_DELIVERY (the only option after 3 failed attempts).",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"RETURNED\",\n  \"note\": \"Returned to sender\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shipments/{{shipmentId}}/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shipments",
+                    "{{shipmentId}}",
+                    "status"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"RETURNED\",\n  \"note\": \"Returned to sender\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Shipment status updated successfully\",\n  \"data\": {\n    \"id\": \"01a1aec3-b21c-71cc-8f4f-c8ea7ef3820c\",\n    \"trackingId\": \"CRV-261101-SEED10\",\n    \"status\": \"RETURNED\",\n    \"paymentStatus\": \"PAID\",\n    \"serviceType\": \"STANDARD\",\n    \"senderName\": \"Ayesha Customer\",\n    \"receiverName\": \"Shirin Akhter\",\n    \"receiverPhone\": \"+8801811000010\",\n    \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara, Dhaka\",\n    \"deliveryAddress\": \"Road 12, Sector 10, Uttara, Dhaka\",\n    \"weightKg\": \"1.5\",\n    \"price\": \"75.00\",\n    \"currency\": \"bdt\",\n    \"originZone\": {\n      \"id\": \"01a1aec3-b05a-73c4-acda-9110a0519b63\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"destinationZone\": {\n      \"id\": \"01a1aec3-b05a-73c4-acda-9110a0519b63\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"originHub\": {\n      \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"destinationHub\": {\n      \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    },\n    \"customer\": {\n      \"id\": \"d318a704-09d2-4ad3-be15-7f4f7ef91610\",\n      \"name\": \"Ayesha Customer\"\n    },\n    \"courier\": {\n      \"id\": \"ca595abb-2498-4a90-b889-cc243c9534f1\",\n      \"name\": \"Rahim Courier\",\n      \"phone\": \"+8801711000001\"\n    },\n    \"createdAt\": \"2026-11-06T00:50:23.131Z\",\n    \"updatedAt\": \"2026-11-06T02:50:24.973Z\",\n    \"senderPhone\": \"+8801711000003\",\n    \"receiverEmail\": null,\n    \"description\": \"Sample parcel (seed data)\",\n    \"declaredValue\": null,\n    \"isFragile\": false,\n    \"priceBreakdown\": {\n      \"total\": \"75.00\",\n      \"ruleId\": \"01a1aec3-b083-71e1-b417-9c445fa9ec1c\",\n      \"baseFee\": \"60.00\",\n      \"currency\": \"bdt\",\n      \"perKgFee\": \"15.00\",\n      \"ruleName\": \"Standard - Within Dhaka North\",\n      \"weightKg\": \"1.50\",\n      \"serviceType\": \"STANDARD\",\n      \"baseWeightKg\": \"1.00\",\n      \"calculatedAt\": \"2026-11-06T00:50:23.131Z\",\n      \"weightCharge\": \"15.00\",\n      \"chargeableExtraKg\": \"1.00\"\n    },\n    \"failedAttempts\": 3,\n    \"failureReason\": \"Receiver not home (attempt 3)\",\n    \"cancelReason\": null,\n    \"proofOfDeliveryUrl\": null,\n    \"estimatedDeliveryAt\": null,\n    \"pickedUpAt\": \"2026-11-06T02:50:24.891Z\",\n    \"deliveredAt\": null,\n    \"cancelledAt\": null,\n    \"currentHub\": null,\n    \"pickupRequest\": {\n      \"scheduledAt\": \"2026-11-06T04:50:24.679Z\",\n      \"scheduledUntil\": \"2026-11-06T06:50:24.679Z\",\n      \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara, Dhaka\",\n      \"contactName\": \"Ayesha Customer\",\n      \"contactPhone\": \"+8801711000003\",\n      \"notes\": \"Call before coming\",\n      \"status\": \"COMPLETED\",\n      \"completedAt\": \"2026-11-06T02:50:24.891Z\"\n    },\n    \"statusHistory\": [\n      {\n        \"id\": \"01a1aec3-b21d-774d-9045-4a3862accd55\",\n        \"fromStatus\": null,\n        \"toStatus\": \"PENDING\",\n        \"note\": \"Shipment created\",\n        \"hub\": {\n          \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"d318a704-09d2-4ad3-be15-7f4f7ef91610\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T00:50:23.131Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b831-77b9-b585-8d84eea700c2\",\n        \"fromStatus\": \"PENDING\",\n        \"toStatus\": \"PICKUP_SCHEDULED\",\n        \"note\": \"Call before coming\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"d318a704-09d2-4ad3-be15-7f4f7ef91610\",\n          \"name\": \"Ayesha Customer\",\n          \"role\": \"CUSTOMER\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.689Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b893-7063-a6b7-8041dc0aa498\",\n        \"fromStatus\": \"PICKUP_SCHEDULED\",\n        \"toStatus\": \"COURIER_ASSIGNED\",\n        \"note\": \"Morning route\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.787Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b8b4-77bf-a30d-f8ebe64cac04\",\n        \"fromStatus\": \"COURIER_ASSIGNED\",\n        \"toStatus\": \"PICKUP_SCHEDULED\",\n        \"note\": \"Courier sick\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.820Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b8be-742a-bfc1-eff810a709f2\",\n        \"fromStatus\": \"PICKUP_SCHEDULED\",\n        \"toStatus\": \"COURIER_ASSIGNED\",\n        \"note\": \"Courier assigned\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.830Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b8fe-749a-a6ac-e95bd291308a\",\n        \"fromStatus\": \"COURIER_ASSIGNED\",\n        \"toStatus\": \"PICKED_UP\",\n        \"note\": \"Collected from sender\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"ca595abb-2498-4a90-b889-cc243c9534f1\",\n          \"name\": \"Rahim Courier\",\n          \"role\": \"COURIER\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.895Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b90f-737c-a9cb-3d642fc2949f\",\n        \"fromStatus\": \"PICKED_UP\",\n        \"toStatus\": \"AT_ORIGIN_HUB\",\n        \"note\": null,\n        \"hub\": {\n          \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.911Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b916-71d6-bfab-011aa0b0a79c\",\n        \"fromStatus\": \"AT_ORIGIN_HUB\",\n        \"toStatus\": \"IN_TRANSIT\",\n        \"note\": null,\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.918Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b91d-732f-a1d5-29cb282711a6\",\n        \"fromStatus\": \"IN_TRANSIT\",\n        \"toStatus\": \"AT_DESTINATION_HUB\",\n        \"note\": null,\n        \"hub\": {\n          \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        },\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.925Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b923-7248-bec3-4e356c7e3103\",\n        \"fromStatus\": \"AT_DESTINATION_HUB\",\n        \"toStatus\": \"OUT_FOR_DELIVERY\",\n        \"note\": null,\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.931Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b92b-7105-8c23-968d74da857d\",\n        \"fromStatus\": \"OUT_FOR_DELIVERY\",\n        \"toStatus\": \"FAILED_DELIVERY\",\n        \"note\": \"Receiver not home (attempt 1)\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"ca595abb-2498-4a90-b889-cc243c9534f1\",\n          \"name\": \"Rahim Courier\",\n          \"role\": \"COURIER\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.939Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b931-75d9-8671-6e6fa770a5cc\",\n        \"fromStatus\": \"FAILED_DELIVERY\",\n        \"toStatus\": \"OUT_FOR_DELIVERY\",\n        \"note\": null,\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"ca595abb-2498-4a90-b889-cc243c9534f1\",\n          \"name\": \"Rahim Courier\",\n          \"role\": \"COURIER\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.945Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b936-730c-a817-7090de022a90\",\n        \"fromStatus\": \"OUT_FOR_DELIVERY\",\n        \"toStatus\": \"FAILED_DELIVERY\",\n        \"note\": \"Receiver not home (attempt 2)\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"ca595abb-2498-4a90-b889-cc243c9534f1\",\n          \"name\": \"Rahim Courier\",\n          \"role\": \"COURIER\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.950Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b93c-71f3-847e-a08e37eb0003\",\n        \"fromStatus\": \"FAILED_DELIVERY\",\n        \"toStatus\": \"OUT_FOR_DELIVERY\",\n        \"note\": null,\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"ca595abb-2498-4a90-b889-cc243c9534f1\",\n          \"name\": \"Rahim Courier\",\n          \"role\": \"COURIER\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.956Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b943-7444-9759-df89f1d17380\",\n        \"fromStatus\": \"OUT_FOR_DELIVERY\",\n        \"toStatus\": \"FAILED_DELIVERY\",\n        \"note\": \"Receiver not home (attempt 3)\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"ca595abb-2498-4a90-b889-cc243c9534f1\",\n          \"name\": \"Rahim Courier\",\n          \"role\": \"COURIER\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.963Z\"\n      },\n      {\n        \"id\": \"01a1aec3-b94e-7266-9081-ced7b12e97eb\",\n        \"fromStatus\": \"FAILED_DELIVERY\",\n        \"toStatus\": \"RETURNED\",\n        \"note\": \"Returned to sender\",\n        \"hub\": null,\n        \"changedBy\": {\n          \"id\": \"6e973ec8-4a3a-4520-b0d5-3733483318fd\",\n          \"name\": \"Carrivo Admin\",\n          \"role\": \"ADMIN\"\n        },\n        \"createdAt\": \"2026-11-06T02:50:24.974Z\"\n      }\n    ]\n  }\n}"
             }
           ]
         }
@@ -4564,7 +5841,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Tracking information retrieved successfully\",\n  \"data\": {\n    \"trackingId\": \"CRV-261101-SEED05\",\n    \"status\": \"IN_TRANSIT\",\n    \"serviceType\": \"EXPRESS\",\n    \"origin\": {\n      \"city\": \"Dhaka\"\n    },\n    \"destination\": {\n      \"city\": \"Dhaka\"\n    },\n    \"createdAt\": \"2026-11-01T14:35:25.769Z\",\n    \"estimatedDeliveryAt\": null,\n    \"deliveredAt\": null,\n    \"timeline\": [\n      {\n        \"status\": \"PENDING\",\n        \"city\": \"Dhaka\",\n        \"at\": \"2026-11-01T14:35:25.769Z\"\n      },\n      {\n        \"status\": \"PICKUP_SCHEDULED\",\n        \"city\": null,\n        \"at\": \"2026-11-01T16:35:25.769Z\"\n      },\n      {\n        \"status\": \"COURIER_ASSIGNED\",\n        \"city\": null,\n        \"at\": \"2026-11-01T18:35:25.769Z\"\n      },\n      {\n        \"status\": \"PICKED_UP\",\n        \"city\": null,\n        \"at\": \"2026-11-01T20:35:25.769Z\"\n      },\n      {\n        \"status\": \"AT_ORIGIN_HUB\",\n        \"city\": \"Dhaka\",\n        \"at\": \"2026-11-01T22:35:25.769Z\"\n      },\n      {\n        \"status\": \"IN_TRANSIT\",\n        \"city\": null,\n        \"at\": \"2026-11-02T00:35:25.769Z\"\n      }\n    ]\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Tracking information retrieved successfully\",\n  \"data\": {\n    \"trackingId\": \"CRV-261101-SEED05\",\n    \"status\": \"IN_TRANSIT\",\n    \"serviceType\": \"EXPRESS\",\n    \"origin\": {\n      \"city\": \"Dhaka\"\n    },\n    \"destination\": {\n      \"city\": \"Dhaka\"\n    },\n    \"createdAt\": \"2026-11-01T14:50:29.163Z\",\n    \"estimatedDeliveryAt\": null,\n    \"deliveredAt\": null,\n    \"timeline\": [\n      {\n        \"status\": \"PENDING\",\n        \"city\": \"Dhaka\",\n        \"at\": \"2026-11-01T14:50:29.163Z\"\n      },\n      {\n        \"status\": \"PICKUP_SCHEDULED\",\n        \"city\": null,\n        \"at\": \"2026-11-01T16:50:29.163Z\"\n      },\n      {\n        \"status\": \"COURIER_ASSIGNED\",\n        \"city\": null,\n        \"at\": \"2026-11-01T18:50:29.163Z\"\n      },\n      {\n        \"status\": \"PICKED_UP\",\n        \"city\": null,\n        \"at\": \"2026-11-01T20:50:29.163Z\"\n      },\n      {\n        \"status\": \"AT_ORIGIN_HUB\",\n        \"city\": \"Dhaka\",\n        \"at\": \"2026-11-01T22:50:29.163Z\"\n      },\n      {\n        \"status\": \"IN_TRANSIT\",\n        \"city\": null,\n        \"at\": \"2026-11-02T00:50:29.163Z\"\n      }\n    ]\n  }\n}"
             },
             {
               "name": "404 Unknown",
@@ -4619,6 +5896,677 @@
                 }
               ],
               "body": "{\n  \"success\": false,\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    {\n      \"path\": \"params.trackingId\",\n      \"message\": \"Tracking ID must look like CRV-YYMMDD-XXXXXX\"\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Couriers",
+      "item": [
+        {
+          "name": "List couriers (ADMIN)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.data?.[0]) pm.collectionVariables.set('courierId', body.data[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/couriers?zoneId={{zoneId}}&available=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "couriers"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default 1)",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Page size (default 10, max 100)",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "name",
+                  "description": "One of: name, createdAt",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "description": "asc | desc (default desc)",
+                  "disabled": true
+                },
+                {
+                  "key": "searchTerm",
+                  "value": "",
+                  "description": "Case-insensitive contains search",
+                  "disabled": true
+                },
+                {
+                  "key": "zoneId",
+                  "value": "{{zoneId}}",
+                  "description": "Operating zone (use the shipment's origin zone for assignment)",
+                  "disabled": false
+                },
+                {
+                  "key": "available",
+                  "value": "true",
+                  "description": "true | false",
+                  "disabled": false
+                },
+                {
+                  "key": "hubId",
+                  "value": "",
+                  "description": "Base hub",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Active couriers for the assignment screen, with activeTaskCount. `id` is the user id to send to POST /shipments/:id/assign. Search: name, email, phone. Saves {{courierId}}.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/couriers?zoneId={{zoneId}}&available=true",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "couriers"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number (default 1)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Page size (default 10, max 100)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortBy",
+                      "value": "name",
+                      "description": "One of: name, createdAt",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": "desc",
+                      "description": "asc | desc (default desc)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "searchTerm",
+                      "value": "",
+                      "description": "Case-insensitive contains search",
+                      "disabled": true
+                    },
+                    {
+                      "key": "zoneId",
+                      "value": "{{zoneId}}",
+                      "description": "Operating zone (use the shipment's origin zone for assignment)",
+                      "disabled": false
+                    },
+                    {
+                      "key": "available",
+                      "value": "true",
+                      "description": "true | false",
+                      "disabled": false
+                    },
+                    {
+                      "key": "hubId",
+                      "value": "",
+                      "description": "Base hub",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Couriers retrieved successfully\",\n  \"data\": [\n    {\n      \"id\": \"ca595abb-2498-4a90-b889-cc243c9534f1\",\n      \"name\": \"Rahim Courier\",\n      \"email\": \"courier1@carrivo.dev\",\n      \"phone\": \"+8801711000001\",\n      \"courierProfile\": {\n        \"id\": \"01a1aec3-b12b-71d2-9ca8-13f6978e5922\",\n        \"vehicleType\": \"MOTORCYCLE\",\n        \"vehicleNumber\": \"DHAKA-METRO-HA-11-1111\",\n        \"isAvailable\": true,\n        \"zone\": {\n          \"id\": \"01a1aec3-b05a-73c4-acda-9110a0519b63\",\n          \"name\": \"Dhaka North\",\n          \"code\": \"DHK-N\"\n        },\n        \"hub\": {\n          \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n          \"name\": \"Dhaka North Hub\",\n          \"code\": \"HUB-DHK-N\",\n          \"city\": \"Dhaka\"\n        }\n      },\n      \"activeTaskCount\": 3\n    },\n    {\n      \"id\": \"2ec59d63-5b69-48dc-b0b9-4e03788bf2c9\",\n      \"name\": \"Karim Courier\",\n      \"email\": \"courier2@carrivo.dev\",\n      \"phone\": \"+8801711000002\",\n      \"courierProfile\": {\n        \"id\": \"01a1aec3-b16c-772a-a24e-bcd27b2e1488\",\n        \"vehicleType\": \"BICYCLE\",\n        \"vehicleNumber\": \"N/A\",\n        \"isAvailable\": true,\n        \"zone\": {\n          \"id\": \"01a1aec3-b078-729c-8381-4d190cfa6616\",\n          \"name\": \"Dhaka South\",\n          \"code\": \"DHK-S\"\n        },\n        \"hub\": {\n          \"id\": \"01a1aec3-b079-7468-9431-d1acbd874508\",\n          \"name\": \"Dhaka South Hub\",\n          \"code\": \"HUB-DHK-S\",\n          \"city\": \"Dhaka\"\n        }\n      },\n      \"activeTaskCount\": 3\n    }\n  ],\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 2,\n    \"totalPages\": 1\n  }\n}"
+            },
+            {
+              "name": "403 Not admin",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/couriers?zoneId={{zoneId}}&available=true",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "couriers"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number (default 1)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Page size (default 10, max 100)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortBy",
+                      "value": "name",
+                      "description": "One of: name, createdAt",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": "desc",
+                      "description": "asc | desc (default desc)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "searchTerm",
+                      "value": "",
+                      "description": "Case-insensitive contains search",
+                      "disabled": true
+                    },
+                    {
+                      "key": "zoneId",
+                      "value": "{{zoneId}}",
+                      "description": "Operating zone (use the shipment's origin zone for assignment)",
+                      "disabled": false
+                    },
+                    {
+                      "key": "available",
+                      "value": "true",
+                      "description": "true | false",
+                      "disabled": false
+                    },
+                    {
+                      "key": "hubId",
+                      "value": "",
+                      "description": "Base hub",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
+            }
+          ]
+        },
+        {
+          "name": "My tasks (COURIER)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/couriers/me/tasks?",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "couriers",
+                "me",
+                "tasks"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default 1)",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Page size (default 10, max 100)",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "updatedAt",
+                  "description": "One of: updatedAt, createdAt, status",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "description": "asc | desc (default desc)",
+                  "disabled": true
+                },
+                {
+                  "key": "searchTerm",
+                  "value": "",
+                  "description": "Case-insensitive contains search",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "OUT_FOR_DELIVERY",
+                  "description": "Omit for active tasks (not DELIVERED / RETURNED / CANCELLED)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Shipments assigned to me, with pickup window and contacts, addresses, phones and failed attempts.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{courierToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK (first row shown)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/couriers/me/tasks?",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "couriers",
+                    "me",
+                    "tasks"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number (default 1)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Page size (default 10, max 100)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortBy",
+                      "value": "updatedAt",
+                      "description": "One of: updatedAt, createdAt, status",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": "desc",
+                      "description": "asc | desc (default desc)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "searchTerm",
+                      "value": "",
+                      "description": "Case-insensitive contains search",
+                      "disabled": true
+                    },
+                    {
+                      "key": "status",
+                      "value": "OUT_FOR_DELIVERY",
+                      "description": "Omit for active tasks (not DELIVERED / RETURNED / CANCELLED)",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Tasks retrieved successfully\",\n  \"data\": [\n    {\n      \"id\": \"01a1aec3-b203-7433-b063-912fd63d9fd9\",\n      \"trackingId\": \"CRV-261101-SEED04\",\n      \"status\": \"PICKED_UP\",\n      \"paymentStatus\": \"PAID\",\n      \"serviceType\": \"STANDARD\",\n      \"senderName\": \"Ayesha Customer\",\n      \"receiverName\": \"Sabbir Rahman\",\n      \"receiverPhone\": \"+8801811000004\",\n      \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara, Dhaka\",\n      \"deliveryAddress\": \"14 Motijheel C/A, Dhaka\",\n      \"weightKg\": \"4\",\n      \"price\": \"180.00\",\n      \"currency\": \"bdt\",\n      \"originZone\": {\n        \"id\": \"01a1aec3-b05a-73c4-acda-9110a0519b63\",\n        \"name\": \"Dhaka North\",\n        \"code\": \"DHK-N\"\n      },\n      \"destinationZone\": {\n        \"id\": \"01a1aec3-b078-729c-8381-4d190cfa6616\",\n        \"name\": \"Dhaka South\",\n        \"code\": \"DHK-S\"\n      },\n      \"originHub\": {\n        \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n        \"name\": \"Dhaka North Hub\",\n        \"code\": \"HUB-DHK-N\",\n        \"city\": \"Dhaka\"\n      },\n      \"destinationHub\": {\n        \"id\": \"01a1aec3-b079-7468-9431-d1acbd874508\",\n        \"name\": \"Dhaka South Hub\",\n        \"code\": \"HUB-DHK-S\",\n        \"city\": \"Dhaka\"\n      },\n      \"customer\": {\n        \"id\": \"d318a704-09d2-4ad3-be15-7f4f7ef91610\",\n        \"name\": \"Ayesha Customer\"\n      },\n      \"courier\": {\n        \"id\": \"ca595abb-2498-4a90-b889-cc243c9534f1\",\n        \"name\": \"Rahim Courier\"\n      },\n      \"createdAt\": \"2026-11-02T18:50:23.106Z\",\n      \"updatedAt\": \"2026-11-03T00:50:23.106Z\",\n      \"senderPhone\": \"+8801711000003\",\n      \"isFragile\": true,\n      \"description\": \"Sample parcel (seed data)\",\n      \"failedAttempts\": 0,\n      \"failureReason\": null,\n      \"currentHub\": null,\n      \"pickupRequest\": {\n        \"scheduledAt\": \"2026-11-03T00:50:23.106Z\",\n        \"scheduledUntil\": \"2026-11-03T02:50:23.106Z\",\n        \"pickupAddress\": \"House 10, Road 3, Sector 7, Uttara, Dhaka\",\n        \"contactName\": \"Ayesha Customer\",\n        \"contactPhone\": \"+8801711000003\",\n        \"notes\": null,\n        \"status\": \"COMPLETED\",\n        \"completedAt\": \"2026-11-03T00:50:23.106Z\"\n      }\n    }\n  ],\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 3,\n    \"totalPages\": 1\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "My earnings (COURIER)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/couriers/me/earnings?",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "couriers",
+                "me",
+                "earnings"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default 1)",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Page size (default 10, max 100)",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt",
+                  "description": "One of: createdAt, amount",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "description": "asc | desc (default desc)",
+                  "disabled": true
+                },
+                {
+                  "key": "searchTerm",
+                  "value": "",
+                  "description": "Case-insensitive contains search",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "PENDING",
+                  "description": "PENDING | PAID",
+                  "disabled": true
+                },
+                {
+                  "key": "fromDate",
+                  "value": "2026-11-01",
+                  "description": "YYYY-MM-DD (Dhaka day) or ISO datetime",
+                  "disabled": true
+                },
+                {
+                  "key": "toDate",
+                  "value": "2026-11-30",
+                  "description": "YYYY-MM-DD (end of that Dhaka day) or ISO datetime",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "data.summary (totalEarned, pending, paidOut, deliveries) covers the date range across all statuses; data.earnings is the paginated list (status filter applies). Earning = 20% of the delivered shipment's price. Money is 2-decimal strings.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{courierToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/couriers/me/earnings?",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "couriers",
+                    "me",
+                    "earnings"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number (default 1)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Page size (default 10, max 100)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortBy",
+                      "value": "createdAt",
+                      "description": "One of: createdAt, amount",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": "desc",
+                      "description": "asc | desc (default desc)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "searchTerm",
+                      "value": "",
+                      "description": "Case-insensitive contains search",
+                      "disabled": true
+                    },
+                    {
+                      "key": "status",
+                      "value": "PENDING",
+                      "description": "PENDING | PAID",
+                      "disabled": true
+                    },
+                    {
+                      "key": "fromDate",
+                      "value": "2026-11-01",
+                      "description": "YYYY-MM-DD (Dhaka day) or ISO datetime",
+                      "disabled": true
+                    },
+                    {
+                      "key": "toDate",
+                      "value": "2026-11-30",
+                      "description": "YYYY-MM-DD (end of that Dhaka day) or ISO datetime",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Earnings retrieved successfully\",\n  \"data\": {\n    \"summary\": {\n      \"totalEarned\": \"20.00\",\n      \"pending\": \"20.00\",\n      \"paidOut\": \"0.00\",\n      \"deliveries\": 1\n    },\n    \"earnings\": [\n      {\n        \"id\": \"01a1aec3-b974-759d-bb89-676b1087683e\",\n        \"amount\": \"20.00\",\n        \"status\": \"PENDING\",\n        \"paidOutAt\": null,\n        \"createdAt\": \"2026-11-06T02:50:25.012Z\",\n        \"shipment\": {\n          \"id\": \"01a1aec3-b1fb-7777-8104-4fbf3b86cf90\",\n          \"trackingId\": \"CRV-261101-SEED02\",\n          \"serviceType\": \"EXPRESS\",\n          \"price\": \"100.00\"\n        }\n      }\n    ]\n  },\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 1,\n    \"totalPages\": 1\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Set my availability (COURIER)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/couriers/me/availability",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "couriers",
+                "me",
+                "availability"
+              ]
+            },
+            "description": "Unavailable couriers can't receive new assignments (existing tasks are kept). Serialized with assignment by the courier row lock.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{courierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isAvailable\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/couriers/me/availability",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "couriers",
+                    "me",
+                    "availability"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"isAvailable\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Availability updated successfully\",\n  \"data\": {\n    \"id\": \"01a1aec3-b12b-71d2-9ca8-13f6978e5922\",\n    \"vehicleType\": \"MOTORCYCLE\",\n    \"vehicleNumber\": \"DHAKA-METRO-HA-11-1111\",\n    \"isAvailable\": false,\n    \"zone\": {\n      \"id\": \"01a1aec3-b05a-73c4-acda-9110a0519b63\",\n      \"name\": \"Dhaka North\",\n      \"code\": \"DHK-N\"\n    },\n    \"hub\": {\n      \"id\": \"01a1aec3-b076-773c-bb61-a0e73b4b02d3\",\n      \"name\": \"Dhaka North Hub\",\n      \"code\": \"HUB-DHK-N\",\n      \"city\": \"Dhaka\"\n    }\n  }\n}"
+            },
+            {
+              "name": "400 Invalid body",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/couriers/me/availability",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "couriers",
+                    "me",
+                    "availability"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"isAvailable\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    {\n      \"path\": \"body.isAvailable\",\n      \"message\": \"isAvailable must be true or false\"\n    }\n  ]\n}"
             }
           ]
         }

@@ -2,7 +2,14 @@ import { z } from "zod";
 import { ServiceType, ShipmentPaymentStatus, ShipmentStatus } from "../../../generated/prisma/enums.js";
 import { idParams, moneySchema, phoneSchema, weightSchema } from "../../utils/commonValidation.js";
 import { optionalQuery, paginationQueryShape, sortByQuery } from "../../utils/pagination.js";
-import { BUSINESS_UTC_OFFSET, SHIPMENT_SORT_FIELDS } from "./shipment.constants.js";
+import {
+  BUSINESS_UTC_OFFSET,
+  HUB_STATUSES,
+  PICKUP_MAX_DAYS_AHEAD,
+  PICKUP_MAX_WINDOW_HOURS,
+  SHIPMENT_SORT_FIELDS,
+  STATUS_ENDPOINT_TARGETS,
+} from "./shipment.constants.js";
 
 const name = z.string().trim().min(2, { message: "Name must be at least 2 characters" }).max(100);
 const address = z.string().trim().min(5, { message: "Address must be at least 5 characters" }).max(300);
@@ -55,7 +62,7 @@ const cancel = z.object({
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
 /** YYYY-MM-DD (taken as a Dhaka calendar day) or a full ISO datetime with offset. */
-const dateQuery = (edge: "start" | "end") =>
+export const dateQuery = (edge: "start" | "end") =>
   optionalQuery(z.union([z.iso.date(), z.iso.datetime({ offset: true })])).transform((value) => {
     if (value === undefined) return undefined;
     if (!DATE_ONLY.test(value)) return new Date(value);
@@ -85,9 +92,89 @@ const list = z.object({
 
 const byId = z.object({ params: idParams });
 
-export const ShipmentValidation = { create, update, cancel, list, byId };
+const HOUR_MS = 60 * 60 * 1000;
+const isoDateTime = (label: string) =>
+  z.iso
+    .datetime({ offset: true, message: `${label} must be an ISO date-time with timezone, e.g. 2026-11-10T10:00:00+06:00` })
+    .transform((value) => new Date(value));
+
+const pickup = z.object({
+  params: idParams,
+  body: z
+    .strictObject({
+      windowStart: isoDateTime("windowStart"),
+      windowEnd: isoDateTime("windowEnd"),
+      // Default to the shipment's pickup address and sender details.
+      pickupAddress: address.optional(),
+      contactName: name.optional(),
+      contactPhone: phoneSchema.optional(),
+      notes: z.string().trim().max(500).optional(),
+    })
+    .superRefine((body, ctx) => {
+      const now = Date.now();
+      const start = body.windowStart.getTime();
+      const end = body.windowEnd.getTime();
+      if (start <= now) {
+        ctx.addIssue({ code: "custom", path: ["windowStart"], message: "Pickup window must start in the future" });
+      }
+      if (start > now + PICKUP_MAX_DAYS_AHEAD * 24 * HOUR_MS) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["windowStart"],
+          message: `Pickup must be within the next ${PICKUP_MAX_DAYS_AHEAD} days`,
+        });
+      }
+      if (end <= start) {
+        ctx.addIssue({ code: "custom", path: ["windowEnd"], message: "windowEnd must be after windowStart" });
+      } else if (end - start > PICKUP_MAX_WINDOW_HOURS * HOUR_MS) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["windowEnd"],
+          message: `Pickup window can be at most ${PICKUP_MAX_WINDOW_HOURS} hours`,
+        });
+      }
+    }),
+});
+
+const note = z.string().trim().min(3, { message: "Note must be at least 3 characters" }).max(500);
+
+const assign = z.object({
+  params: idParams,
+  body: z.strictObject({ courierId: uuid("courier id"), note: note.optional() }),
+});
+
+const unassign = z.object({
+  params: idParams,
+  body: z.strictObject({ note: note.optional() }).optional(),
+});
+
+const updateStatus = z.object({
+  params: idParams,
+  body: z
+    .strictObject({
+      status: z.enum(STATUS_ENDPOINT_TARGETS, {
+        message: `status must be one of: ${STATUS_ENDPOINT_TARGETS.join(", ")} (pickup, assign, unassign and cancel have their own endpoints)`,
+      }),
+      note: note.optional(),
+      hubId: uuid("hub id").optional(),
+    })
+    .superRefine((body, ctx) => {
+      if (body.status === ShipmentStatus.FAILED_DELIVERY && !body.note) {
+        ctx.addIssue({ code: "custom", path: ["note"], message: "A reason (note) is required for FAILED_DELIVERY" });
+      }
+      if (body.hubId && !HUB_STATUSES.includes(body.status)) {
+        ctx.addIssue({ code: "custom", path: ["hubId"], message: "hubId is only allowed for AT_ORIGIN_HUB or AT_DESTINATION_HUB" });
+      }
+    }),
+});
+
+export const ShipmentValidation = { create, update, cancel, list, byId, pickup, assign, unassign, updateStatus };
 
 export type CreateShipmentInput = z.infer<typeof create>["body"];
 export type UpdateShipmentInput = z.infer<typeof update>["body"];
 export type CancelShipmentInput = z.infer<typeof cancel>["body"];
 export type ShipmentListQuery = z.infer<typeof list>["query"];
+export type PickupInput = z.infer<typeof pickup>["body"];
+export type AssignInput = z.infer<typeof assign>["body"];
+export type UnassignInput = z.infer<typeof unassign>["body"];
+export type UpdateStatusInput = z.infer<typeof updateStatus>["body"];

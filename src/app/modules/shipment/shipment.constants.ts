@@ -1,32 +1,87 @@
 import { Role, ShipmentStatus } from "../../../generated/prisma/enums.js";
 
-/**
- * THE shipment state machine. Every status change goes through
- * ShipmentService.changeStatus, which checks this map.
- */
-export const allowedTransitions: Record<ShipmentStatus, readonly ShipmentStatus[]> = {
-  PENDING: [ShipmentStatus.PICKUP_SCHEDULED, ShipmentStatus.CANCELLED],
-  PICKUP_SCHEDULED: [ShipmentStatus.COURIER_ASSIGNED, ShipmentStatus.CANCELLED],
-  COURIER_ASSIGNED: [ShipmentStatus.PICKED_UP, ShipmentStatus.CANCELLED],
-  PICKED_UP: [ShipmentStatus.AT_ORIGIN_HUB],
-  AT_ORIGIN_HUB: [ShipmentStatus.IN_TRANSIT],
-  IN_TRANSIT: [ShipmentStatus.AT_DESTINATION_HUB],
-  AT_DESTINATION_HUB: [ShipmentStatus.OUT_FOR_DELIVERY],
-  OUT_FOR_DELIVERY: [ShipmentStatus.DELIVERED, ShipmentStatus.FAILED_DELIVERY],
-  FAILED_DELIVERY: [ShipmentStatus.OUT_FOR_DELIVERY, ShipmentStatus.RETURNED],
-  DELIVERED: [],
-  RETURNED: [],
-  CANCELLED: [],
-};
+const { CUSTOMER, COURIER, ADMIN } = Role;
 
 /**
- * Which roles may move a shipment INTO a status. Ownership (customer owns it,
- * courier is assigned to it) is checked separately by changeStatus.
- * Phase 3 only enables cancellation; Phase 4 adds the courier/admin transitions.
+ * THE shipment state machine: TRANSITIONS[from][to] = roles allowed to make that move.
+ * Every status change goes through ShipmentService.changeStatus, which checks this map.
+ * Ownership is checked separately (customer owns it, courier is assigned to it).
  */
-export const transitionRoles: Partial<Record<ShipmentStatus, readonly Role[]>> = {
-  CANCELLED: [Role.CUSTOMER, Role.ADMIN],
+export const TRANSITIONS: Record<ShipmentStatus, Partial<Record<ShipmentStatus, readonly Role[]>>> = {
+  PENDING: {
+    PICKUP_SCHEDULED: [CUSTOMER], // POST /shipments/:id/pickup (payment gate applies)
+    CANCELLED: [CUSTOMER, ADMIN],
+  },
+  PICKUP_SCHEDULED: {
+    COURIER_ASSIGNED: [ADMIN], // POST /shipments/:id/assign
+    CANCELLED: [CUSTOMER, ADMIN],
+  },
+  COURIER_ASSIGNED: {
+    PICKED_UP: [COURIER],
+    PICKUP_SCHEDULED: [ADMIN], // POST /shipments/:id/unassign
+    CANCELLED: [CUSTOMER, ADMIN],
+  },
+  PICKED_UP: { AT_ORIGIN_HUB: [ADMIN] },
+  AT_ORIGIN_HUB: { IN_TRANSIT: [ADMIN] },
+  IN_TRANSIT: { AT_DESTINATION_HUB: [ADMIN] },
+  AT_DESTINATION_HUB: { OUT_FOR_DELIVERY: [ADMIN] },
+  OUT_FOR_DELIVERY: { DELIVERED: [COURIER], FAILED_DELIVERY: [COURIER] },
+  FAILED_DELIVERY: {
+    OUT_FOR_DELIVERY: [COURIER], // retry; blocked after MAX_DELIVERY_ATTEMPTS
+    RETURNED: [ADMIN],
+  },
+  DELIVERED: {},
+  RETURNED: {},
+  CANCELLED: {},
 };
+
+/** After this many failed attempts, only RETURNED is allowed. */
+export const MAX_DELIVERY_ATTEMPTS = 3;
+
+const ALL_STATUSES = Object.keys(TRANSITIONS) as ShipmentStatus[];
+
+/** Next statuses reachable from `from` (derived from TRANSITIONS; used by the seed too). */
+export const allowedTransitions = {} as Record<ShipmentStatus, readonly ShipmentStatus[]>;
+for (const from of ALL_STATUSES) {
+  allowedTransitions[from] = Object.keys(TRANSITIONS[from]) as ShipmentStatus[];
+}
+
+/** Is `from → to` a legal move at all, given the failed-attempt count? */
+export const isTransitionLegal = (from: ShipmentStatus, to: ShipmentStatus, failedAttempts: number): boolean => {
+  if (!(to in TRANSITIONS[from])) return false;
+  if (from === ShipmentStatus.FAILED_DELIVERY && to === ShipmentStatus.OUT_FOR_DELIVERY) {
+    return failedAttempts < MAX_DELIVERY_ATTEMPTS;
+  }
+  return true;
+};
+
+export const canRoleTransition = (from: ShipmentStatus, to: ShipmentStatus, role: Role): boolean =>
+  TRANSITIONS[from][to]?.includes(role) ?? false;
+
+/** Legal next statuses; pass a role to keep only the ones that role may make. */
+export const getAllowedNextStatuses = (
+  from: ShipmentStatus,
+  failedAttempts: number,
+  role?: Role,
+): ShipmentStatus[] =>
+  allowedTransitions[from].filter(
+    (to) => isTransitionLegal(from, to, failedAttempts) && (role === undefined || canRoleTransition(from, to, role)),
+  );
+
+/** Targets accepted by PATCH /shipments/:id/status. The others have their own endpoints. */
+export const STATUS_ENDPOINT_TARGETS = [
+  ShipmentStatus.PICKED_UP,
+  ShipmentStatus.AT_ORIGIN_HUB,
+  ShipmentStatus.IN_TRANSIT,
+  ShipmentStatus.AT_DESTINATION_HUB,
+  ShipmentStatus.OUT_FOR_DELIVERY,
+  ShipmentStatus.DELIVERED,
+  ShipmentStatus.FAILED_DELIVERY,
+  ShipmentStatus.RETURNED,
+] as const;
+
+/** Statuses that place the parcel at a hub (they set currentHubId). */
+export const HUB_STATUSES: readonly ShipmentStatus[] = [ShipmentStatus.AT_ORIGIN_HUB, ShipmentStatus.AT_DESTINATION_HUB];
 
 export const TERMINAL_STATUSES: readonly ShipmentStatus[] = [
   ShipmentStatus.DELIVERED,
@@ -34,7 +89,7 @@ export const TERMINAL_STATUSES: readonly ShipmentStatus[] = [
   ShipmentStatus.CANCELLED,
 ];
 
-/** "Before PICKED_UP" (also enforced by allowedTransitions). */
+/** "Before PICKED_UP" (also enforced by TRANSITIONS). */
 export const CANCELLABLE_STATUSES: readonly ShipmentStatus[] = [
   ShipmentStatus.PENDING,
   ShipmentStatus.PICKUP_SCHEDULED,
@@ -45,6 +100,10 @@ export const CANCELLABLE_STATUSES: readonly ShipmentStatus[] = [
 export const ADMIN_DELETABLE_STATUSES: readonly ShipmentStatus[] = [ShipmentStatus.PENDING, ...TERMINAL_STATUSES];
 
 export const SHIPMENT_SORT_FIELDS = ["createdAt", "updatedAt", "price", "weightKg", "status", "trackingId"] as const;
+
+/** Pickup window rules for POST /shipments/:id/pickup. */
+export const PICKUP_MAX_WINDOW_HOURS = 12;
+export const PICKUP_MAX_DAYS_AHEAD = 30;
 
 export const TRACKING_ID_PREFIX = "CRV";
 export const TRACKING_ID_PATTERN = /^CRV-\d{6}-[A-Z0-9]{6}$/;

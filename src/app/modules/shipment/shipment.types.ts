@@ -1,5 +1,6 @@
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { ShipmentStatus } from "../../../generated/prisma/enums.js";
+import type { AuditAction } from "../audit/audit.constants.js";
 import type { WithMoney } from "../../utils/money.js";
 import type { RequestMeta } from "../../utils/requestMeta.js";
 import type { Actor } from "../audit/audit.types.js";
@@ -33,6 +34,17 @@ export const shipmentListSelect = {
   updatedAt: true,
 } as const satisfies Prisma.ShipmentSelect;
 
+export const pickupRequestSelect = {
+  scheduledAt: true,
+  scheduledUntil: true,
+  pickupAddress: true,
+  contactName: true,
+  contactPhone: true,
+  notes: true,
+  status: true,
+  completedAt: true,
+} as const satisfies Prisma.PickupRequestSelect;
+
 /** Full shape for detail / create / update / cancel responses. Never includes deletedAt. */
 export const shipmentDetailSelect = {
   ...shipmentListSelect,
@@ -52,6 +64,7 @@ export const shipmentDetailSelect = {
   cancelledAt: true,
   currentHub: { select: hubRefSelect },
   courier: { select: { id: true, name: true, phone: true } },
+  pickupRequest: { select: pickupRequestSelect },
   statusHistory: {
     orderBy: { createdAt: "asc" },
     select: {
@@ -77,13 +90,45 @@ export const SHIPMENT_DETAIL_MONEY_FIELDS = ["price", "declaredValue"] as const;
 export type ShipmentListItem = WithMoney<ShipmentListRow, (typeof SHIPMENT_LIST_MONEY_FIELDS)[number]>;
 export type ShipmentDetail = WithMoney<ShipmentDetailRow, (typeof SHIPMENT_DETAIL_MONEY_FIELDS)[number]>;
 
+/** What changeStatus reads (under its guard) and hands to hooks. */
+export const statusSnapshotSelect = {
+  id: true,
+  trackingId: true,
+  status: true,
+  paymentStatus: true,
+  failedAttempts: true,
+  courierId: true,
+  price: true,
+  originZoneId: true,
+  destinationZoneId: true,
+  originHubId: true,
+  destinationHubId: true,
+  pickupAddress: true,
+  senderName: true,
+  senderPhone: true,
+} as const satisfies Prisma.ShipmentSelect;
+
+export type StatusSnapshot = Prisma.ShipmentGetPayload<{ select: typeof statusSnapshotSelect }>;
+
 export interface ChangeStatusInput {
   shipmentId: string;
   toStatus: ShipmentStatus;
   actor: Actor;
   meta: RequestMeta;
   note?: string | null;
+  /** For hub statuses; defaults to the shipment's planned origin/destination hub. */
   hubId?: string | null;
-  /** Extra columns set together with the status (e.g. cancelledAt, cancelReason). */
-  data?: Prisma.ShipmentUpdateManyMutationInput;
+  /** The move is only valid from these statuses (endpoint-specific, e.g. unassign). */
+  requireFrom?: readonly ShipmentStatus[];
+  /** Extra columns set together with the status (e.g. courierId, cancelledAt). */
+  data?: Prisma.ShipmentUncheckedUpdateManyInput;
+  /** Extra guard on the update (e.g. courierId: null), and the 409 message if it fails. */
+  guard?: Prisma.ShipmentWhereInput;
+  guardMessage?: string;
+  /** Inside the transaction, before the guarded update (may throw). */
+  beforeUpdate?: (tx: Prisma.TransactionClient, shipment: StatusSnapshot) => Promise<void>;
+  /** Inside the transaction, after the guarded update. */
+  afterUpdate?: (tx: Prisma.TransactionClient, shipment: StatusSnapshot) => Promise<void>;
+  /** Audit action; defaults to SHIPMENT_STATUS_CHANGED. */
+  auditAction?: AuditAction;
 }

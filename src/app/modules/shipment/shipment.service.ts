@@ -1,6 +1,6 @@
 import httpStatus from "http-status";
 import type { Prisma } from "../../../generated/prisma/client.js";
-import { Role, ShipmentPaymentStatus, ShipmentStatus } from "../../../generated/prisma/enums.js";
+import { PickupStatus, Role, ShipmentPaymentStatus, ShipmentStatus, UserStatus } from "../../../generated/prisma/enums.js";
 import { prisma } from "../../lib/prisma.js";
 import type { ErrorDetail } from "../../types/response.types.js";
 import { ApiError } from "../../utils/ApiError.js";
@@ -11,18 +11,35 @@ import { AUDIT_ACTIONS, AUDIT_ENTITIES } from "../audit/audit.constants.js";
 import { AuditService } from "../audit/audit.service.js";
 import type { Actor } from "../audit/audit.types.js";
 import { PricingService } from "../pricing/pricing.service.js";
-import { ADMIN_DELETABLE_STATUSES, allowedTransitions, transitionRoles } from "./shipment.constants.js";
+import { calculateCourierEarning } from "../courier/courier.utils.js";
+import {
+  ADMIN_DELETABLE_STATUSES,
+  MAX_DELIVERY_ATTEMPTS,
+  canRoleTransition,
+  getAllowedNextStatuses,
+  isTransitionLegal,
+} from "./shipment.constants.js";
 import {
   SHIPMENT_DETAIL_MONEY_FIELDS,
   SHIPMENT_LIST_MONEY_FIELDS,
   shipmentDetailSelect,
   shipmentListSelect,
+  statusSnapshotSelect,
   type ChangeStatusInput,
   type ShipmentDetail,
   type ShipmentListItem,
+  type StatusSnapshot,
 } from "./shipment.types.js";
 import { withTrackingIdRetry } from "./shipment.utils.js";
-import type { CreateShipmentInput, ShipmentListQuery, UpdateShipmentInput } from "./shipment.validation.js";
+import type {
+  AssignInput,
+  CreateShipmentInput,
+  PickupInput,
+  ShipmentListQuery,
+  UnassignInput,
+  UpdateShipmentInput,
+  UpdateStatusInput,
+} from "./shipment.validation.js";
 
 type Db = Prisma.TransactionClient;
 
@@ -104,69 +121,288 @@ const assertHubsMatchZones = async (db: Db, payload: CreateShipmentInput): Promi
   if (errors.length > 0) throw new ApiError(httpStatus.BAD_REQUEST, "Invalid origin or destination hub", errors);
 };
 
+const badRequest = (message: string, errors: ErrorDetail[] = []): ApiError =>
+  new ApiError(httpStatus.BAD_REQUEST, message, errors);
+
+/**
+ * Hub for AT_ORIGIN_HUB / AT_DESTINATION_HUB: the one sent, or the shipment's planned
+ * hub. It must be active and in the matching (origin/destination) zone.
+ */
+const resolveHub = async (db: Db, s: StatusSnapshot, toStatus: ShipmentStatus, hubId?: string | null): Promise<string> => {
+  const atOrigin = toStatus === ShipmentStatus.AT_ORIGIN_HUB;
+  const id = hubId ?? (atOrigin ? s.originHubId : s.destinationHubId);
+  if (!id) throw badRequest("hubId is required", [{ path: "body.hubId", message: "The shipment has no planned hub" }]);
+  const hub = await db.hub.findFirst({ where: { id, deletedAt: null, isActive: true }, select: { zoneId: true } });
+  if (!hub) throw badRequest("Hub not found or inactive", [{ path: "body.hubId", message: "Hub not found or inactive" }]);
+  if (hub.zoneId !== (atOrigin ? s.originZoneId : s.destinationZoneId)) {
+    const which = atOrigin ? "origin" : "destination";
+    throw badRequest(`Hub must be in the shipment's ${which} zone`, [
+      { path: "body.hubId", message: `Hub is not in the ${which} zone` },
+    ]);
+  }
+  return id;
+};
+
+/** 400 for an illegal move, listing what the caller's role may do next. */
+const illegalTransition = (s: StatusSnapshot, toStatus: ShipmentStatus, role: Role): ApiError => {
+  const from = s.status;
+  let message = `Cannot change status from ${from} to ${toStatus}`;
+  if (toStatus === ShipmentStatus.CANCELLED) {
+    message = `Shipment can only be cancelled before it is picked up (current status: ${from})`;
+  } else if (
+    from === ShipmentStatus.FAILED_DELIVERY &&
+    toStatus === ShipmentStatus.OUT_FOR_DELIVERY &&
+    s.failedAttempts >= MAX_DELIVERY_ATTEMPTS
+  ) {
+    message = `Maximum of ${MAX_DELIVERY_ATTEMPTS} delivery attempts reached; the shipment can only be RETURNED`;
+  }
+  const next = getAllowedNextStatuses(from, s.failedAttempts, role);
+  return badRequest(message, [
+    {
+      path: "body.status",
+      message: next.length > 0 ? `Allowed next statuses for your role: ${next.join(", ")}` : `No status changes are available to your role from ${from}`,
+    },
+  ]);
+};
+
 /**
  * THE single entry point for shipment status changes. In one transaction:
- * check the transition map and the actor's role/ownership, enforce the
- * payment rule, update with a status guard (so concurrent changes can't both
- * win), then write the status history row and the audit row.
+ * 1. read the shipment within the caller's scope (404 otherwise),
+ * 2. check the endpoint precondition, the TRANSITIONS map (400 with allowed
+ *    next statuses), the role (403) and the payment gate (409),
+ * 3. apply the per-status effects (timestamps, currentHubId, attempt counter),
+ * 4. guarded update `WHERE id AND status = <from> [AND guard]`: if a concurrent
+ *    request changed the row first, 0 rows match and we return 409,
+ * 5. side effects (pickup request, courier earning), status history, audit log.
  */
 const changeStatus = async (input: ChangeStatusInput): Promise<ShipmentDetail> => {
   const id = await prisma.$transaction(async (tx) => {
     const { actor, toStatus } = input;
-    const shipment = await tx.shipment.findFirst({
+    const s = await tx.shipment.findFirst({
       where: { id: input.shipmentId, deletedAt: null, ...scopeWhere(actor) },
-      select: { id: true, status: true, paymentStatus: true },
+      select: statusSnapshotSelect,
     });
-    if (!shipment) throw notFound();
-    const from = shipment.status;
+    if (!s) throw notFound();
+    const from = s.status;
 
-    if (!allowedTransitions[from].includes(toStatus)) {
-      if (toStatus === ShipmentStatus.CANCELLED) {
-        throw conflict(`Shipment can only be cancelled before it is picked up (current status: ${from})`);
-      }
-      throw conflict(`Cannot change status from ${from} to ${toStatus}`);
+    if (input.requireFrom && !input.requireFrom.includes(from)) {
+      throw badRequest(`This action requires status ${input.requireFrom.join(" or ")} (current status: ${from})`, [
+        { path: "status", message: `Current status is ${from}` },
+      ]);
     }
-    if (!transitionRoles[toStatus]?.includes(actor.role)) {
-      throw new ApiError(httpStatus.FORBIDDEN, `Your role cannot move a shipment to ${toStatus}`);
+    if (!isTransitionLegal(from, toStatus, s.failedAttempts)) throw illegalTransition(s, toStatus, actor.role);
+    if (!canRoleTransition(from, toStatus, actor.role)) {
+      throw new ApiError(httpStatus.FORBIDDEN, `Your role cannot change status from ${from} to ${toStatus}`);
     }
     if (
       from === ShipmentStatus.PENDING &&
       toStatus !== ShipmentStatus.CANCELLED &&
-      shipment.paymentStatus !== ShipmentPaymentStatus.PAID
+      s.paymentStatus !== ShipmentPaymentStatus.PAID
     ) {
       throw conflict("Shipment must be paid before it can move past PENDING");
     }
 
+    // Per-status effects.
+    const now = new Date();
+    const effects: Prisma.ShipmentUncheckedUpdateManyInput = {};
+    const auditExtra: Record<string, unknown> = {};
+    let historyHubId: string | null = null;
+    switch (toStatus) {
+      case ShipmentStatus.PICKED_UP:
+        effects.pickedUpAt = now;
+        effects.currentHubId = null;
+        break;
+      case ShipmentStatus.AT_ORIGIN_HUB:
+      case ShipmentStatus.AT_DESTINATION_HUB:
+        historyHubId = await resolveHub(tx, s, toStatus, input.hubId);
+        effects.currentHubId = historyHubId;
+        auditExtra["hubId"] = historyHubId;
+        break;
+      case ShipmentStatus.IN_TRANSIT:
+      case ShipmentStatus.OUT_FOR_DELIVERY:
+      case ShipmentStatus.RETURNED:
+        effects.currentHubId = null;
+        break;
+      case ShipmentStatus.FAILED_DELIVERY:
+        if (!input.note) throw badRequest("A reason (note) is required for FAILED_DELIVERY", [{ path: "body.note", message: "Required" }]);
+        effects.failedAttempts = { increment: 1 };
+        effects.failureReason = input.note;
+        auditExtra["failedAttempts"] = s.failedAttempts + 1;
+        break;
+      case ShipmentStatus.DELIVERED:
+        if (!s.courierId) throw conflict("Shipment has no assigned courier");
+        effects.deliveredAt = now;
+        effects.currentHubId = null;
+        break;
+      default:
+        break;
+    }
+
+    await input.beforeUpdate?.(tx, s);
+
     const { count } = await tx.shipment.updateMany({
-      where: { id: shipment.id, status: from, deletedAt: null },
-      data: { ...input.data, status: toStatus },
+      where: { id: s.id, status: from, deletedAt: null, ...input.guard },
+      data: { ...input.data, ...effects, status: toStatus },
     });
-    if (count === 0) throw conflict("Shipment status changed concurrently, please retry");
+    if (count === 0) throw conflict(input.guardMessage ?? "Shipment status changed concurrently, please retry");
+
+    // Side effects that belong to the status itself.
+    if (toStatus === ShipmentStatus.PICKED_UP) {
+      await tx.pickupRequest.updateMany({
+        where: { shipmentId: s.id, status: PickupStatus.SCHEDULED },
+        data: { status: PickupStatus.COMPLETED, completedAt: now },
+      });
+    }
+    if (toStatus === ShipmentStatus.CANCELLED) {
+      await tx.pickupRequest.updateMany({
+        where: { shipmentId: s.id, status: PickupStatus.SCHEDULED },
+        data: { status: PickupStatus.CANCELLED },
+      });
+    }
+    if (toStatus === ShipmentStatus.DELIVERED && s.courierId) {
+      // Same transaction as the status change; shipmentId is unique, so at most one earning.
+      const amount = calculateCourierEarning(s.price);
+      await tx.courierEarning.create({ data: { courierId: s.courierId, shipmentId: s.id, amount }, select: { id: true } });
+      auditExtra["courierEarning"] = amount;
+    }
+    await input.afterUpdate?.(tx, s);
 
     await tx.shipmentStatusHistory.create({
       data: {
-        shipmentId: shipment.id,
+        shipmentId: s.id,
         fromStatus: from,
         toStatus,
         note: input.note ?? null,
-        hubId: input.hubId ?? null,
+        hubId: historyHubId,
         changedById: actor.id,
       },
       select: { id: true },
     });
     await AuditService.log(tx, {
       actor,
-      action: AUDIT_ACTIONS.SHIPMENT_STATUS_CHANGED,
+      action: input.auditAction ?? AUDIT_ACTIONS.SHIPMENT_STATUS_CHANGED,
       entityType: AUDIT_ENTITIES.SHIPMENT,
-      entityId: shipment.id,
-      before: { status: from },
-      after: { status: toStatus, note: input.note ?? null, ...input.data },
+      entityId: s.id,
+      before: { status: from, courierId: s.courierId },
+      after: { status: toStatus, note: input.note ?? null, ...input.data, ...auditExtra },
       meta: input.meta,
     });
-    return shipment.id;
+    return s.id;
   });
   return loadDetail(id);
 };
+
+interface LockedCourier {
+  zoneId: string;
+  isAvailable: boolean;
+  profileDeletedAt: Date | null;
+  role: string;
+  status: string;
+  userDeletedAt: Date | null;
+}
+
+/**
+ * Row-locks the courier's profile AND user rows (FOR UPDATE covers both joined
+ * tables) for the rest of the assignment transaction, then re-checks eligibility.
+ * A concurrent availability toggle or deactivation waits until we commit.
+ */
+const lockCourierForAssignment = async (db: Db, courierId: string, originZoneId: string): Promise<void> => {
+  const rows = await db.$queryRaw<LockedCourier[]>`
+    SELECT cp."zoneId", cp."isAvailable", cp."deletedAt" AS "profileDeletedAt",
+           u."role"::text AS "role", u."status"::text AS "status", u."deletedAt" AS "userDeletedAt"
+    FROM "courier_profiles" cp
+    JOIN "users" u ON u."id" = cp."userId"
+    WHERE cp."userId" = ${courierId}
+    FOR UPDATE`;
+  const courier = rows[0];
+  if (!courier || courier.role !== Role.COURIER || courier.userDeletedAt || courier.profileDeletedAt) {
+    throw badRequest("Courier not found", [{ path: "body.courierId", message: "No active courier with this id" }]);
+  }
+  if (courier.status !== UserStatus.ACTIVE) throw conflict("Courier account is not active");
+  if (!courier.isAvailable) throw conflict("Courier is not available");
+  if (courier.zoneId !== originZoneId) {
+    throw badRequest("Courier does not operate in the shipment's origin zone", [
+      { path: "body.courierId", message: "Courier zone does not match the origin zone" },
+    ]);
+  }
+};
+
+/** Customer (owner), PENDING + PAID only: stores the pickup window and moves to PICKUP_SCHEDULED. */
+const schedulePickup = (actor: Actor, id: string, payload: PickupInput, meta: RequestMeta): Promise<ShipmentDetail> =>
+  changeStatus({
+    shipmentId: id,
+    toStatus: ShipmentStatus.PICKUP_SCHEDULED,
+    actor,
+    meta,
+    requireFrom: [ShipmentStatus.PENDING],
+    note: payload.notes ?? "Pickup scheduled",
+    auditAction: AUDIT_ACTIONS.SHIPMENT_PICKUP_SCHEDULED,
+    afterUpdate: async (tx, s) => {
+      const fields = {
+        requestedById: actor.id,
+        pickupAddress: payload.pickupAddress ?? s.pickupAddress,
+        contactName: payload.contactName ?? s.senderName,
+        contactPhone: payload.contactPhone ?? s.senderPhone,
+        scheduledAt: payload.windowStart,
+        scheduledUntil: payload.windowEnd,
+        notes: payload.notes ?? null,
+        status: PickupStatus.SCHEDULED,
+        completedAt: null,
+        deletedAt: null,
+      };
+      await tx.pickupRequest.upsert({
+        where: { shipmentId: s.id },
+        create: { shipmentId: s.id, ...fields },
+        update: fields,
+        select: { id: true },
+      });
+    },
+  });
+
+/**
+ * Admin: PICKUP_SCHEDULED → COURIER_ASSIGNED. Double-assignment is prevented by
+ * (1) the courier row lock + re-check and (2) the guarded update
+ * `WHERE status = PICKUP_SCHEDULED AND courierId IS NULL`: of two concurrent
+ * assigns, the second waits for the first's row lock, then matches 0 rows → 409.
+ */
+const assignCourier = (actor: Actor, id: string, payload: AssignInput, meta: RequestMeta): Promise<ShipmentDetail> =>
+  changeStatus({
+    shipmentId: id,
+    toStatus: ShipmentStatus.COURIER_ASSIGNED,
+    actor,
+    meta,
+    requireFrom: [ShipmentStatus.PICKUP_SCHEDULED],
+    note: payload.note ?? "Courier assigned",
+    data: { courierId: payload.courierId },
+    guard: { courierId: null },
+    guardMessage: "Shipment was assigned concurrently, please refresh",
+    auditAction: AUDIT_ACTIONS.SHIPMENT_ASSIGNED,
+    beforeUpdate: (tx, s) => lockCourierForAssignment(tx, payload.courierId, s.originZoneId),
+  });
+
+/** Admin, before PICKED_UP: COURIER_ASSIGNED → PICKUP_SCHEDULED and clears the courier. */
+const unassignCourier = (actor: Actor, id: string, payload: UnassignInput, meta: RequestMeta): Promise<ShipmentDetail> =>
+  changeStatus({
+    shipmentId: id,
+    toStatus: ShipmentStatus.PICKUP_SCHEDULED,
+    actor,
+    meta,
+    requireFrom: [ShipmentStatus.COURIER_ASSIGNED],
+    note: payload?.note ?? "Courier unassigned",
+    data: { courierId: null },
+    auditAction: AUDIT_ACTIONS.SHIPMENT_UNASSIGNED,
+  });
+
+/** PATCH /status for courier and admin; role rules come from TRANSITIONS. */
+const updateStatus = (actor: Actor, id: string, payload: UpdateStatusInput, meta: RequestMeta): Promise<ShipmentDetail> =>
+  changeStatus({
+    shipmentId: id,
+    toStatus: payload.status,
+    actor,
+    meta,
+    note: payload.note ?? null,
+    hubId: payload.hubId ?? null,
+  });
 
 const create = async (actor: Actor, payload: CreateShipmentInput, meta: RequestMeta): Promise<ShipmentDetail> => {
   // Retries the whole transaction only on a trackingId collision (see withTrackingIdRetry).
@@ -386,4 +622,16 @@ const remove = (actor: Actor, id: string, meta: RequestMeta): Promise<{ id: stri
     return { id, trackingId: shipment.trackingId, deletedAt };
   });
 
-export const ShipmentService = { changeStatus, create, list, getById, update, cancel, remove };
+export const ShipmentService = {
+  changeStatus,
+  create,
+  list,
+  getById,
+  update,
+  cancel,
+  remove,
+  schedulePickup,
+  assignCourier,
+  unassignCourier,
+  updateStatus,
+};

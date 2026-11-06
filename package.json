@@ -14,7 +14,8 @@
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",
     "vercel-build": "prisma generate",
-    "test": "node --import tsx --test \"src/**/*.test.ts\""
+    "test": "node --import tsx --test \"src/**/*.test.ts\"",
+    "dev:mark-paid": "tsx scripts/dev-mark-paid.ts"
   },
   "keywords": [],
   "author": "Zarif Hasan",

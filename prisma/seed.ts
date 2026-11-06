@@ -11,6 +11,7 @@
  */
 import { env } from "../src/app/config/env.js";
 import {
+  PickupStatus,
   Role,
   ServiceType,
   ShipmentPaymentStatus,
@@ -20,6 +21,7 @@ import {
 import { auth } from "../src/app/lib/auth.js";
 import { prisma } from "../src/app/lib/prisma.js";
 import { AUDIT_ACTIONS, AUDIT_ENTITIES } from "../src/app/modules/audit/audit.constants.js";
+import { calculateCourierEarning } from "../src/app/modules/courier/courier.utils.js";
 import { calculatePrice } from "../src/app/modules/pricing/pricing.utils.js";
 import { allowedTransitions } from "../src/app/modules/shipment/shipment.constants.js";
 
@@ -217,6 +219,10 @@ interface SeedShipment {
   deliveryAddress: string;
   daysAgo: number;
   isFragile?: boolean;
+  /** Override the default (PAID once past PENDING, UNPAID for PENDING/CANCELLED). */
+  paid?: boolean;
+  /** For FAILED_DELIVERY: how many failed attempts (default 1). */
+  failedAttempts?: number;
 }
 
 const HAPPY_PATH: ShipmentStatus[] = [
@@ -231,11 +237,15 @@ const HAPPY_PATH: ShipmentStatus[] = [
 ];
 
 /** The statuses a shipment went through to reach `status`, checked against the state machine. */
-const pathTo = (status: ShipmentStatus): ShipmentStatus[] => {
+const pathTo = (status: ShipmentStatus, failedAttempts = 1): ShipmentStatus[] => {
   let path: ShipmentStatus[];
   if (status === ShipmentStatus.CANCELLED) path = [ShipmentStatus.PENDING, ShipmentStatus.CANCELLED];
-  else if (status === ShipmentStatus.DELIVERED || status === ShipmentStatus.FAILED_DELIVERY) path = [...HAPPY_PATH, status];
-  else path = HAPPY_PATH.slice(0, HAPPY_PATH.indexOf(status) + 1);
+  else if (status === ShipmentStatus.DELIVERED) path = [...HAPPY_PATH, status];
+  else if (status === ShipmentStatus.FAILED_DELIVERY) {
+    // OUT_FOR_DELIVERY → FAILED_DELIVERY, then (retry → fail) for each extra attempt.
+    path = [...HAPPY_PATH, status];
+    for (let i = 1; i < failedAttempts; i += 1) path.push(ShipmentStatus.OUT_FOR_DELIVERY, ShipmentStatus.FAILED_DELIVERY);
+  } else path = HAPPY_PATH.slice(0, HAPPY_PATH.indexOf(status) + 1);
   for (let i = 1; i < path.length; i += 1) {
     const prev = path[i - 1];
     const next = path[i];
@@ -256,6 +266,11 @@ const SHIPMENTS: SeedShipment[] = [
   { trackingId: "CRV-261101-SEED07", customer: "customer2@carrivo.dev", courier: "courier2@carrivo.dev", from: "DHK-S", to: "DHK-S", serviceType: ServiceType.STANDARD, weightKg: 5, status: ShipmentStatus.DELIVERED, receiverName: "Arif Chowdhury", receiverPhone: "+8801811000007", deliveryAddress: "8 Shantinagar, Dhaka", daysAgo: 8 },
   { trackingId: "CRV-261101-SEED08", customer: "customer1@carrivo.dev", courier: "courier1@carrivo.dev", from: "DHK-N", to: "DHK-S", serviceType: ServiceType.EXPRESS, weightKg: 2, status: ShipmentStatus.FAILED_DELIVERY, receiverName: "Rumana Islam", receiverPhone: "+8801811000008", deliveryAddress: "Azimpur Govt. Colony, Dhaka", daysAgo: 10 },
   { trackingId: "CRV-261101-SEED09", customer: "customer2@carrivo.dev", from: "DHK-S", to: "DHK-N", serviceType: ServiceType.STANDARD, weightKg: 1.2, status: ShipmentStatus.CANCELLED, receiverName: "Kamal Uddin", receiverPhone: "+8801811000009", deliveryAddress: "Gulshan 2, Road 90, Dhaka", daysAgo: 12 },
+  // Phase 4 workflow demos: PENDING but PAID (ready for POST /pickup), unassigned
+  // PICKUP_SCHEDULED (ready for POST /assign), and 3 failed attempts (only RETURNED left).
+  { trackingId: "CRV-261101-SEED10", customer: "customer1@carrivo.dev", from: "DHK-N", to: "DHK-N", serviceType: ServiceType.STANDARD, weightKg: 1.5, status: ShipmentStatus.PENDING, paid: true, receiverName: "Shirin Akhter", receiverPhone: "+8801811000010", deliveryAddress: "Road 12, Sector 10, Uttara, Dhaka", daysAgo: 0 },
+  { trackingId: "CRV-261101-SEED11", customer: "customer2@carrivo.dev", from: "DHK-S", to: "DHK-S", serviceType: ServiceType.STANDARD, weightKg: 2.5, status: ShipmentStatus.PICKUP_SCHEDULED, receiverName: "Jamal Hossain", receiverPhone: "+8801811000011", deliveryAddress: "15 Hatirpool, Dhaka", daysAgo: 1 },
+  { trackingId: "CRV-261101-SEED12", customer: "customer2@carrivo.dev", courier: "courier2@carrivo.dev", from: "DHK-S", to: "DHK-S", serviceType: ServiceType.STANDARD, weightKg: 1, status: ShipmentStatus.FAILED_DELIVERY, failedAttempts: 3, receiverName: "Nazmul Karim", receiverPhone: "+8801811000012", deliveryAddress: "Kalabagan 2nd Lane, Dhaka", daysAgo: 6 },
 ];
 
 const HOUR = 60 * 60 * 1000;
@@ -303,11 +318,11 @@ const seedShipments = async (ids: Map<string, string>, userIds: Map<string, stri
     const priced = calculatePrice(rule, s.weightKg);
     if (!priced.ok) throw new Error(`Seed: cannot price ${s.trackingId}: ${priced.reason}`);
 
-    const path = pathTo(s.status);
+    const path = pathTo(s.status, s.failedAttempts);
     const createdAt = new Date(Date.now() - s.daysAgo * DAY - path.length * 2 * HOUR);
     const at = (step: number): Date => new Date(createdAt.getTime() + step * 2 * HOUR);
     const reached = (status: ShipmentStatus): number => path.indexOf(status);
-    const paid = s.status !== ShipmentStatus.PENDING && s.status !== ShipmentStatus.CANCELLED;
+    const paid = s.paid ?? (s.status !== ShipmentStatus.PENDING && s.status !== ShipmentStatus.CANCELLED);
 
     await prisma.$transaction(async (tx) => {
       const shipment = await tx.shipment.create({
@@ -342,7 +357,7 @@ const seedShipments = async (ids: Map<string, string>, userIds: Map<string, stri
           status: s.status,
           // Seeded without Payment rows; Phase 6 adds real payments.
           paymentStatus: paid ? ShipmentPaymentStatus.PAID : ShipmentPaymentStatus.UNPAID,
-          failedAttempts: s.status === ShipmentStatus.FAILED_DELIVERY ? 1 : 0,
+          failedAttempts: s.status === ShipmentStatus.FAILED_DELIVERY ? (s.failedAttempts ?? 1) : 0,
           failureReason: s.status === ShipmentStatus.FAILED_DELIVERY ? "Receiver unavailable" : null,
           cancelReason: s.status === ShipmentStatus.CANCELLED ? "Changed my mind" : null,
           pickedUpAt: reached(ShipmentStatus.PICKED_UP) >= 0 ? at(reached(ShipmentStatus.PICKED_UP)) : null,
@@ -359,7 +374,7 @@ const seedShipments = async (ids: Map<string, string>, userIds: Map<string, stri
           shipmentId: shipment.id,
           fromStatus: step === 0 ? null : (path[step - 1] ?? null),
           toStatus: status,
-          note: step === 0 ? "Shipment created" : null,
+          note: step === 0 ? "Shipment created" : status === ShipmentStatus.FAILED_DELIVERY ? "Receiver unavailable" : null,
           hubId:
             status === ShipmentStatus.PENDING || status === ShipmentStatus.AT_ORIGIN_HUB
               ? originHubId
@@ -388,6 +403,65 @@ const seedShipments = async (ids: Map<string, string>, userIds: Map<string, stri
   return { created, existing };
 };
 
+/**
+ * Pickup requests and courier earnings for the sample shipments, created only if
+ * missing (so this also backfills databases seeded before Phase 4).
+ */
+const seedWorkflowExtras = async (): Promise<{ pickups: number; earnings: number }> => {
+  let pickups = 0;
+  let earnings = 0;
+  const rows = await prisma.shipment.findMany({
+    where: { trackingId: { in: SHIPMENTS.map((s) => s.trackingId) }, deletedAt: null },
+    select: {
+      id: true,
+      status: true,
+      price: true,
+      courierId: true,
+      customerId: true,
+      createdAt: true,
+      pickedUpAt: true,
+      deliveredAt: true,
+      pickupAddress: true,
+      senderName: true,
+      senderPhone: true,
+      pickupRequest: { select: { id: true } },
+      earning: { select: { id: true } },
+    },
+  });
+  for (const row of rows) {
+    const scheduled = row.status !== ShipmentStatus.PENDING && row.status !== ShipmentStatus.CANCELLED;
+    if (scheduled && !row.pickupRequest) {
+      const start = new Date(row.createdAt.getTime() + 6 * HOUR);
+      await prisma.pickupRequest.create({
+        data: {
+          shipmentId: row.id,
+          requestedById: row.customerId,
+          pickupAddress: row.pickupAddress,
+          contactName: row.senderName,
+          contactPhone: row.senderPhone,
+          scheduledAt: start,
+          scheduledUntil: new Date(start.getTime() + 2 * HOUR),
+          status: row.pickedUpAt ? PickupStatus.COMPLETED : PickupStatus.SCHEDULED,
+          completedAt: row.pickedUpAt,
+        },
+      });
+      pickups += 1;
+    }
+    if (row.status === ShipmentStatus.DELIVERED && row.courierId && !row.earning) {
+      await prisma.courierEarning.create({
+        data: {
+          courierId: row.courierId,
+          shipmentId: row.id,
+          amount: calculateCourierEarning(row.price),
+          createdAt: row.deliveredAt ?? new Date(),
+        },
+      });
+      earnings += 1;
+    }
+  }
+  return { pickups, earnings };
+};
+
 async function main(): Promise<void> {
   const password = env.SEED_DEMO_PASSWORD;
   if (!password || password.length < 8) {
@@ -412,6 +486,8 @@ async function main(): Promise<void> {
   });
   const shipments = await seedShipments(ids, new Map(users.map((u) => [u.email, u.id])));
   console.log(`Seed: sample shipments ${shipments.created} created, ${shipments.existing} already present.`);
+  const extras = await seedWorkflowExtras();
+  console.log(`Seed: ${extras.pickups} pickup request(s) and ${extras.earnings} courier earning(s) added.`);
 
   console.log("\nDemo accounts (all share the password from SEED_DEMO_PASSWORD):");
   console.table(rows);

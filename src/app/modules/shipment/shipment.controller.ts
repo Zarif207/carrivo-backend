@@ -6,10 +6,14 @@ import { getRequestMeta } from "../../utils/requestMeta.js";
 import { sendResponse } from "../../utils/sendResponse.js";
 import { ShipmentService } from "./shipment.service.js";
 import type {
+  AssignInput,
   CancelShipmentInput,
   CreateShipmentInput,
+  PickupInput,
   ShipmentListQuery,
+  UnassignInput,
   UpdateShipmentInput,
+  UpdateStatusInput,
 } from "./shipment.validation.js";
 
 const create = catchAsync(async (req, res) => {
@@ -53,4 +57,55 @@ const remove = catchAsync(async (req, res) => {
   sendResponse(res, { statusCode: httpStatus.OK, message: "Shipment deleted successfully", data });
 });
 
-export const ShipmentController = { create, list, getById, update, cancel, remove };
+const schedulePickup = catchAsync(async (req, res) => {
+  const data = await ShipmentService.schedulePickup(
+    getAuthUser(req),
+    String(req.params["id"]),
+    req.body as PickupInput,
+    getRequestMeta(req),
+  );
+  sendResponse(res, { statusCode: httpStatus.OK, message: "Pickup scheduled successfully", data });
+});
+
+const assign = catchAsync(async (req, res) => {
+  const data = await ShipmentService.assignCourier(
+    getAuthUser(req),
+    String(req.params["id"]),
+    req.body as AssignInput,
+    getRequestMeta(req),
+  );
+  sendResponse(res, { statusCode: httpStatus.OK, message: "Courier assigned successfully", data });
+});
+
+const unassign = catchAsync(async (req, res) => {
+  const data = await ShipmentService.unassignCourier(
+    getAuthUser(req),
+    String(req.params["id"]),
+    req.body as UnassignInput,
+    getRequestMeta(req),
+  );
+  sendResponse(res, { statusCode: httpStatus.OK, message: "Courier unassigned successfully", data });
+});
+
+const updateStatus = catchAsync(async (req, res) => {
+  const data = await ShipmentService.updateStatus(
+    getAuthUser(req),
+    String(req.params["id"]),
+    req.body as UpdateStatusInput,
+    getRequestMeta(req),
+  );
+  sendResponse(res, { statusCode: httpStatus.OK, message: "Shipment status updated successfully", data });
+});
+
+export const ShipmentController = {
+  create,
+  list,
+  getById,
+  update,
+  cancel,
+  remove,
+  schedulePickup,
+  assign,
+  unassign,
+  updateStatus,
+};

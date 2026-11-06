@@ -349,21 +349,22 @@ model ShipmentStatusHistory {
 }
 
 model PickupRequest {
-  id            String       @id @default(uuid(7))
-  shipmentId    String       @unique // one pickup per shipment; reschedule = update
-  shipment      Shipment     @relation(fields: [shipmentId], references: [id])
-  requestedById String
-  requestedBy   User         @relation(fields: [requestedById], references: [id])
-  pickupAddress String
-  contactName   String
-  contactPhone  String
-  scheduledAt   DateTime
-  notes         String?
-  status        PickupStatus @default(SCHEDULED)
-  completedAt   DateTime?
-  deletedAt     DateTime?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  id             String       @id @default(uuid(7))
+  shipmentId     String       @unique // one pickup per shipment; reschedule = update
+  shipment       Shipment     @relation(fields: [shipmentId], references: [id])
+  requestedById  String
+  requestedBy    User         @relation(fields: [requestedById], references: [id])
+  pickupAddress  String
+  contactName    String
+  contactPhone   String
+  scheduledAt    DateTime // pickup window start
+  scheduledUntil DateTime // pickup window end
+  notes          String?
+  status         PickupStatus @default(SCHEDULED)
+  completedAt    DateTime?
+  deletedAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   @@index([status, scheduledAt])
   @@index([deletedAt])

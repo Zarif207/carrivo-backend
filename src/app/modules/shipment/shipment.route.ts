@@ -23,4 +23,25 @@ router.post(
 );
 router.delete("/:id", authorize(Role.ADMIN), validateRequest(ShipmentValidation.byId), ShipmentController.remove);
 
+// ── Workflow (Phase 4). Role rules per transition live in shipment.constants.ts (TRANSITIONS).
+router.post(
+  "/:id/pickup",
+  authorize(Role.CUSTOMER),
+  validateRequest(ShipmentValidation.pickup),
+  ShipmentController.schedulePickup,
+);
+router.post("/:id/assign", authorize(Role.ADMIN), validateRequest(ShipmentValidation.assign), ShipmentController.assign);
+router.post(
+  "/:id/unassign",
+  authorize(Role.ADMIN),
+  validateRequest(ShipmentValidation.unassign),
+  ShipmentController.unassign,
+);
+router.patch(
+  "/:id/status",
+  authorize(Role.COURIER, Role.ADMIN),
+  validateRequest(ShipmentValidation.updateStatus),
+  ShipmentController.updateStatus,
+);
+
 export const ShipmentRoutes = router;
