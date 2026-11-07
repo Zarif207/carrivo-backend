@@ -12,6 +12,7 @@ src/generated/
 .env
 .env.*
 !.env.example
+.carrivo-prod.env
 
 # vercel
 .vercel/
