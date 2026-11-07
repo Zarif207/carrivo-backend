@@ -2,8 +2,10 @@ import type { RequestHandler } from "express";
 import rateLimit, { type Options } from "express-rate-limit";
 import httpStatus from "http-status";
 import type { Redis } from "@upstash/redis";
+import { env } from "../config/env.js";
 import { redis, redisKey, warnRedis } from "../lib/redis.js";
 import type { ErrorResponse } from "../types/response.types.js";
+import { rateLimitKey } from "../utils/clientKey.js";
 import { RedisRateLimitStore, type RateLimitBackend } from "../utils/redisRateLimitStore.js";
 
 const FIFTEEN_MINUTES = 15 * 60 * 1000;
@@ -45,6 +47,12 @@ const store = (name: string): RedisRateLimitStore =>
     onError: warnRedis,
   });
 
+/**
+ * Per-visitor key: the BFF's forwarded `x-client-ip` when `x-bff-secret` matches, otherwise the
+ * connecting IP (`req.ip`, correct behind Vercel via `trust proxy`). See utils/clientKey.ts.
+ */
+const keyGenerator: Options["keyGenerator"] = (req) => rateLimitKey(req, env.BFF_SHARED_SECRET);
+
 /** Default limiter for every route. */
 export const globalLimiter: RequestHandler = rateLimit({
   windowMs: FIFTEEN_MINUTES,
@@ -53,6 +61,7 @@ export const globalLimiter: RequestHandler = rateLimit({
   legacyHeaders: false,
   message: "Too many requests, please try again later",
   handler: limitHandler,
+  keyGenerator,
   store: store("global"),
 });
 
@@ -68,5 +77,6 @@ export const authLimiter: RequestHandler = rateLimit({
   legacyHeaders: false,
   message: "Too many authentication attempts, please try again in 15 minutes",
   handler: limitHandler,
+  keyGenerator,
   store: store("auth"),
 });

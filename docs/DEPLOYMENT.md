@@ -134,6 +134,7 @@ Settings → Environment Variables, scope **Production**. Names only, with no va
 | `DATABASE_URL` | Neon production **pooled** URL |
 | `BETTER_AUTH_SECRET` | **new**, `openssl rand -base64 32`, at least 32 characters |
 | `BETTER_AUTH_URL` | `https://<project>.vercel.app` |
+| `BFF_SHARED_SECRET` | **new**, `openssl rand -base64 48`, at least 32 characters. **Required in production** (the app refuses to start without it). Set the **same value** in the frontend project. See [Per-visitor rate limits](#per-visitor-rate-limits-behind-the-frontend-bff) |
 | `CORS_ORIGINS` | `http://localhost:3000,https://<frontend>.vercel.app` (add the future frontend now; exact origins, comma-separated) |
 | `FRONTEND_URL` | `https://<frontend>.vercel.app` (origin only) |
 | `FRONTEND_SUCCESS_URL` | `https://<frontend>.vercel.app/payment/success` |
@@ -150,6 +151,28 @@ Settings → Environment Variables, scope **Production**. Names only, with no va
 | `CLOUDINARY_API_SECRET` | Cloudinary API secret |
 | `RESEND_API_KEY` | Resend key (optional; without it notifications are stored, not emailed) |
 | `EMAIL_FROM` | `Carrivo <noreply@your-verified-domain>` (optional; see Resend below) |
+
+### Per-visitor rate limits behind the frontend BFF
+
+The Next.js frontend calls this API from its own server, so without help every visitor would arrive from the
+frontend's Vercel IPs and share one 300-requests-per-15-minutes bucket (20 failed logins for the auth limiter).
+The frontend therefore sends two headers on every server-side call:
+
+| Header | Value |
+|---|---|
+| `x-bff-secret` | `BFF_SHARED_SECRET` |
+| `x-client-ip` | The visitor's IP address |
+
+Both the global limiter and the auth limiter (`src/app/middlewares/rateLimiter.ts`) key each request through
+`rateLimitKey()` in `src/app/utils/clientKey.ts`:
+
+- `x-client-ip` is used **only** if `x-bff-secret` matches `BFF_SHARED_SECRET` (constant-time compare) **and** the
+  value is a valid IPv4/IPv6 address (`net.isIP`).
+- In every other case (no secret, wrong secret, missing or garbage IP, repeated headers) the key is the connecting
+  IP (`req.ip`, correct behind Vercel thanks to `trust proxy`), exactly as before. A browser can never pick its own key.
+- Limits are unchanged; IPv6 addresses are grouped by subnet exactly like express-rate-limit's default.
+
+Keep the secret server-side in both projects (never a `NEXT_PUBLIC_` variable) and rotate it in both at the same time.
 
 **Never set in Vercel:**
 - `DEV_ALLOW_MARK_PAID`
@@ -221,5 +244,17 @@ Replace `API=https://<project>.vercel.app`.
 - [ ] **Cookies:** in browser devtools on the Google flow, the `better-auth.*` cookies set by the API are `Secure` and `HttpOnly`.
 - [ ] **CORS:** run `curl -si -X OPTIONS $API/api/v1/zones -H "Origin: https://<frontend>.vercel.app" -H "Access-Control-Request-Method: GET" | grep -i access-control-allow-origin`. It should echo the origin. An unlisted origin should get 403.
 - [ ] **Proof upload:** as an assigned courier, upload a small JPEG to `POST /shipments/:id/proof` with the shipment OUT_FOR_DELIVERY. The response has a `res.cloudinary.com` URL.
+- [ ] **Per-visitor rate limits:** the `RateLimit` header's `r=` (remaining) value is counted per key. Read the secret without echoing it, then compare two forwarded IPs:
+
+  ```bash
+  read -rs -p "BFF secret: " BFF; echo
+  for ip in 198.51.100.1 198.51.100.2; do
+    curl -s -o /dev/null -D - "$API/api/v1/zones" -H "x-bff-secret: $BFF" -H "x-client-ip: $ip" | grep -i '^ratelimit:'
+  done
+  curl -s -o /dev/null -D - "$API/api/v1/zones" -H "x-client-ip: 198.51.100.1" | grep -i '^ratelimit:'   # no secret: your own IP's bucket
+  unset BFF
+  ```
+
+  Each forwarded IP starts near `r=299`; the last call (no secret) shows your own IP's count instead of continuing either forwarded bucket.
 - [ ] **Logs:** Vercel → Logs shows no `Invalid environment variables`, no `webhook raw body unavailable`, and no stack traces in responses (`NODE_ENV=production`).
 - [ ] **Submission:** fill in the README submission block: live URL, Postman docs link, video. The admin password stays a placeholder there and goes only where the assignment asks for it.

@@ -58,6 +58,12 @@ const envSchema = z.object({
   FRONTEND_SUCCESS_URL: z.url({ message: "FRONTEND_SUCCESS_URL must be a URL" }),
   FRONTEND_CANCEL_URL: z.url({ message: "FRONTEND_CANCEL_URL must be a URL" }),
 
+  // Shared with the Next.js frontend (its BFF sends it as x-bff-secret with x-client-ip) so rate limits
+  // apply per visitor instead of per frontend server. Required in production; see utils/clientKey.ts.
+  BFF_SHARED_SECRET: optionalString.pipe(
+    z.string().min(32, { message: "BFF_SHARED_SECRET must be at least 32 characters" }).optional(),
+  ),
+
   // Only needed by `npm run db:seed`.
   SEED_DEMO_PASSWORD: optionalString,
 
@@ -88,7 +94,13 @@ const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema>;
 
-const parsed = envSchema.safeParse(process.env);
+const parsed = envSchema
+  .superRefine((value, ctx) => {
+    if (value.NODE_ENV === "production" && !value.BFF_SHARED_SECRET) {
+      ctx.addIssue({ code: "custom", path: ["BFF_SHARED_SECRET"], message: "BFF_SHARED_SECRET is required in production" });
+    }
+  })
+  .safeParse(process.env);
 
 if (!parsed.success) {
   // Only variable names and messages are printed, never values.
