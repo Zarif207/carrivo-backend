@@ -267,6 +267,7 @@ Copy `.env.example` to `.env` and fill it in. Names and purpose only; never comm
 | `FRONTEND_SUCCESS_URL` | ✓ | Stripe Checkout success page (frontend) |
 | `FRONTEND_CANCEL_URL` | ✓ | Stripe Checkout cancel page (frontend) |
 | `BETTER_AUTH_SECRET` | ✓ | ≥ 32-char secret that signs sessions and cookies |
+| `BFF_SHARED_SECRET` | production | ≥ 32-char secret shared with the frontend BFF; when `x-bff-secret` matches, `x-client-ip` becomes the rate-limit key (see docs/DEPLOYMENT.md) |
 | `BETTER_AUTH_URL` | ✓ | This API's origin (used for Google callbacks and secure cookies) |
 | `GOOGLE_CLIENT_ID` | ✓ | Google OAuth client id |
 | `GOOGLE_CLIENT_SECRET` | ✓ | Google OAuth client secret |
