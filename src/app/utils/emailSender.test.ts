@@ -98,7 +98,7 @@ describe("createEmailSender (fail-safe)", () => {
   });
 
   it("removes email addresses from provider errors before they are stored or logged", async () => {
-    const message = "You can only send testing emails to your own email address (owner.name+tag@gmail.com). Recipient: a.b@example.co.uk";
+    const message = "You can only send testing emails to your own email address (owner@example.org). Recipient: a.b@example.co.uk";
     const client = fakeClient(async () => ({ data: null, error: { name: "validation_error", message } }));
     const result = await createEmailSender({ client, from: "x", timeoutMs: 1000, warn: () => {} }).send(email);
     assert.equal(result.status === "FAILED" ? result.error : "", "validation_error: You can only send testing emails to your own email address (<email>). Recipient: <email>");

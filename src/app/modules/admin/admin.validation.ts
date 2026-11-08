@@ -2,6 +2,7 @@ import { z } from "zod";
 import { Role, UserStatus, VehicleType } from "../../../generated/prisma/enums.js";
 import { idParams, phoneSchema } from "../../utils/commonValidation.js";
 import { optionalQuery, paginationQueryShape, sortByQuery } from "../../utils/pagination.js";
+import { ASSIGNABLE_ROLES } from "../../config/roles.js";
 
 export const ADMIN_USER_SORT_FIELDS = ["name", "email", "createdAt", "role", "status"] as const;
 
@@ -46,7 +47,11 @@ const createUser = z.object({
 const changeRole = z.object({
   params: idParams,
   body: z
-    .strictObject({ role: z.enum(Role), courierProfile: courierProfile.optional() })
+    .strictObject({
+      // ADMIN_VIEWER is seed-only: the API can't grant it (config/roles.ts ASSIGNABLE_ROLES).
+      role: z.enum(ASSIGNABLE_ROLES, { message: `role must be one of: ${ASSIGNABLE_ROLES.join(", ")}` }),
+      courierProfile: courierProfile.optional(),
+    })
     .superRefine((body, ctx) => {
       if (body.courierProfile && body.role !== Role.COURIER) {
         ctx.addIssue({ code: "custom", path: ["courierProfile"], message: "courierProfile is only allowed when role is COURIER" });

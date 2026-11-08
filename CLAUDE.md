@@ -36,11 +36,16 @@ IMPORTANT: Better Auth, Prisma, Stripe, and Vercel setups change between version
 - Soft delete only (`deletedAt`). Every read query excludes soft-deleted rows.
 - Use Prisma `select`/`include` deliberately. Never return password hashes, tokens, or secrets.
 
-## Roles (exactly 3)
+## Roles (exactly 4)
 - `CUSTOMER`: creates/cancels own shipments, pays, tracks, views own history.
 - `COURIER`: sees assigned tasks, updates status of assigned shipments only, views own earnings, sets availability.
 - `ADMIN`: everything, including hubs, zones, pricing rules, user management, assignment, stats, audit logs.
-Role is never client-settable on signup (Better Auth additional field with `input: false`; default `CUSTOMER`). Enforce with `authenticate` + `authorize(...roles)` middleware, plus ownership checks in services.
+- `ADMIN_VIEWER`: read-only admin. Allowed on every admin GET route (use `authorize(...STAFF_ROLES)` from `config/roles.ts` for admin reads); every POST/PUT/PATCH/DELETE is refused by the central rule in `middlewares/readOnly.ts` (only logout and refresh-token pass). Never on customer/courier-only routes. Created only by the seed; never assignable via the API (`ASSIGNABLE_ROLES`).
+Role is never client-settable on signup (Better Auth additional field with `input: false`, plus a `user.create.before` hook forcing `CUSTOMER`). Enforce with `authenticate` + `authorize(...roles)` middleware, plus ownership checks in services. Keep module routers flat (no nested routers) so `readOnly.test.ts` can walk every route.
+
+## US platform conventions
+- USD money, weights in pounds (`weightLb`, `perLbFee`), US addresses (`street, City, ST 12345`, `usAddressSchema`), US phones (`phoneSchema`), business dates in America/New_York (`utils/timezone.ts`).
+- Demo data: fictional names, 555-0100 to 555-0199 phone numbers, no real people or businesses.
 
 ## Shipment state machine
 Statuses: PENDING, PICKUP_SCHEDULED, COURIER_ASSIGNED, PICKED_UP, AT_ORIGIN_HUB, IN_TRANSIT, AT_DESTINATION_HUB, OUT_FOR_DELIVERY, DELIVERED, FAILED_DELIVERY, RETURNED, CANCELLED.
@@ -59,7 +64,7 @@ Statuses: PENDING, PICKUP_SCHEDULED, COURIER_ASSIGNED, PICKED_UP, AT_ORIGIN_HUB,
 ## Database rules
 - Add `@@index` on frequently filtered columns (status, customerId, courierId, trackingId unique, createdAt, deletedAt).
 - Use enums for roles, statuses, payment status, vehicle type, service type.
-- Seed script creates: 1 admin, 2 couriers, 2 customers (create users via the Better Auth API so passwords hash correctly), hubs, zones, pricing rules, and sample shipments across statuses. Demo credentials live in README, not in code comments.
+- Seed script creates: 1 admin, 1 admin viewer, 2 couriers, 2 customers (create users via the Better Auth API so passwords hash correctly), hubs, zones, pricing rules, and sample shipments across statuses. Demo credentials live in README, not in code comments.
 
 ## Security
 - helmet, strict CORS (allowed origins from env), rate limiting (stricter on auth routes).

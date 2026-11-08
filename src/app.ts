@@ -6,6 +6,7 @@ import httpStatus from "http-status";
 import { env } from "./app/config/env.js";
 import { AUTH_BASE_PATH, BETTER_AUTH_ALLOWED_PATHS, auth } from "./app/lib/auth.js";
 import { limitBodySize } from "./app/middlewares/limitBodySize.js";
+import { blockReadOnlyOnBetterAuth } from "./app/middlewares/readOnly.js";
 import { globalErrorHandler } from "./app/middlewares/globalErrorHandler.js";
 import { globalLimiter } from "./app/middlewares/rateLimiter.js";
 import { AuthRoutes } from "./app/modules/auth/auth.route.js";
@@ -56,6 +57,7 @@ app.use(AUTH_BASE_PATH, AuthRoutes);
 app.all(
   BETTER_AUTH_ALLOWED_PATHS.map((path) => `${AUTH_BASE_PATH}${path}`),
   limitBodySize(BODY_LIMIT_BYTES),
+  blockReadOnlyOnBetterAuth,
   toNodeHandler(auth),
 );
 

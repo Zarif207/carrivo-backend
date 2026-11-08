@@ -14,7 +14,7 @@ const envSchema = z.object({
   DATABASE_URL: z.url({ message: "DATABASE_URL must be a valid connection URL" }),
   DIRECT_URL: z.url().optional(),
 
-  // Comma-separated exact origins, e.g. "http://localhost:3000,https://carrivo.vercel.app".
+  // Comma-separated exact origins, e.g. "http://localhost:3000,https://your-frontend.example.com".
   // Each must be a valid http(s) origin; a trailing slash is stripped (it would never match).
   CORS_ORIGINS: z
     .string()
@@ -66,6 +66,8 @@ const envSchema = z.object({
 
   // Only needed by `npm run db:seed`.
   SEED_DEMO_PASSWORD: optionalString,
+  // Optional: a separate password for admin@carrivo.dev (same strength rules; must differ from the demo one).
+  SEED_ADMIN_PASSWORD: optionalString,
 
   // ── Google sign-in (Better Auth social provider). Required.
   GOOGLE_CLIENT_ID: z

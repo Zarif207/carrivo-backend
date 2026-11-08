@@ -8,11 +8,10 @@ dist/
 # generated prisma client
 src/generated/
 
-# env files
-.env
-.env.*
+# env files: never commit real values (only .env.example is tracked)
+.env*
+*.env
 !.env.example
-.carrivo-prod.env
 
 # vercel
 .vercel/

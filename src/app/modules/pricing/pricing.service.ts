@@ -85,8 +85,8 @@ const assertNoActiveDuplicate = async (db: Db, key: RuleKey, excludeId?: string)
 };
 
 /** Exact route rule first, then the service type's default rule (both zones null). */
-const findApplicableRule = async (db: Db, input: Omit<QuoteInput, "weightKg">) => {
-  const select = { id: true, name: true, baseFee: true, baseWeightKg: true, perKgFee: true, maxWeightKg: true } as const;
+const findApplicableRule = async (db: Db, input: Omit<QuoteInput, "weightLb">) => {
+  const select = { id: true, name: true, baseFee: true, baseWeightLb: true, perLbFee: true, maxWeightLb: true } as const;
   const base = { serviceType: input.serviceType, isActive: true, deletedAt: null };
   const exact = await db.pricingRule.findFirst({
     where: { ...base, originZoneId: input.originZoneId, destinationZoneId: input.destinationZoneId },
@@ -115,13 +115,13 @@ const quote = async (db: Db, input: QuoteInput): Promise<PriceSnapshot> => {
     ]);
   }
 
-  const result = calculatePrice(rule, input.weightKg);
+  const result = calculatePrice(rule, input.weightLb);
   if (!result.ok) {
     const message =
       result.reason === "WEIGHT_EXCEEDS_MAX"
-        ? `Weight exceeds the ${result.maxWeightKg} kg limit for ${input.serviceType}`
+        ? `Weight exceeds the ${result.maxWeightLb} lb limit for ${input.serviceType}`
         : "Weight must be greater than 0";
-    throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, message, [{ path: "body.weightKg", message }]);
+    throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, message, [{ path: "body.weightLb", message }]);
   }
 
   return {
@@ -201,8 +201,8 @@ const updateTx = (
       originZoneId: payload.originZoneId !== undefined ? payload.originZoneId : (before.originZone?.id ?? null),
       destinationZoneId:
         payload.destinationZoneId !== undefined ? payload.destinationZoneId : (before.destinationZone?.id ?? null),
-      baseWeightKg: payload.baseWeightKg ?? before.baseWeightKg.toNumber(),
-      maxWeightKg: payload.maxWeightKg !== undefined ? payload.maxWeightKg : (before.maxWeightKg?.toNumber() ?? null),
+      baseWeightLb: payload.baseWeightLb ?? before.baseWeightLb.toNumber(),
+      maxWeightLb: payload.maxWeightLb !== undefined ? payload.maxWeightLb : (before.maxWeightLb?.toNumber() ?? null),
       isActive: payload.isActive ?? before.isActive,
     };
     if ((merged.originZoneId === null) !== (merged.destinationZoneId === null)) {
@@ -210,9 +210,9 @@ const updateTx = (
         { path: "body.destinationZoneId", message: "Set both originZoneId and destinationZoneId or neither" },
       ]);
     }
-    if (merged.maxWeightKg !== null && merged.maxWeightKg < merged.baseWeightKg) {
+    if (merged.maxWeightLb !== null && merged.maxWeightLb < merged.baseWeightLb) {
       throw new ApiError(httpStatus.BAD_REQUEST, "Validation failed", [
-        { path: "body.maxWeightKg", message: "maxWeightKg must be at least baseWeightKg" },
+        { path: "body.maxWeightLb", message: "maxWeightLb must be at least baseWeightLb" },
       ]);
     }
     await assertZonesUsable(tx, {

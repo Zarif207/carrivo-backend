@@ -7,13 +7,13 @@ const shipment: ShipmentFacts = {
   id: "0195f2a1-0000-7000-8000-000000000001",
   trackingId: "CRV-261106-ABC123",
   receiverName: "Rahim Uddin",
-  deliveryAddress: "House 2, Road 5, Dhanmondi",
+  deliveryAddress: "200 N Spring St, Los Angeles, CA 90012",
   serviceType: "SAME_DAY",
   price: "6.00",
   currency: "usd",
 };
 const at = new Date("2026-11-06T09:15:30Z");
-const pickup = { address: "House 10, Uttara", contactName: "Ayesha", windowStart: at, windowEnd: new Date("2026-11-06T11:00:00Z") };
+const pickup = { address: "350 5th Ave, New York, NY 10118", contactName: "Emily", windowStart: at, windowEnd: new Date("2026-11-06T11:00:00Z") };
 
 const ALL: NotificationInput[] = [
   { type: "SHIPMENT_CREATED", shipment },
@@ -61,8 +61,8 @@ describe("buildNotification", () => {
 
   it("the courier task includes the pickup address and window", () => {
     const courier = buildNotification(ALL[2]!);
-    assert.ok(courier.details.includes("Pickup address: House 10, Uttara"));
-    assert.ok(courier.details.includes("Pickup window: 2026-11-06 09:15 UTC to 2026-11-06 11:00 UTC"));
+    assert.ok(courier.details.includes("Pickup address: 350 5th Ave, New York, NY 10118"));
+    assert.ok(courier.details.includes("Pickup window: Nov 6, 2026, 4:15 AM EST to Nov 6, 2026, 6:00 AM EST"));
   });
 
   it("failed delivery explains what happens next, including the final attempt", () => {

@@ -29,16 +29,16 @@ describe("formatMoneyFields", () => {
       id: "s1",
       price: new Prisma.Decimal("160"),
       declaredValue: null as Prisma.Decimal | null,
-      weightKg: new Prisma.Decimal("2.3"),
+      weightLb: new Prisma.Decimal("2.3"),
     };
     const out = formatMoneyFields(row, ["price", "declaredValue"]);
     assert.equal(out.price, "160.00");
     assert.equal(out.declaredValue, null);
     assert.equal(out.id, "s1");
     // Weights are not money and are left untouched.
-    assert.ok(out.weightKg instanceof Prisma.Decimal);
+    assert.ok(out.weightLb instanceof Prisma.Decimal);
     // The JSON a client receives:
-    assert.equal(JSON.stringify(out), '{"id":"s1","price":"160.00","declaredValue":null,"weightKg":"2.3"}');
+    assert.equal(JSON.stringify(out), '{"id":"s1","price":"160.00","declaredValue":null,"weightLb":"2.3"}');
   });
 
   it("does not mutate the input row", () => {

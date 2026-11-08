@@ -214,7 +214,7 @@ const main = async (): Promise<void> => {
   });
   await expectStatus("tracking unknown id → 404", "GET", "/tracking/CRV-000000-NOPE00", 404);
   await check("validation error → 400", "400 + errors[]", async () => {
-    const reply = await call("POST", "/pricing/estimate", { body: { weightKg: -1 } });
+    const reply = await call("POST", "/pricing/estimate", { body: { weightLb: -1 } });
     const ok = reply.status === 400 && isEnvelope(reply, false) && Array.isArray(reply.body?.errors) && reply.body.errors.length > 0;
     return { ok, got: `${reply.status} errors=${Array.isArray(reply.body?.errors) ? reply.body.errors.length : "?"}` };
   });

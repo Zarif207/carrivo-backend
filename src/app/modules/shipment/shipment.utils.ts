@@ -15,7 +15,7 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
 });
 
-/** YYMMDD in the business timezone (Asia/Dhaka). */
+/** YYMMDD in the business time zone (America/New_York). */
 export const formatTrackingDate = (date: Date): string => {
   const parts = dateFormatter.formatToParts(date);
   const get = (type: Intl.DateTimeFormatPartTypes): string => parts.find((p) => p.type === type)?.value ?? "";

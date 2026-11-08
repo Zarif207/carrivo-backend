@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { ServiceType } from "../../../generated/prisma/enums.js";
-import { idParams, moneySchema, weightSchema } from "../../utils/commonValidation.js";
+import { idParams, moneySchema, weightSchema, MAX_WEIGHT_LB } from "../../utils/commonValidation.js";
 import { booleanQuery, optionalQuery, paginationQueryShape, sortByQuery } from "../../utils/pagination.js";
 
-export const PRICING_SORT_FIELDS = ["name", "serviceType", "baseFee", "perKgFee", "createdAt"] as const;
+export const PRICING_SORT_FIELDS = ["name", "serviceType", "baseFee", "perLbFee", "createdAt"] as const;
 
 const serviceType = z.enum(ServiceType, { message: "serviceType must be STANDARD, EXPRESS or SAME_DAY" });
 const zoneId = z.uuid({ message: "Invalid zone id" });
@@ -15,9 +15,9 @@ const ruleFields = {
   originZoneId: zoneId.nullable(),
   destinationZoneId: zoneId.nullable(),
   baseFee: moneySchema,
-  baseWeightKg: z.number().min(0).max(1000).transform((v) => Math.round(v * 100) / 100),
-  perKgFee: moneySchema,
-  maxWeightKg: weightSchema.nullable(),
+  baseWeightLb: z.number().min(0).max(MAX_WEIGHT_LB).transform((v) => Math.round(v * 100) / 100),
+  perLbFee: moneySchema,
+  maxWeightLb: weightSchema.nullable(),
   isActive: z.boolean(),
 };
 
@@ -29,12 +29,12 @@ const zonePairMessage = {
   path: ["destinationZoneId"],
 };
 
-const maxAboveBase = (body: { baseWeightKg?: number; maxWeightKg?: number | null }): boolean =>
-  body.baseWeightKg === undefined || body.maxWeightKg === undefined || body.maxWeightKg === null
+const maxAboveBase = (body: { baseWeightLb?: number; maxWeightLb?: number | null }): boolean =>
+  body.baseWeightLb === undefined || body.maxWeightLb === undefined || body.maxWeightLb === null
     ? true
-    : body.maxWeightKg >= body.baseWeightKg;
+    : body.maxWeightLb >= body.baseWeightLb;
 
-const maxMessage = { message: "maxWeightKg must be at least baseWeightKg", path: ["maxWeightKg"] };
+const maxMessage = { message: "maxWeightLb must be at least baseWeightLb", path: ["maxWeightLb"] };
 
 const create = z.object({
   body: z
@@ -42,8 +42,8 @@ const create = z.object({
       ...ruleFields,
       originZoneId: ruleFields.originZoneId.default(null),
       destinationZoneId: ruleFields.destinationZoneId.default(null),
-      baseWeightKg: ruleFields.baseWeightKg.default(1),
-      maxWeightKg: ruleFields.maxWeightKg.default(null),
+      baseWeightLb: ruleFields.baseWeightLb.default(1),
+      maxWeightLb: ruleFields.maxWeightLb.default(null),
       isActive: ruleFields.isActive.default(true),
     })
     .refine(bothOrNeither, zonePairMessage)
@@ -74,7 +74,7 @@ const list = z.object({
 
 const estimate = z.object({
   body: z.strictObject({
-    weightKg: weightSchema,
+    weightLb: weightSchema,
     serviceType,
     originZoneId: zoneId,
     destinationZoneId: zoneId,

@@ -52,6 +52,9 @@ export const DISABLED_PATHS = [
   "/delete-user",
 ];
 
+/** New accounts are always CUSTOMER (role is also `input: false`): defense in depth for sign-up and Google. */
+export const withCustomerRole = <T extends Record<string, unknown>>(user: T): T & { role: "CUSTOMER" } => ({ ...user, role: "CUSTOMER" });
+
 export const auth = betterAuth({
   appName: "Carrivo",
   baseURL: env.BETTER_AUTH_URL,
@@ -94,7 +97,7 @@ export const auth = betterAuth({
   user: {
     additionalFields: {
       role: {
-        type: ["CUSTOMER", "COURIER", "ADMIN"],
+        type: ["CUSTOMER", "COURIER", "ADMIN", "ADMIN_VIEWER"],
         required: false,
         defaultValue: "CUSTOMER",
         input: false,
@@ -115,6 +118,13 @@ export const auth = betterAuth({
     },
   },
   databaseHooks: {
+    // Every account Better Auth creates (email sign-up, Google sign-in) starts as CUSTOMER, whatever
+    // the request carried. Staff roles are only ever set afterwards by the seed or the admin API.
+    user: {
+      create: {
+        before: async (user) => ({ data: withCustomerRole(user) }),
+      },
+    },
     session: {
       create: {
         // Runs for every new session (login, register auto sign-in, refresh rotation).

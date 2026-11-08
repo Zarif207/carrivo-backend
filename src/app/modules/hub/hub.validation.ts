@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { idParams, phoneSchema } from "../../utils/commonValidation.js";
+import { idParams, phoneSchema, usAddressSchema } from "../../utils/commonValidation.js";
 import { booleanQuery, optionalQuery, paginationQueryShape, sortByQuery } from "../../utils/pagination.js";
 
 export const HUB_SORT_FIELDS = ["name", "code", "city", "createdAt"] as const;
@@ -11,7 +11,7 @@ const hubBody = z.strictObject({
     .trim()
     .toUpperCase()
     .regex(/^[A-Z0-9-]{2,30}$/, { message: "Code must be 2-30 characters: letters, digits or dashes" }),
-  address: z.string().trim().min(3).max(300),
+  address: usAddressSchema,
   city: z.string().trim().min(2).max(100),
   phone: phoneSchema.nullable().optional(),
   zoneId: z.uuid({ message: "Invalid zone id" }),

@@ -8,7 +8,8 @@
  *   left untouched (it may have been changed through the API since).
  *
  * The demo password comes from SEED_DEMO_PASSWORD; it is never stored in code
- * and never printed.
+ * and never printed. SEED_ADMIN_PASSWORD (optional) gives admin@carrivo.dev its own
+ * password so the real admin does not share the public demo password.
  *
  * Production (NODE_ENV=production): SEED_CONFIRM_DB_HOST must name the target
  * host and the password must be strong (see seed.safety.ts and docs/DEPLOYMENT.md).
@@ -33,13 +34,22 @@ import { AUDIT_ACTIONS, AUDIT_ENTITIES } from "../src/app/modules/audit/audit.co
 import { calculateCourierEarning } from "../src/app/modules/courier/courier.utils.js";
 import { calculatePrice } from "../src/app/modules/pricing/pricing.utils.js";
 import { allowedTransitions } from "../src/app/modules/shipment/shipment.constants.js";
-import { checkSeedTarget, demoPasswordProblems } from "./seed.safety.js";
+import { adminPasswordProblems, checkSeedTarget, demoPasswordProblems } from "./seed.safety.js";
+
+interface SeedHub {
+  code: string;
+  name: string;
+  address: string;
+  city: string;
+  phone: string;
+}
 
 interface SeedZone {
   code: string;
   name: string;
   description: string;
-  hub: { code: string; name: string; address: string; city: string; phone: string };
+  /** The first hub is the zone's main hub (code HUB-<zone code>); shipments route through it. */
+  hubs: [SeedHub, ...SeedHub[]];
 }
 
 interface SeedUser {
@@ -50,52 +60,58 @@ interface SeedUser {
   courier?: { zoneCode: string; hubCode: string; vehicleType: VehicleType; vehicleNumber: string };
 }
 
+/*
+ * US demo data. Phone numbers use the fictional 555-0100 to 555-0199 range; street addresses are
+ * generic (no real businesses or residents). Addresses follow "street, City, ST ZIP" (validated by
+ * usAddressSchema in the API).
+ */
 const ZONES: SeedZone[] = [
   {
-    code: "DHK-N",
-    name: "Dhaka North",
-    description: "Uttara, Mirpur, Gulshan, Banani",
-    hub: {
-      code: "HUB-DHK-N",
-      name: "Dhaka North Hub",
-      address: "Plot 12, Sector 7, Uttara",
-      city: "Dhaka",
-      phone: "+8801700000001",
-    },
+    code: "NYC",
+    name: "New York Metro",
+    description: "Manhattan, Brooklyn, Queens and Jersey City",
+    hubs: [
+      { code: "HUB-NYC", name: "Queens Hub", address: "47-10 Austell Pl, Long Island City, NY 11101", city: "Long Island City", phone: "(212) 555-0100" },
+      { code: "HUB-NYC-JC", name: "Jersey City Hub", address: "180 Harbor Dr, Jersey City, NJ 07305", city: "Jersey City", phone: "(201) 555-0101" },
+    ],
   },
   {
-    code: "DHK-S",
-    name: "Dhaka South",
-    description: "Motijheel, Dhanmondi, Old Dhaka",
-    hub: {
-      code: "HUB-DHK-S",
-      name: "Dhaka South Hub",
-      address: "45 Motijheel C/A",
-      city: "Dhaka",
-      phone: "+8801700000002",
-    },
+    code: "LA",
+    name: "Los Angeles Metro",
+    description: "Downtown LA, Santa Monica, Pasadena and Long Beach",
+    hubs: [
+      { code: "HUB-LA", name: "Downtown LA Hub", address: "1200 E 7th St, Los Angeles, CA 90021", city: "Los Angeles", phone: "(213) 555-0102" },
+      { code: "HUB-LA-LB", name: "Long Beach Hub", address: "2400 E Pacific Coast Hwy, Long Beach, CA 90804", city: "Long Beach", phone: "(562) 555-0103" },
+    ],
   },
 ];
 
 const USERS: SeedUser[] = [
-  { name: "Carrivo Admin", email: "admin@carrivo.dev", role: Role.ADMIN, phone: "+8801711000000" },
+  { name: "Carrivo Admin", email: "admin@carrivo.dev", role: Role.ADMIN, phone: "(212) 555-0110" },
+  { name: "Carrivo Viewer", email: "viewer@carrivo.dev", role: Role.ADMIN_VIEWER, phone: "(212) 555-0111" },
   {
-    name: "Rahim Courier",
+    name: "Marcus Johnson",
     email: "courier1@carrivo.dev",
     role: Role.COURIER,
-    phone: "+8801711000001",
-    courier: { zoneCode: "DHK-N", hubCode: "HUB-DHK-N", vehicleType: VehicleType.MOTORCYCLE, vehicleNumber: "DHAKA-METRO-HA-11-1111" },
+    phone: "(212) 555-0120",
+    courier: { zoneCode: "NYC", hubCode: "HUB-NYC", vehicleType: VehicleType.VAN, vehicleNumber: "NY KDR-4821" },
   },
   {
-    name: "Karim Courier",
+    name: "Sofia Ramirez",
     email: "courier2@carrivo.dev",
     role: Role.COURIER,
-    phone: "+8801711000002",
-    courier: { zoneCode: "DHK-S", hubCode: "HUB-DHK-S", vehicleType: VehicleType.BICYCLE, vehicleNumber: "N/A" },
+    phone: "(213) 555-0121",
+    courier: { zoneCode: "LA", hubCode: "HUB-LA", vehicleType: VehicleType.MOTORCYCLE, vehicleNumber: "CA 8MZK214" },
   },
-  { name: "Ayesha Customer", email: "customer1@carrivo.dev", role: Role.CUSTOMER, phone: "+8801711000003" },
-  { name: "Tanvir Customer", email: "customer2@carrivo.dev", role: Role.CUSTOMER, phone: "+8801711000004" },
+  { name: "Emily Carter", email: "customer1@carrivo.dev", role: Role.CUSTOMER, phone: "(646) 555-0130" },
+  { name: "David Kim", email: "customer2@carrivo.dev", role: Role.CUSTOMER, phone: "(310) 555-0131" },
 ];
+
+/** Where each customer's parcels are picked up from (their sender address), by origin zone. */
+const PICKUP_ADDRESS: Record<string, string> = {
+  NYC: "120 W 45th St, New York, NY 10036",
+  LA: "800 S Figueroa St, Los Angeles, CA 90017",
+};
 
 const seedZonesAndHubs = async (): Promise<Map<string, string>> => {
   const ids = new Map<string, string>();
@@ -107,12 +123,14 @@ const seedZonesAndHubs = async (): Promise<Map<string, string>> => {
     });
     ids.set(zone.code, savedZone.id);
 
-    const savedHub = await prisma.hub.upsert({
-      where: { code: zone.hub.code },
-      update: { ...zone.hub, zoneId: savedZone.id, deletedAt: null, isActive: true },
-      create: { ...zone.hub, zoneId: savedZone.id },
-    });
-    ids.set(zone.hub.code, savedHub.id);
+    for (const hub of zone.hubs) {
+      const savedHub = await prisma.hub.upsert({
+        where: { code: hub.code },
+        update: { ...hub, zoneId: savedZone.id, deletedAt: null, isActive: true },
+        create: { ...hub, zoneId: savedZone.id },
+      });
+      ids.set(hub.code, savedHub.id);
+    }
   }
   return ids;
 };
@@ -172,22 +190,23 @@ interface SeedRule {
   serviceType: ServiceType;
   route: [string, string] | null; // [originZoneCode, destinationZoneCode]; null = default rule
   baseFee: number;
-  baseWeightKg: number;
-  perKgFee: number;
-  maxWeightKg: number | null;
+  baseWeightLb: number;
+  perLbFee: number;
+  maxWeightLb: number | null;
 }
 
-// SAME_DAY has no default rule, so it is only offered within a zone
-// (an estimate between zones returns 422 "No pricing available").
+// Weights in pounds, prices in USD. Default rules price cross-country (New York <-> Los Angeles);
+// within-metro rules are cheaper. SAME_DAY has no default rule, so it is only offered within a
+// metro (an estimate between zones returns 422 "No pricing available").
 const PRICING_RULES: SeedRule[] = [
-  { name: "Standard - Default", serviceType: ServiceType.STANDARD, route: null, baseFee: 4.0, baseWeightKg: 1, perKgFee: 1.0, maxWeightKg: 50 },
-  { name: "Standard - Within Dhaka North", serviceType: ServiceType.STANDARD, route: ["DHK-N", "DHK-N"], baseFee: 2.5, baseWeightKg: 1, perKgFee: 0.75, maxWeightKg: 50 },
-  { name: "Standard - Within Dhaka South", serviceType: ServiceType.STANDARD, route: ["DHK-S", "DHK-S"], baseFee: 2.5, baseWeightKg: 1, perKgFee: 0.75, maxWeightKg: 50 },
-  { name: "Express - Default", serviceType: ServiceType.EXPRESS, route: null, baseFee: 6.5, baseWeightKg: 1, perKgFee: 1.5, maxWeightKg: 30 },
-  { name: "Express - Within Dhaka North", serviceType: ServiceType.EXPRESS, route: ["DHK-N", "DHK-N"], baseFee: 4.5, baseWeightKg: 1, perKgFee: 1.0, maxWeightKg: 30 },
-  { name: "Express - Within Dhaka South", serviceType: ServiceType.EXPRESS, route: ["DHK-S", "DHK-S"], baseFee: 4.5, baseWeightKg: 1, perKgFee: 1.0, maxWeightKg: 30 },
-  { name: "Same Day - Within Dhaka North", serviceType: ServiceType.SAME_DAY, route: ["DHK-N", "DHK-N"], baseFee: 7.0, baseWeightKg: 1, perKgFee: 1.5, maxWeightKg: 10 },
-  { name: "Same Day - Within Dhaka South", serviceType: ServiceType.SAME_DAY, route: ["DHK-S", "DHK-S"], baseFee: 7.0, baseWeightKg: 1, perKgFee: 1.5, maxWeightKg: 10 },
+  { name: "Standard - Cross-country", serviceType: ServiceType.STANDARD, route: null, baseFee: 12.0, baseWeightLb: 2, perLbFee: 1.25, maxWeightLb: 70 },
+  { name: "Standard - Within New York Metro", serviceType: ServiceType.STANDARD, route: ["NYC", "NYC"], baseFee: 6.5, baseWeightLb: 2, perLbFee: 0.6, maxWeightLb: 70 },
+  { name: "Standard - Within Los Angeles Metro", serviceType: ServiceType.STANDARD, route: ["LA", "LA"], baseFee: 6.5, baseWeightLb: 2, perLbFee: 0.6, maxWeightLb: 70 },
+  { name: "Express - Cross-country", serviceType: ServiceType.EXPRESS, route: null, baseFee: 24.0, baseWeightLb: 2, perLbFee: 2.5, maxWeightLb: 50 },
+  { name: "Express - Within New York Metro", serviceType: ServiceType.EXPRESS, route: ["NYC", "NYC"], baseFee: 11.0, baseWeightLb: 2, perLbFee: 1.0, maxWeightLb: 50 },
+  { name: "Express - Within Los Angeles Metro", serviceType: ServiceType.EXPRESS, route: ["LA", "LA"], baseFee: 11.0, baseWeightLb: 2, perLbFee: 1.0, maxWeightLb: 50 },
+  { name: "Same Day - Within New York Metro", serviceType: ServiceType.SAME_DAY, route: ["NYC", "NYC"], baseFee: 18.0, baseWeightLb: 2, perLbFee: 1.5, maxWeightLb: 20 },
+  { name: "Same Day - Within Los Angeles Metro", serviceType: ServiceType.SAME_DAY, route: ["LA", "LA"], baseFee: 18.0, baseWeightLb: 2, perLbFee: 1.5, maxWeightLb: 20 },
 ];
 
 const seedPricingRules = async (ids: Map<string, string>): Promise<number> => {
@@ -198,9 +217,9 @@ const seedPricingRules = async (ids: Map<string, string>): Promise<number> => {
       originZoneId: rule.route ? requireId(ids, rule.route[0]) : null,
       destinationZoneId: rule.route ? requireId(ids, rule.route[1]) : null,
       baseFee: rule.baseFee,
-      baseWeightKg: rule.baseWeightKg,
-      perKgFee: rule.perKgFee,
-      maxWeightKg: rule.maxWeightKg,
+      baseWeightLb: rule.baseWeightLb,
+      perLbFee: rule.perLbFee,
+      maxWeightLb: rule.maxWeightLb,
       isActive: true,
       deletedAt: null,
     };
@@ -219,10 +238,10 @@ interface SeedShipment {
   trackingId: string;
   customer: string; // email
   courier?: string; // email
-  from: "DHK-N" | "DHK-S";
-  to: "DHK-N" | "DHK-S";
+  from: "NYC" | "LA";
+  to: "NYC" | "LA";
   serviceType: ServiceType;
-  weightKg: number;
+  weightLb: number;
   status: ShipmentStatus;
   receiverName: string;
   receiverPhone: string;
@@ -267,20 +286,20 @@ const pathTo = (status: ShipmentStatus, failedAttempts = 1): ShipmentStatus[] =>
 };
 
 const SHIPMENTS: SeedShipment[] = [
-  { trackingId: "CRV-261101-SEED01", customer: "customer1@carrivo.dev", from: "DHK-N", to: "DHK-S", serviceType: ServiceType.STANDARD, weightKg: 2.3, status: ShipmentStatus.PENDING, receiverName: "Nusrat Jahan", receiverPhone: "+8801811000001", deliveryAddress: "House 5, Road 27, Dhanmondi, Dhaka", daysAgo: 0 },
-  { trackingId: "CRV-261101-SEED02", customer: "customer1@carrivo.dev", from: "DHK-N", to: "DHK-N", serviceType: ServiceType.EXPRESS, weightKg: 1, status: ShipmentStatus.PICKUP_SCHEDULED, receiverName: "Imran Hossain", receiverPhone: "+8801811000002", deliveryAddress: "Flat 3B, Road 11, Banani, Dhaka", daysAgo: 1 },
-  { trackingId: "CRV-261101-SEED03", customer: "customer2@carrivo.dev", courier: "courier2@carrivo.dev", from: "DHK-S", to: "DHK-S", serviceType: ServiceType.STANDARD, weightKg: 3.5, status: ShipmentStatus.COURIER_ASSIGNED, receiverName: "Farhana Akter", receiverPhone: "+8801811000003", deliveryAddress: "22 Lalbagh Road, Old Dhaka", daysAgo: 2 },
-  { trackingId: "CRV-261101-SEED04", customer: "customer1@carrivo.dev", courier: "courier1@carrivo.dev", from: "DHK-N", to: "DHK-S", serviceType: ServiceType.STANDARD, weightKg: 4, status: ShipmentStatus.PICKED_UP, receiverName: "Sabbir Rahman", receiverPhone: "+8801811000004", deliveryAddress: "14 Motijheel C/A, Dhaka", daysAgo: 3, isFragile: true },
-  { trackingId: "CRV-261101-SEED05", customer: "customer2@carrivo.dev", courier: "courier2@carrivo.dev", from: "DHK-S", to: "DHK-N", serviceType: ServiceType.EXPRESS, weightKg: 1.8, status: ShipmentStatus.IN_TRANSIT, receiverName: "Mahmudul Hasan", receiverPhone: "+8801811000005", deliveryAddress: "Sector 4, Road 9, Uttara, Dhaka", daysAgo: 4 },
-  { trackingId: "CRV-261101-SEED06", customer: "customer1@carrivo.dev", courier: "courier1@carrivo.dev", from: "DHK-N", to: "DHK-N", serviceType: ServiceType.SAME_DAY, weightKg: 0.8, status: ShipmentStatus.OUT_FOR_DELIVERY, receiverName: "Tahmina Sultana", receiverPhone: "+8801811000006", deliveryAddress: "Mirpur 10, Block C, Dhaka", daysAgo: 5 },
-  { trackingId: "CRV-261101-SEED07", customer: "customer2@carrivo.dev", courier: "courier2@carrivo.dev", from: "DHK-S", to: "DHK-S", serviceType: ServiceType.STANDARD, weightKg: 5, status: ShipmentStatus.DELIVERED, receiverName: "Arif Chowdhury", receiverPhone: "+8801811000007", deliveryAddress: "8 Shantinagar, Dhaka", daysAgo: 8 },
-  { trackingId: "CRV-261101-SEED08", customer: "customer1@carrivo.dev", courier: "courier1@carrivo.dev", from: "DHK-N", to: "DHK-S", serviceType: ServiceType.EXPRESS, weightKg: 2, status: ShipmentStatus.FAILED_DELIVERY, receiverName: "Rumana Islam", receiverPhone: "+8801811000008", deliveryAddress: "Azimpur Govt. Colony, Dhaka", daysAgo: 10 },
-  { trackingId: "CRV-261101-SEED09", customer: "customer2@carrivo.dev", from: "DHK-S", to: "DHK-N", serviceType: ServiceType.STANDARD, weightKg: 1.2, status: ShipmentStatus.CANCELLED, receiverName: "Kamal Uddin", receiverPhone: "+8801811000009", deliveryAddress: "Gulshan 2, Road 90, Dhaka", daysAgo: 12 },
-  // Phase 4 workflow demos: PENDING but PAID (ready for POST /pickup), unassigned
+  { trackingId: "CRV-261101-SEED01", customer: "customer1@carrivo.dev", from: "NYC", to: "LA", serviceType: ServiceType.STANDARD, weightLb: 5.1, status: ShipmentStatus.PENDING, receiverName: "Olivia Martinez", receiverPhone: "(323) 555-0140", deliveryAddress: "1520 N Vine St, Los Angeles, CA 90028", daysAgo: 0 },
+  { trackingId: "CRV-261101-SEED02", customer: "customer1@carrivo.dev", from: "NYC", to: "NYC", serviceType: ServiceType.EXPRESS, weightLb: 2.2, status: ShipmentStatus.PICKUP_SCHEDULED, receiverName: "James Wilson", receiverPhone: "(718) 555-0141", deliveryAddress: "245 Bedford Ave, Brooklyn, NY 11211", daysAgo: 1 },
+  { trackingId: "CRV-261101-SEED03", customer: "customer2@carrivo.dev", courier: "courier2@carrivo.dev", from: "LA", to: "LA", serviceType: ServiceType.STANDARD, weightLb: 7.7, status: ShipmentStatus.COURIER_ASSIGNED, receiverName: "Ava Thompson", receiverPhone: "(310) 555-0142", deliveryAddress: "1310 3rd St, Santa Monica, CA 90401", daysAgo: 2 },
+  { trackingId: "CRV-261101-SEED04", customer: "customer1@carrivo.dev", courier: "courier1@carrivo.dev", from: "NYC", to: "LA", serviceType: ServiceType.STANDARD, weightLb: 8.8, status: ShipmentStatus.PICKED_UP, receiverName: "Noah Brown", receiverPhone: "(626) 555-0143", deliveryAddress: "75 W Colorado Blvd, Pasadena, CA 91105", daysAgo: 3, isFragile: true },
+  { trackingId: "CRV-261101-SEED05", customer: "customer2@carrivo.dev", courier: "courier2@carrivo.dev", from: "LA", to: "NYC", serviceType: ServiceType.EXPRESS, weightLb: 4, status: ShipmentStatus.IN_TRANSIT, receiverName: "Mia Davis", receiverPhone: "(917) 555-0144", deliveryAddress: "88 Greenwich St, New York, NY 10006", daysAgo: 4 },
+  { trackingId: "CRV-261101-SEED06", customer: "customer1@carrivo.dev", courier: "courier1@carrivo.dev", from: "NYC", to: "NYC", serviceType: ServiceType.SAME_DAY, weightLb: 1.8, status: ShipmentStatus.OUT_FOR_DELIVERY, receiverName: "Ethan Garcia", receiverPhone: "(347) 555-0145", deliveryAddress: "31-15 Steinway St, Astoria, NY 11103", daysAgo: 5 },
+  { trackingId: "CRV-261101-SEED07", customer: "customer2@carrivo.dev", courier: "courier2@carrivo.dev", from: "LA", to: "LA", serviceType: ServiceType.STANDARD, weightLb: 11, status: ShipmentStatus.DELIVERED, receiverName: "Isabella Lee", receiverPhone: "(562) 555-0146", deliveryAddress: "400 Pine Ave, Long Beach, CA 90802", daysAgo: 8 },
+  { trackingId: "CRV-261101-SEED08", customer: "customer1@carrivo.dev", courier: "courier1@carrivo.dev", from: "NYC", to: "LA", serviceType: ServiceType.EXPRESS, weightLb: 4.4, status: ShipmentStatus.FAILED_DELIVERY, receiverName: "Liam Anderson", receiverPhone: "(213) 555-0147", deliveryAddress: "600 W 9th St, Los Angeles, CA 90015", daysAgo: 10 },
+  { trackingId: "CRV-261101-SEED09", customer: "customer2@carrivo.dev", from: "LA", to: "NYC", serviceType: ServiceType.STANDARD, weightLb: 2.6, status: ShipmentStatus.CANCELLED, receiverName: "Charlotte Moore", receiverPhone: "(201) 555-0148", deliveryAddress: "30 Montgomery St, Jersey City, NJ 07302", daysAgo: 12 },
+  // Workflow demos: PENDING but PAID (ready for POST /pickup), unassigned
   // PICKUP_SCHEDULED (ready for POST /assign), and 3 failed attempts (only RETURNED left).
-  { trackingId: "CRV-261101-SEED10", customer: "customer1@carrivo.dev", from: "DHK-N", to: "DHK-N", serviceType: ServiceType.STANDARD, weightKg: 1.5, status: ShipmentStatus.PENDING, paid: true, receiverName: "Shirin Akhter", receiverPhone: "+8801811000010", deliveryAddress: "Road 12, Sector 10, Uttara, Dhaka", daysAgo: 0 },
-  { trackingId: "CRV-261101-SEED11", customer: "customer2@carrivo.dev", from: "DHK-S", to: "DHK-S", serviceType: ServiceType.STANDARD, weightKg: 2.5, status: ShipmentStatus.PICKUP_SCHEDULED, receiverName: "Jamal Hossain", receiverPhone: "+8801811000011", deliveryAddress: "15 Hatirpool, Dhaka", daysAgo: 1 },
-  { trackingId: "CRV-261101-SEED12", customer: "customer2@carrivo.dev", courier: "courier2@carrivo.dev", from: "DHK-S", to: "DHK-S", serviceType: ServiceType.STANDARD, weightKg: 1, status: ShipmentStatus.FAILED_DELIVERY, failedAttempts: 3, receiverName: "Nazmul Karim", receiverPhone: "+8801811000012", deliveryAddress: "Kalabagan 2nd Lane, Dhaka", daysAgo: 6 },
+  { trackingId: "CRV-261101-SEED10", customer: "customer1@carrivo.dev", from: "NYC", to: "NYC", serviceType: ServiceType.STANDARD, weightLb: 3.3, status: ShipmentStatus.PENDING, paid: true, receiverName: "Benjamin Clark", receiverPhone: "(646) 555-0149", deliveryAddress: "410 E 61st St, New York, NY 10065", daysAgo: 0 },
+  { trackingId: "CRV-261101-SEED11", customer: "customer2@carrivo.dev", from: "LA", to: "LA", serviceType: ServiceType.STANDARD, weightLb: 5.5, status: ShipmentStatus.PICKUP_SCHEDULED, receiverName: "Amelia Lewis", receiverPhone: "(818) 555-0150", deliveryAddress: "100 N Brand Blvd, Glendale, CA 91203", daysAgo: 1 },
+  { trackingId: "CRV-261101-SEED12", customer: "customer2@carrivo.dev", courier: "courier2@carrivo.dev", from: "LA", to: "LA", serviceType: ServiceType.STANDARD, weightLb: 2.2, status: ShipmentStatus.FAILED_DELIVERY, failedAttempts: 3, receiverName: "Lucas Walker", receiverPhone: "(424) 555-0151", deliveryAddress: "1000 Abbot Kinney Blvd, Venice, CA 90291", daysAgo: 6 },
 ];
 
 const HOUR = 60 * 60 * 1000;
@@ -325,7 +344,7 @@ const seedShipments = async (ids: Map<string, string>, userIds: Map<string, stri
         where: { serviceType: s.serviceType, originZoneId: null, destinationZoneId: null, isActive: true, deletedAt: null },
       }));
     if (!rule) throw new Error(`Seed: no pricing rule for ${s.trackingId}`);
-    const priced = calculatePrice(rule, s.weightKg);
+    const priced = calculatePrice(rule, s.weightLb);
     if (!priced.ok) throw new Error(`Seed: cannot price ${s.trackingId}: ${priced.reason}`);
 
     const path = pathTo(s.status, s.failedAttempts);
@@ -341,8 +360,8 @@ const seedShipments = async (ids: Map<string, string>, userIds: Map<string, stri
           customerId,
           courierId: courierId ?? null,
           senderName: customer?.name ?? "Customer",
-          senderPhone: customer?.phone ?? "+8801700000000",
-          pickupAddress: s.from === "DHK-N" ? "House 10, Road 3, Sector 7, Uttara, Dhaka" : "House 7, Road 2, Dhanmondi, Dhaka",
+          senderPhone: customer?.phone ?? "(212) 555-0199",
+          pickupAddress: PICKUP_ADDRESS[s.from] ?? "120 W 45th St, New York, NY 10036",
           receiverName: s.receiverName,
           receiverPhone: s.receiverPhone,
           deliveryAddress: s.deliveryAddress,
@@ -352,7 +371,7 @@ const seedShipments = async (ids: Map<string, string>, userIds: Map<string, stri
           destinationHubId,
           currentHubId:
             s.status === ShipmentStatus.AT_ORIGIN_HUB ? originHubId : s.status === ShipmentStatus.AT_DESTINATION_HUB ? destinationHubId : null,
-          weightKg: s.weightKg,
+          weightLb: s.weightLb,
           description: "Sample parcel (seed data)",
           isFragile: s.isFragile ?? false,
           serviceType: s.serviceType,
@@ -502,7 +521,7 @@ const syncSeedMoney = async (): Promise<{ repriced: number; payments: number; ea
       trackingId: true,
       customerId: true,
       serviceType: true,
-      weightKg: true,
+      weightLb: true,
       originZoneId: true,
       destinationZoneId: true,
       price: true,
@@ -516,7 +535,7 @@ const syncSeedMoney = async (): Promise<{ repriced: number; payments: number; ea
   for (const row of rows) {
     const rule = await findRule(row.serviceType, row.originZoneId, row.destinationZoneId);
     if (!rule) throw new Error(`Seed: no pricing rule for ${row.trackingId}`);
-    const priced = calculatePrice(rule, row.weightKg);
+    const priced = calculatePrice(rule, row.weightLb);
     if (!priced.ok) throw new Error(`Seed: cannot price ${row.trackingId}: ${priced.reason}`);
     const price = priced.breakdown.total;
 
@@ -623,11 +642,16 @@ async function main(): Promise<void> {
       `Seed refused: SEED_DEMO_PASSWORD is not acceptable${production ? " for production" : ""}: ${problems.join(" ")}`,
     );
   }
+  const adminProblems = adminPasswordProblems(env.SEED_ADMIN_PASSWORD, password, production);
+  if (adminProblems.length > 0) {
+    throw new Error(`Seed refused: SEED_ADMIN_PASSWORD is not acceptable${production ? " for production" : ""}: ${adminProblems.join(" ")}`);
+  }
+  const passwordFor = (user: SeedUser): string => (user.role === Role.ADMIN && env.SEED_ADMIN_PASSWORD) || password;
   const resetPasswords = process.env["SEED_RESET_DEMO_PASSWORDS"] === "true";
   console.log(`Seed: target database host ${target.host}${production ? " (production)" : ""}.`);
 
   const ids = await seedZonesAndHubs();
-  console.log(`Seed: ${ZONES.length} zones and ${ZONES.length} hubs upserted.`);
+  console.log(`Seed: ${ZONES.length} zones and ${ZONES.reduce((n, z) => n + z.hubs.length, 0)} hubs upserted.`);
 
   const rules = await seedPricingRules(ids);
   console.log(`Seed: ${rules} pricing rules upserted.`);
@@ -635,11 +659,11 @@ async function main(): Promise<void> {
   const rows: { role: string; email: string; status: string }[] = [];
   const reset: string[] = [];
   for (const user of USERS) {
-    const status = await seedUser(user, password, ids);
+    const status = await seedUser(user, passwordFor(user), ids);
     let shown: string = status;
     if (status === "existing" && resetPasswords) {
       const found = await prisma.user.findUniqueOrThrow({ where: { email: user.email }, select: { id: true } });
-      if (await resetDemoPassword(found.id, user.email, password)) {
+      if (await resetDemoPassword(found.id, user.email, passwordFor(user))) {
         reset.push(user.email);
         shown = "existing (password reset)";
       }
@@ -660,7 +684,9 @@ async function main(): Promise<void> {
     `Seed: ${money.repriced} sample shipment(s) re-priced in ${PLATFORM_CURRENCY}, ${money.payments} seed payment(s) and ${money.earnings} earning(s) aligned.`,
   );
 
-  console.log("\nDemo accounts (all use the password in SEED_DEMO_PASSWORD; it is not printed):");
+  console.log(
+    `\nDemo accounts (password from SEED_DEMO_PASSWORD${env.SEED_ADMIN_PASSWORD ? "; the admin uses SEED_ADMIN_PASSWORD" : ""}; never printed):`,
+  );
   console.table(rows);
   if (reset.length > 0) {
     console.log(`Passwords reset (sessions revoked, audited) for: ${reset.join(", ")}`);

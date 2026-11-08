@@ -3,10 +3,12 @@ import httpStatus from "http-status";
 import type { Role } from "../../generated/prisma/enums.js";
 import { ApiError } from "../utils/ApiError.js";
 
+/** A route guard that remembers its roles, so tests can walk the route table (readOnly.test.ts). */
+export type AuthorizeHandler = RequestHandler & { allowedRoles: readonly Role[] };
+
 /** Allows the request only if `req.user.role` is one of `roles`. Use after `authenticate`. */
-export const authorize =
-  (...roles: Role[]): RequestHandler =>
-  (req, _res, next) => {
+export const authorize = (...roles: Role[]): AuthorizeHandler => {
+  const handler: RequestHandler = (req, _res, next) => {
     if (!req.user) {
       next(new ApiError(httpStatus.UNAUTHORIZED, "Not authenticated"));
       return;
@@ -17,3 +19,5 @@ export const authorize =
     }
     next();
   };
+  return Object.assign(handler, { allowedRoles: roles });
+};

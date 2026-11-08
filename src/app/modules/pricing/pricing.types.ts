@@ -11,9 +11,9 @@ export const pricingRuleSelect = {
   originZone: { select: zoneRefSelect },
   destinationZone: { select: zoneRefSelect },
   baseFee: true,
-  baseWeightKg: true,
-  perKgFee: true,
-  maxWeightKg: true,
+  baseWeightLb: true,
+  perLbFee: true,
+  maxWeightLb: true,
   isActive: true,
   createdAt: true,
   updatedAt: true,
@@ -22,7 +22,7 @@ export const pricingRuleSelect = {
 /** Row as read from the DB (Decimal money). */
 export type PricingRuleRow = Prisma.PricingRuleGetPayload<{ select: typeof pricingRuleSelect }>;
 
-export const PRICING_MONEY_FIELDS = ["baseFee", "perKgFee"] as const;
+export const PRICING_MONEY_FIELDS = ["baseFee", "perLbFee"] as const;
 
 /** API shape: money fields as 2-decimal strings. */
 export type PricingRuleDto = WithMoney<PricingRuleRow, (typeof PRICING_MONEY_FIELDS)[number]>;
@@ -31,7 +31,7 @@ export interface QuoteInput {
   serviceType: ServiceType;
   originZoneId: string;
   destinationZoneId: string;
-  weightKg: number;
+  weightLb: number;
 }
 
 /** Public estimate: the breakdown plus the service type. No rule id or other internals. */

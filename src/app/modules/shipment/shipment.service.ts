@@ -53,7 +53,7 @@ const notFound = (): ApiError => new ApiError(httpStatus.NOT_FOUND, "Shipment no
 const conflict = (message: string, errors: ErrorDetail[] = []): ApiError =>
   new ApiError(httpStatus.CONFLICT, message, errors);
 
-/** Customer: own shipments. Courier: assigned shipments. Admin: everything. */
+/** Customer: own shipments. Courier: assigned shipments. Admin and ADMIN_VIEWER: everything. */
 const scopeWhere = (actor: Actor): Prisma.ShipmentWhereInput => {
   switch (actor.role) {
     case Role.CUSTOMER:
@@ -61,6 +61,7 @@ const scopeWhere = (actor: Actor): Prisma.ShipmentWhereInput => {
     case Role.COURIER:
       return { courierId: actor.id };
     case Role.ADMIN:
+    case Role.ADMIN_VIEWER:
       return {};
   }
 };
@@ -108,7 +109,7 @@ const editSnapshotSelect = {
   description: true,
   declaredValue: true,
   isFragile: true,
-  weightKg: true,
+  weightLb: true,
   serviceType: true,
   price: true,
 } as const satisfies Prisma.ShipmentSelect;
@@ -450,7 +451,7 @@ const create = async (actor: Actor, payload: CreateShipmentInput, meta: RequestM
           originHubId: payload.originHubId,
           destinationZoneId: payload.destinationZoneId,
           destinationHubId: payload.destinationHubId,
-          weightKg: payload.weightKg,
+          weightLb: payload.weightLb,
           description: payload.description ?? null,
           declaredValue: payload.declaredValue ?? null,
           isFragile: payload.isFragile ?? false,
@@ -552,13 +553,13 @@ const update = async (
       throw conflict(`Shipment can only be edited while PENDING (current status: ${existing.status})`);
     }
 
-    const weightChanged = payload.weightKg !== undefined && !existing.weightKg.equals(payload.weightKg);
+    const weightChanged = payload.weightLb !== undefined && !existing.weightLb.equals(payload.weightLb);
     const serviceChanged = payload.serviceType !== undefined && payload.serviceType !== existing.serviceType;
     const repriced = weightChanged || serviceChanged;
 
     if (repriced && existing.paymentStatus === ShipmentPaymentStatus.PAID) {
       throw conflict("Weight and service type cannot be changed after payment", [
-        ...(weightChanged ? [{ path: "body.weightKg", message: "Locked after payment" }] : []),
+        ...(weightChanged ? [{ path: "body.weightLb", message: "Locked after payment" }] : []),
         ...(serviceChanged ? [{ path: "body.serviceType", message: "Locked after payment" }] : []),
       ]);
     }
@@ -571,7 +572,7 @@ const update = async (
     if (repriced) {
       const snapshot = await PricingService.quote(tx, {
         serviceType: payload.serviceType ?? existing.serviceType,
-        weightKg: payload.weightKg ?? existing.weightKg.toNumber(),
+        weightLb: payload.weightLb ?? existing.weightLb.toNumber(),
         originZoneId: existing.originZoneId,
         destinationZoneId: existing.destinationZoneId,
       });

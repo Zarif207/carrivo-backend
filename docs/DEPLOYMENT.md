@@ -23,8 +23,8 @@ Order: [1 Neon](#1-neon-production-database) → [2 Migrate + seed](#2-migrate-a
    ```bash
    # ~/carrivo-prod.env   (chmod 600; never inside the project folder)
    NODE_ENV=production
-   DATABASE_URL='postgresql://…@ep-…-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require'
-   DIRECT_URL='postgresql://…@ep-….ap-southeast-1.aws.neon.tech/neondb?sslmode=require'
+   DATABASE_URL='<pooled connection string from Neon>'
+   DIRECT_URL='<direct connection string from Neon>'
    ```
 
    `prisma.config.ts` and the app load `.env` through dotenv, which **never overrides variables that are already set**. So exporting this file into a subshell (step 2) makes every command use production. All other variables (Stripe, Google, …) still come from your local `.env`. The seed validates them but never calls those services.
@@ -38,7 +38,8 @@ Run from the project folder, on the commit you are deploying.
 - [ ] `git status` is clean, and `npm run build && npm test` pass.
 - [ ] You have a way back: on a brand-new database there is nothing to lose. Otherwise create a Neon branch (snapshot) first: Neon → Branches → *Create branch* from `main`, named `pre-migrate-YYYYMMDD`.
 - [ ] You have chosen a **strong `SEED_DEMO_PASSWORD`**. It must not be your local dev password. Generate one, for example `openssl rand -base64 24`, and store it in your password manager.
-  - The demo accounts include an **ADMIN**. The password goes into your submission, so anyone who reads it can log in to the live API as admin. A short or reused password would also be easy to guess and could unlock other places you've used it.
+  - The demo password goes into your submission, so anyone who reads it can log in as the demo accounts. A short or reused password would also be easy to guess and could unlock other places you've used it.
+- [ ] Optional but recommended: a separate **`SEED_ADMIN_PASSWORD`** for `admin@carrivo.dev`, so the public demo password does not open the real admin. Same strength rules; the seed refuses it if it equals the demo password. Reviewers can use the read-only `viewer@carrivo.dev` with the demo password instead.
   - The seed refuses (in production) anything shorter than 16 characters, using fewer than 3 kinds of characters (lowercase, uppercase, digits, symbols), containing words such as `password`, `carrivo`, `admin` or `demo`, or repeating one character 4+ times.
 
 ### Commands
@@ -62,22 +63,52 @@ Each block runs in a **subshell** `( … )`, so the production variables disappe
 # 2.4  Seed. The host must be confirmed explicitly; the password is typed, not stored.
 ( set -a; . ~/carrivo-prod.env; set +a
   read -rs -p "Production demo password: " SEED_DEMO_PASSWORD; echo; export SEED_DEMO_PASSWORD
-  export SEED_CONFIRM_DB_HOST='ep-…-pooler.ap-southeast-1.aws.neon.tech'   # the DATABASE_URL host from 2.1
+  read -rs -p "Admin password (Enter = use the demo password): " SEED_ADMIN_PASSWORD; echo
+  [ -n "$SEED_ADMIN_PASSWORD" ] && export SEED_ADMIN_PASSWORD || unset SEED_ADMIN_PASSWORD
+  export SEED_CONFIRM_DB_HOST='<the DATABASE_URL host printed by 2.1>'
   npm run db:seed )
 ```
 
 The seed:
 - refuses, writing nothing, if `SEED_CONFIRM_DB_HOST` doesn't match the `DATABASE_URL` host or the password is weak;
 - is idempotent, so re-running it is safe;
-- prints the emails and never the password.
+- prints the emails and never the passwords.
 
-**Rotating the demo password later** (for example if it leaked): run 2.4 again with the new password and `export SEED_RESET_DEMO_PASSWORDS=true`. This re-hashes the 5 demo accounts' passwords through Better Auth, revokes their sessions, and writes one `USER_PASSWORD_RESET_BY_SEED` audit row per account. The audit row holds the email only.
+**Rotating the demo password later** (for example if it leaked): run 2.4 again with the new password and `export SEED_RESET_DEMO_PASSWORDS=true`. This re-hashes the 6 demo accounts' passwords through Better Auth (the admin gets `SEED_ADMIN_PASSWORD` when it is set), revokes their sessions, and writes one `USER_PASSWORD_RESET_BY_SEED` audit row per account. The audit row holds the email only.
 
 Never run `prisma migrate dev`, `migrate reset` or `db push` against production.
 
+### Migrations in this release
+
+- `20261108090000_admin_viewer_role` adds `ADMIN_VIEWER` to the `Role` enum.
+- `20261108091000_weights_in_pounds` renames `weightKg`, `baseWeightKg`, `perKgFee`, `maxWeightKg` to the `…Lb` names, converts the stored values (× 2.20462, per-pound fee ÷ 2.20462) and rewrites the keys inside `priceBreakdown`. **This is a breaking API change**: deploy the frontend that sends `weightLb` in the same release. Take a Neon branch first; try it on that branch before `main`.
+
+### Resetting demo data
+
+`npm run db:reset-demo` (`prisma/reset-demo.ts`) replaces the demo data with a fresh US seed.
+
+- **Deletes:** every shipment with its status history, pickup requests, payments, courier earnings and notifications; all audit logs; all pricing rules, hubs and zones; the demo and test accounts (`*@carrivo.dev`, `*@example.com`, `phase<n>.test.*`) with their sessions and logins.
+- **Keeps:** every other registered user, and processed Stripe event ids (webhook idempotency). Proof images in Cloudinary are not deleted.
+- **Refuses** (nothing deleted) unless `SEED_CONFIRM_DB_HOST` equals the `DATABASE_URL` host **and** `RESET_CONFIRM` is exactly `reset demo data on <that host>`, in every environment. It also refuses if a kept (non-demo) user has a courier profile, because deleting zones would orphan it.
+- All deletes run in one transaction; the seed then runs with the same environment and its own checks.
+
+```bash
+# Take a Neon branch (snapshot) first: Neon → Branches → Create branch, e.g. pre-reset-YYYYMMDD.
+( set -a; . ~/carrivo-prod.env; set +a
+  node -e 'console.log(new URL(process.env.DATABASE_URL).hostname)'      # check the host
+  read -rs -p "Production demo password: " SEED_DEMO_PASSWORD; echo; export SEED_DEMO_PASSWORD
+  read -rs -p "Admin password (Enter = use the demo password): " SEED_ADMIN_PASSWORD; echo
+  [ -n "$SEED_ADMIN_PASSWORD" ] && export SEED_ADMIN_PASSWORD || unset SEED_ADMIN_PASSWORD
+  export SEED_CONFIRM_DB_HOST='<the host printed above>'
+  export RESET_CONFIRM="reset demo data on $SEED_CONFIRM_DB_HOST"
+  npm run db:reset-demo )
+```
+
+Afterwards: the demo users get new ids, so existing sessions and frontend caches for them are gone; sign in again.
+
 ## 3. Vercel project
 
-1. **Vercel → Add New → Project** → import `Zarif207/carrivo-backend`.
+1. **Vercel → Add New → Project** → import your `carrivo-backend` repository.
    - **Framework Preset:** Other. `vercel.json` already sets `"framework": null`.
    - **Root directory:** `./`.
    - **Build / Output / Install commands:** leave them empty (defaults). Vercel runs `npm install`; `postinstall` runs `prisma generate`.
@@ -93,7 +124,7 @@ Never run `prisma migrate dev`, `migrate reset` or `db push` against production.
 | `rewrites` | `/(.*)` → `/api` | Every path (`/`, `/api/v1/...`) reaches the one Express function. The original URL is preserved, so Express routing works unchanged. |
 | `regions` | `["sin1"]` | Next to Neon (`ap-southeast-1`) and Upstash. Each request makes several database round-trips. |
 | `functions["api/index.ts"].maxDuration` | `30` s | Covers the slowest path: a Cloudinary upload, 20 s timeout. |
-| Build | `vercel-build` = `prisma generate && tsc --noEmit` | Vercel runs `vercel-build` instead of `build`. It generates the client into `src/generated/` (gitignored) and stops the deploy on any type error. Vercel compiles `api/index.ts` and everything it imports itself; `dist/` is not used. |
+| Build | `postinstall` = `prisma generate` | Generates the client into `src/generated/` (gitignored) during install. Vercel compiles `api/index.ts` and everything it imports itself; `dist/` is not used. Run `npm run build` and `npx tsc --noEmit` locally before deploying. |
 | `.vercelignore` | `scripts/`, `docs/`, `dist/`, `.env*`, tests | Dev-only code is never uploaded. |
 
 **Checked locally:**
@@ -176,7 +207,7 @@ Keep the secret server-side in both projects (never a `NEXT_PUBLIC_` variable) a
 
 **Never set in Vercel:**
 - `DEV_ALLOW_MARK_PAID`
-- `SEED_DEMO_PASSWORD`, `SEED_CONFIRM_DB_HOST`, `SEED_RESET_DEMO_PASSWORDS`
+- `SEED_DEMO_PASSWORD`, `SEED_ADMIN_PASSWORD`, `SEED_CONFIRM_DB_HOST`, `SEED_RESET_DEMO_PASSWORDS`, `RESET_CONFIRM`
 - `SMOKE_*`
 - `DIRECT_URL` (only the CLI on your machine needs it)
 - `PORT`
@@ -232,7 +263,7 @@ Replace `API=https://<project>.vercel.app`.
 
   - Expect `… passed, 0 failed — PASS`. It is read-only and never creates payments or sends emails.
   - Each run makes about 60 requests. The global limit is 300 requests per 15 minutes per IP, so don't loop it.
-- [ ] **Postman:** set `baseUrl` to `$API/api/v1` and `demoPassword`, run the three logins, then run the **RBAC matrix** folder. All tests should pass.
+- [ ] **Postman:** set `baseUrl` to `$API/api/v1` and `demoPassword`, run the four logins (admin, viewer, courier, customer), then run the **RBAC matrix** folder (including **Admin Viewer (read-only)**). All tests should pass.
 - [ ] **Stripe:** as customer1:
   1. Create a shipment, initiate payment and pay with `4242 4242 4242 4242`.
   2. In the Dashboard, the endpoint shows a `checkout.session.completed` delivery with `200`.
@@ -257,4 +288,4 @@ Replace `API=https://<project>.vercel.app`.
 
   Each forwarded IP starts near `r=299`; the last call (no secret) shows your own IP's count instead of continuing either forwarded bucket.
 - [ ] **Logs:** Vercel → Logs shows no `Invalid environment variables`, no `webhook raw body unavailable`, and no stack traces in responses (`NODE_ENV=production`).
-- [ ] **Submission:** fill in the README submission block: live URL, Postman docs link, video. The admin password stays a placeholder there and goes only where the assignment asks for it.
+- [ ] **Submission:** fill in the README submission block: live URL, Postman docs link, video. Passwords stay out of the README; give them only where the assignment asks for them.

@@ -6,6 +6,7 @@ import { auth } from "../lib/auth.js";
 import type { AuthSession, AuthUser } from "../types/auth.types.js";
 import { ApiError } from "../utils/ApiError.js";
 import { catchAsync } from "../utils/catchAsync.js";
+import { readOnlyError, violatesReadOnly } from "./readOnly.js";
 
 const BEARER_PREFIX = "bearer ";
 
@@ -36,6 +37,10 @@ export const authenticate = catchAsync(async (req, _res, next) => {
   }
   if (!isRole(user.role)) {
     throw unauthorized("Invalid account role");
+  }
+  // Read-only accounts (ADMIN_VIEWER) can't change anything, on any route (middlewares/readOnly.ts).
+  if (violatesReadOnly(user.role, req.method, req.originalUrl)) {
+    throw readOnlyError();
   }
 
   req.user = {

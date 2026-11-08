@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { ServiceType, ShipmentPaymentStatus, ShipmentStatus } from "../../../generated/prisma/enums.js";
-import { idParams, moneySchema, phoneSchema, weightSchema } from "../../utils/commonValidation.js";
+import { idParams, moneySchema, phoneSchema, usAddressSchema, weightSchema } from "../../utils/commonValidation.js";
 import { optionalQuery, paginationQueryShape, sortByQuery } from "../../utils/pagination.js";
+import { zonedTimeToUtc } from "../../utils/timezone.js";
 import {
-  BUSINESS_UTC_OFFSET,
   HUB_STATUSES,
   PICKUP_MAX_DAYS_AHEAD,
   PICKUP_MAX_WINDOW_HOURS,
@@ -12,7 +12,7 @@ import {
 } from "./shipment.constants.js";
 
 const name = z.string().trim().min(2, { message: "Name must be at least 2 characters" }).max(100);
-const address = z.string().trim().min(5, { message: "Address must be at least 5 characters" }).max(300);
+const address = usAddressSchema;
 const uuid = (label: string) => z.uuid({ message: `Invalid ${label}` });
 
 /** Fields a customer may edit while the shipment is PENDING (zones/hubs are fixed). */
@@ -27,7 +27,7 @@ const editableFields = {
   description: z.string().trim().max(500).nullable(),
   declaredValue: moneySchema.nullable(),
   isFragile: z.boolean(),
-  weightKg: weightSchema,
+  weightLb: weightSchema,
   serviceType: z.enum(ServiceType, { message: "serviceType must be STANDARD, EXPRESS or SAME_DAY" }),
 };
 
@@ -61,13 +61,13 @@ const cancel = z.object({
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
-/** YYYY-MM-DD (taken as a Dhaka calendar day) or a full ISO datetime with offset. */
+/** YYYY-MM-DD (a US Eastern calendar day, DST-aware) or a full ISO datetime with offset. */
 export const dateQuery = (edge: "start" | "end") =>
   optionalQuery(z.union([z.iso.date(), z.iso.datetime({ offset: true })])).transform((value) => {
     if (value === undefined) return undefined;
     if (!DATE_ONLY.test(value)) return new Date(value);
     const time = edge === "start" ? "00:00:00.000" : "23:59:59.999";
-    return new Date(`${value}T${time}${BUSINESS_UTC_OFFSET}`);
+    return zonedTimeToUtc(value, time);
   });
 
 const list = z.object({
@@ -95,7 +95,7 @@ const byId = z.object({ params: idParams });
 const HOUR_MS = 60 * 60 * 1000;
 const isoDateTime = (label: string) =>
   z.iso
-    .datetime({ offset: true, message: `${label} must be an ISO date-time with timezone, e.g. 2026-11-10T10:00:00+06:00` })
+    .datetime({ offset: true, message: `${label} must be an ISO date-time with timezone, e.g. 2026-11-10T10:00:00-05:00` })
     .transform((value) => new Date(value));
 
 const pickup = z.object({

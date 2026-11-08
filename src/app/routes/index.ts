@@ -13,13 +13,14 @@ import { ZoneRoutes } from "../modules/zone/zone.route.js";
 
 const router = Router();
 
-interface ModuleRoute {
+export interface ModuleRoute {
   path: string;
   route: Router;
 }
 
 // Auth routes are mounted separately in app.ts (they must precede express.json()).
-const moduleRoutes: ModuleRoute[] = [
+/** Mount table (exported so tests can walk every route; see middlewares/readOnly.test.ts). */
+export const moduleRoutes: readonly ModuleRoute[] = [
   { path: "/health", route: HealthRoutes },
   { path: "/users", route: UserRoutes },
   { path: "/zones", route: ZoneRoutes },

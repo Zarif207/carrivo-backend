@@ -251,7 +251,7 @@ Phase 8: Documentation, testing, deployment. Read CLAUDE.md first.
    that save tokens/ids automatically. Include a "403 role matrix" folder
    that proves each role is blocked from the other roles' endpoints.
 2. Write a smoke-test script (or documented manual checklist) covering:
-   auth for all 3 roles, create shipment, pay, assign, full delivery,
+   auth for all 4 roles, create shipment, pay, assign, full delivery,
    validation error, 401, 403, 404.
 3. Audit every endpoint against CLAUDE.md: envelope shape, Zod validation,
    soft-delete filters, audit logs, indexes. List anything missing and fix
@@ -270,7 +270,7 @@ run npm run build and npx tsc --noEmit, do NOT commit, then list
 commit-sized chunks with files and conventional commit messages.
 ```
 
-Done when: the live URL passes the smoke checklist for all three roles and Stripe, the Postman docs are published, and your video script has a working demo for each point in the assignment's video guide.
+Done when: the live URL passes the smoke checklist for all four roles and Stripe, the Postman docs are published, and your video script has a working demo for each point in the assignment's video guide.
 
 ---
 

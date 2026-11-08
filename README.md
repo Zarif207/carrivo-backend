@@ -1,433 +1,483 @@
-# Carrivo Backend
+# Carrivo API
 
-REST API for **Carrivo**, a courier & logistics platform. Customers create, pay for and track shipments; couriers pick them up and deliver them; admins run hubs, zones, pricing, users, assignments and reports.
+REST API for **Carrivo**, a US courier and logistics platform. Customers book, pay for and track parcels; couriers pick them up and deliver them; admins run zones, hubs, pricing, assignments, payments, users and reports. A read-only **Admin Viewer** can see everything an admin sees and change nothing.
 
 ```
-Project Name    : Carrivo (Courier & Logistics Platform)
-Backend Repo    : https://github.com/Zarif207/carrivo-backend
-Live API        : https://<your-api>.vercel.app
-API Docs        : https://documenter.getpostman.com/view/xyz
-Demo Video      : https://drive.google.com/file/d/xyz/view
-Admin Email     : admin@carrivo.dev
-Admin Password  : ******** (placeholder only)
+Live API      : <https://your-api.example.com>
+API docs      : <link to the published Postman documentation>
+Frontend      : <https://your-frontend.example.com>
+Repository    : <https://github.com/your-account/carrivo-backend>
+Demo video    : <link>
 ```
+
+Demo account emails are listed in [Seed and reset](#seed-and-reset). Passwords are never written in this repository.
 
 ## Contents
 
-- [Features](#features)
-- [Tech stack](#tech-stack)
-- [Architecture](#architecture)
-- [Data model (ERD summary)](#data-model-erd-summary)
-- [Shipment status flow](#shipment-status-flow)
-- [Roles and permissions](#roles-and-permissions)
-- [API endpoints](#api-endpoints)
-- [Environment variables](#environment-variables)
-- [Local setup](#local-setup)
-- [Seeding and demo accounts](#seeding-and-demo-accounts)
-- [Testing](#testing)
-- [Stripe (test mode) locally](#stripe-test-mode-locally)
-- [Authentication and Google sign-in](#authentication)
-- [Deployment](#deployment)
+1. [Features by role](#features-by-role)
+2. [Architecture](#architecture)
+3. [Tech stack](#tech-stack)
+4. [Folder structure](#folder-structure)
+5. [Data model](#data-model)
+6. [API conventions](#api-conventions)
+7. [Endpoints](#endpoints)
+8. [Auth model](#auth-model)
+9. [Payments](#payments)
+10. [Shipment state machine](#shipment-state-machine)
+11. [Rate limiting](#rate-limiting)
+12. [Caching](#caching)
+13. [Security](#security)
+14. [Testing](#testing)
+15. [Scripts](#scripts)
+16. [Local setup](#local-setup)
+17. [Environment variables](#environment-variables)
+18. [Deployment (Vercel)](#deployment-vercel)
+19. [Seed and reset](#seed-and-reset)
+20. [Roadmap](#roadmap)
 
-## Features
+## Features by role
 
-- **Email/password and Google sign-in** (Better Auth) with Bearer tokens, session rotation and logout. Role is never client-settable; everyone signs up as `CUSTOMER`.
-- **Shipments**: server-side pricing (zone pair + service type + weight), unique tracking ids, edit and cancel before pickup, pickup scheduling, admin assignment with concurrency-safe courier checks, and a single state machine for every status change.
-- **Public tracking** by tracking id, which shows the status timeline only (no personal data).
-- **Stripe Checkout** (test mode, USD): the payment is confirmed only by the verified webhook or a server-side session lookup. Idempotent event handling and refunds on cancellation.
-- **Couriers**: assigned tasks, availability, earnings, and proof-of-delivery photo upload (Cloudinary).
-- **Notifications**: stored in-app notifications and lifecycle emails (Resend), sent after the transaction commits. Email failures never fail a request.
-- **Admin**: user management (create courier/admin, role, status), dashboard stats, payments and refunds, and a full audit log of every change.
-- **Production hardening**: helmet, strict CORS, Redis-backed rate limits (stricter on auth), Zod validation everywhere, soft deletes, one error envelope, and no secrets in responses or logs.
+US conventions everywhere: prices in **USD**, weights in **pounds** (`weightLb`), addresses as `street, City, ST 12345` (ZIP or ZIP+4, validated state code), US phone numbers, and business dates in **America/New_York** (DST-aware).
 
-## Tech stack
+**Customer**
+- Sign up with email/password or Google; always created as `CUSTOMER`.
+- Live price quote (zone pair, service type, weight) before booking; the server prices every shipment itself.
+- Create, edit (before payment), cancel (before pickup, refunded if paid) and list own shipments.
+- Pay with Stripe Checkout; schedule a pickup window once paid.
+- Public tracking timeline by tracking id (no personal data).
+- Payment history, in-app notifications and lifecycle emails, own profile.
 
-| Area | Choice |
-|---|---|
-| Runtime / language | Node.js ≥ 22.12, TypeScript (strict, no `any`), ES modules |
-| HTTP | Express 5 |
-| Database | PostgreSQL (Neon) via Prisma 7 + `@prisma/adapter-pg` |
-| Validation | Zod 4 (body, query, params) |
-| Auth | Better Auth (email/password, Google, `bearer` plugin) |
-| Payments | Stripe Checkout Sessions + signed webhooks (test mode) |
-| Cache / rate limits | Upstash Redis (REST) |
-| Files | Multer (memory) + Cloudinary |
-| Email | Resend |
-| Security | helmet, cors, express-rate-limit |
-| Deploy | Vercel serverless (`api/index.ts`, region `sin1`) |
-| Docs | Postman collection (`docs/postman_collection.json`) |
+**Courier**
+- Assigned tasks with search and filters; only the next allowed status (picked up, delivered, failed with a reason, retry up to 3 attempts).
+- Proof-of-delivery photo upload (Cloudinary, 4 MB max, type-checked).
+- Earnings with summary; availability on/off.
+
+**Admin**
+- Dashboard stats (totals, statuses, revenue, top couriers) and the full audit log.
+- All shipments: assign / unassign couriers (concurrency-safe), hub legs, returns, cancel, soft delete.
+- Zones, hubs and pricing rules (create, update, soft delete).
+- Users: create couriers and admins, change role, activate / deactivate (revokes sessions).
+- Payments: list, refund retry.
+
+**Admin Viewer** (`ADMIN_VIEWER`)
+- Every admin **GET** route: dashboard stats, users, shipments, payments, audit logs, zones, hubs, pricing rules, couriers.
+- **Every write is refused** with `403 "This account is read-only"`, including its own profile and password. Only `POST /auth/logout` and `POST /auth/refresh-token` are allowed.
+- Not allowed on customer- or courier-only routes, and not on `GET /payments/verify` (it can write).
+- Created only by the seed. Registration, Google sign-in and `PATCH /admin/users/:id/role` can never grant `ADMIN_VIEWER` (or, for sign-up, `ADMIN`).
 
 ## Architecture
 
-Strict layering: **routes → controllers → services → Prisma**.
+```mermaid
+flowchart LR
+  subgraph Clients
+    B[Browser]
+    F[Next.js frontend BFF]
+    P[Postman / curl]
+  end
+  S[Stripe]
+  G[Google OAuth]
 
-```
-HTTP request
-   │
-   ▼
-app.ts ── helmet · CORS · Stripe webhook (raw body) · rate limit · auth routes · express.json
-   │
-   ▼
-routes/index.ts ── /api/v1/<module>
-   │
-   ▼
-<module>.route.ts      path + authenticate + authorize(roles) + validateRequest(zod)
-   │
-   ▼
-<module>.controller.ts thin: read validated input → call service → sendResponse()
-   │
-   ▼
-<module>.service.ts    business rules, ownership checks, prisma.$transaction,
-   │                   status history + audit log rows, notifications
-   ▼
-lib/prisma.ts ── PostgreSQL (Neon, pooled)
+  subgraph Vercel["Vercel function (Express 5)"]
+    direction TB
+    MW["helmet → CORS → rate limit → body limit"]
+    BA["Better Auth (allow-listed endpoints)"]
+    R["routes → authenticate → read-only rule → authorize → validate (Zod)"]
+    C[controllers]
+    SV["services (business rules, transactions, audit)"]
+  end
 
-Errors anywhere → ApiError / ZodError / Prisma error → globalErrorHandler → { success:false, message, errors[] }
-Unknown route   → notFound → 404 envelope
-```
+  DB[(PostgreSQL / Prisma)]
+  RD[(Upstash Redis)]
+  CL[Cloudinary]
+  EM[Resend email]
 
-```
-src/
-  app.ts                 Express app (exported for Vercel and for server.ts)
-  server.ts              local listener
-  app/
-    config/              env (Zod-validated), currency, frontend link paths
-    lib/                 prisma, auth (Better Auth), stripe, redis, cloudinary, email
-    middlewares/         authenticate, authorize, validateRequest, rate limiters, upload, errors
-    modules/<name>/      route · controller · service · validation · types (+ utils, tests)
-      auth user zone hub pricing shipment tracking courier payment admin audit notification health
-    utils/               sendResponse, catchAsync, ApiError, pagination, money, ...
-    errors/              Zod and Prisma error mappers
-api/index.ts             Vercel entry: export default app
-prisma/                  schema, migrations, seed (+ seed safety guards)
-scripts/                 smoke test, dev-only helpers (never deployed)
-docs/                    Postman collection, deployment checklist
+  B --> F --> MW
+  P --> MW
+  S -- signed webhook --> Vercel
+  G -- OAuth callback --> BA
+  MW --> BA
+  MW --> R --> C --> SV
+  SV --> DB
+  MW -. rate-limit counters .-> RD
+  SV -. cache .-> RD
+  SV --> CL
+  SV --> EM
+  SV --> S
 ```
 
-## Data model (ERD summary)
+**Request flow.** Each request passes the same pipeline, in this order:
 
-All domain ids are UUID v7. Money is `Decimal(10,2)` and is returned as a string (`"6.00"`). Mutable entities are soft-deleted (`deletedAt`), and every read excludes deleted rows.
+1. `helmet` headers, then CORS (allow-list).
+2. Stripe webhook route (raw body, signature check). It sits before the JSON parser and the per-IP limiter.
+3. Global rate limiter (per visitor, Redis-backed).
+4. Auth routes: our wrappers (register, login, logout, refresh-token, Google), then an allow-list of Better Auth endpoints behind a body-size guard and the read-only guard.
+5. `express.json` (100 KB limit), then `/api/v1/<module>`.
+6. Each route: `authenticate` (session, active user, **read-only rule**), `authorize(...roles)`, `validateRequest(zod)`, a thin controller, then the service.
+7. Services hold all business logic and all Prisma access. Multi-row changes run in `prisma.$transaction` and write the status history and audit rows in the same transaction.
+8. Errors anywhere go to one global handler, which returns the error envelope. Unknown routes get a 404 envelope.
 
-| Table | Purpose | Key relations |
+## Tech stack
+
+| Area | Choice | Why |
 |---|---|---|
-| `users` | Every account; `role` CUSTOMER/COURIER/ADMIN, `status` ACTIVE/INACTIVE | 1–1 `courier_profiles`; 1–n shipments (as customer and as courier), payments, notifications |
-| `sessions`, `accounts`, `verifications` | Better Auth: sessions (Bearer tokens), credentials/OAuth accounts, one-time values | n–1 `users` |
-| `zones` | Service areas (unique `code`) | 1–n hubs, couriers, shipments (origin/destination), pricing rules |
-| `hubs` | Sorting hubs, each in one zone | n–1 `zones`; shipments reference origin/destination/current hub |
-| `pricing_rules` | Base fee + per-kg fee by service type and (optional) zone pair | n–1 `zones` (origin, destination; null = fallback) |
-| `courier_profiles` | Vehicle, operating zone/hub, availability | 1–1 `users`, n–1 `zones`, n–1 `hubs` |
-| `shipments` | Sender/receiver, parcel, price snapshot, `status`, `paymentStatus`, proof of delivery | n–1 customer, n–1 courier, zones, hubs; 1–n history, payments; 1–1 pickup, earning |
-| `shipment_status_history` | One row per status change (from → to, actor, hub, note) | n–1 `shipments`, n–1 `users` |
-| `pickup_requests` | Pickup window and contact (one per shipment) | 1–1 `shipments` |
-| `payments` | Stripe Checkout attempts: amount, status, session/intent/refund ids | n–1 `shipments`, n–1 `users` |
-| `stripe_events` | Processed webhook event ids (idempotency) | — |
-| `courier_earnings` | Earning per delivered shipment | n–1 courier `users`, 1–1 `shipments` |
-| `notifications` | In-app notification plus email delivery status | n–1 `users`, n–1 `shipments` |
-| `audit_logs` | Who did what to which entity, with before/after (secrets redacted) | n–1 actor `users` (null = system) |
+| Language | TypeScript (strict, no `any`), ES modules, Node.js ≥ 22.12 | Types shared from the Prisma schema to responses; strictness catches contract drift |
+| HTTP | Express 5 | Small, well understood, async errors handled natively |
+| Database | PostgreSQL + Prisma 7 (`@prisma/adapter-pg`) | Relational data with transactions and row locks; typed queries and migrations |
+| Validation | Zod 4 | One schema validates body, query and params, and produces typed input |
+| Auth | Better Auth (email/password, Google, `bearer` plugin) | Maintained password hashing, sessions and OAuth; bearer tokens suit a separate frontend |
+| Payments | Stripe Checkout + signed webhooks (test mode) | Card data never touches the API; the webhook is the source of truth |
+| Cache and rate limits | Upstash Redis (REST) | Works from serverless functions (no long-lived TCP); shared limits across instances |
+| Files | Multer (memory) + Cloudinary | No disk on serverless; signed server uploads |
+| Email | Resend | Simple HTTP API; email failure never fails a request |
+| Security | helmet, cors, express-rate-limit | Standard, audited middleware |
+| Hosting | Vercel serverless (`api/index.ts`) | One function for the whole app; preview deploys per branch |
+| Tests | `node:test` + `tsx` | No extra test framework; tests run against the real route table |
 
-Indexes cover the filtered and sorted columns: status, payment status, customer/courier + date, zones, service type, `createdAt`, `deletedAt`, unique tracking id, Stripe ids, audit entity/action/date, and notification user + read state.
-
-## Shipment status flow
+## Folder structure
 
 ```
-                 ┌──────────── CANCELLED (customer/admin, only before PICKED_UP) ───────────┐
-                 │                         │                          │                     │
-PENDING ──(pay, then customer schedules pickup)──▶ PICKUP_SCHEDULED ──(admin assigns)──▶ COURIER_ASSIGNED
-                                              ▲                                            │
-                                              └──────────────(admin unassigns)─────────────┤
-                                                                                           ▼ courier
- PICKED_UP ─admin─▶ AT_ORIGIN_HUB ─admin─▶ IN_TRANSIT ─admin─▶ AT_DESTINATION_HUB ─admin─▶ OUT_FOR_DELIVERY
-                                                                                           │ courier
-                                                    ┌──────────────────────────────────────┴───────┐
-                                                    ▼                                              ▼
-                                                DELIVERED                                   FAILED_DELIVERY
-                                                (earning created)          courier retry ──▶ OUT_FOR_DELIVERY (max 3 attempts)
-                                                                           admin ──────────▶ RETURNED
+api/index.ts                 Vercel entry: export default app
+src/
+  app.ts                     Express app: middleware order, webhook, auth, routes, errors
+  server.ts                  local listener
+  app/
+    config/                  env (Zod-validated), roles, currency, frontend paths
+    lib/                     prisma, auth (Better Auth), stripe, redis, cache, cloudinary, email
+    middlewares/             authenticate, readOnly, authorize, validateRequest, rate limiters, upload, errors
+    modules/<name>/          route · controller · service · validation · types (+ utils, tests)
+                             auth user zone hub pricing shipment tracking courier payment admin audit notification health
+    routes/index.ts          module mount table (flat, so tests can walk every route)
+    utils/                   sendResponse, catchAsync, ApiError, pagination, money, timezone, US validation
+    errors/                  Zod and Prisma error mappers
+  generated/prisma/          generated client (git-ignored)
+prisma/
+  schema.prisma, migrations/ schema and SQL migrations
+  seed.ts, seed.safety.ts    idempotent US demo seed and its guards
+  reset-demo.ts, reset.safety.ts   guarded demo-data reset and its guards
+scripts/                     smoke test and dev-only helpers (never deployed)
+docs/                        Postman collection, deployment guide
 ```
 
-- A shipment must be **PAID** before it can leave PENDING.
-- The one transition table is in `src/app/modules/shipment/shipment.constants.ts`, and every change goes through one service function. In a single transaction it validates the move, the actor's role and ownership, updates the shipment, writes a `shipment_status_history` row and an `audit_logs` row, and creates notifications.
-- Courier assignment re-checks the courier's availability and zone inside the transaction, with row locks, so two concurrent requests can't double-assign.
+## Data model
 
-## Roles and permissions
+All domain ids are UUID v7. Money is `Decimal(10,2)`, returned as a string (`"6.00"`). Weights are `Decimal(8,2)` pounds. Mutable entities are soft-deleted (`deletedAt`), and every read excludes deleted rows.
 
-| Capability | CUSTOMER | COURIER | ADMIN |
-|---|:-:|:-:|:-:|
-| Register / login / Google sign-in / own profile | ✓ | ✓ | ✓ |
-| Price estimate, public tracking, list zones & hubs | ✓ (also anonymous) | ✓ | ✓ |
-| Create, edit, cancel own shipments; schedule pickup | ✓ (own) | | cancel any |
-| Pay (Stripe Checkout), own payments | ✓ (own) | | view all, refund |
-| See shipments | own | assigned to them | all |
-| Update shipment status | | assigned only (pickup, delivered, failed, retry) | hub legs, returns |
-| Upload proof of delivery | | assigned only | |
-| Tasks, earnings, availability | | ✓ (own) | |
-| Assign / unassign couriers, delete shipments | | | ✓ |
-| Zones, hubs, pricing rules (write) | | | ✓ |
-| Users (create courier/admin, change role, activate/deactivate) | | | ✓ |
-| Dashboard stats, audit logs | | | ✓ |
-| Own notifications | ✓ | ✓ | ✓ |
+```mermaid
+erDiagram
+  USER ||--o| COURIER_PROFILE : "has (couriers)"
+  USER ||--o{ SESSION : has
+  USER ||--o{ ACCOUNT : has
+  USER ||--o{ SHIPMENT : "books (customer)"
+  USER ||--o{ SHIPMENT : "delivers (courier)"
+  USER ||--o{ PAYMENT : pays
+  USER ||--o{ NOTIFICATION : receives
+  USER ||--o{ AUDIT_LOG : "acts in"
+  ZONE ||--o{ HUB : contains
+  ZONE ||--o{ PRICING_RULE : "origin / destination"
+  ZONE ||--o{ SHIPMENT : "origin / destination"
+  ZONE ||--o{ COURIER_PROFILE : "operates in"
+  HUB ||--o{ SHIPMENT : "origin / destination / current"
+  SHIPMENT ||--o{ SHIPMENT_STATUS_HISTORY : records
+  SHIPMENT ||--o| PICKUP_REQUEST : has
+  SHIPMENT ||--o{ PAYMENT : "paid by"
+  SHIPMENT ||--o| COURIER_EARNING : earns
+  SHIPMENT ||--o{ NOTIFICATION : about
 
-Every rule is enforced by `authenticate` + `authorize(...roles)` and by ownership checks in the services. Other users' resources return **404**, not 403, so their existence isn't revealed. The Postman **RBAC matrix** folder proves this.
-
-## API endpoints
-
-Base URL: `/api/v1`. **64 endpoints**: 58 of our own, plus 6 Better Auth endpoints that are explicitly allowed through. "Auth" means any logged-in role. Every POST, PATCH and PUT is validated with Zod; the webhook is the one exception and is verified by its Stripe signature instead. List endpoints accept `page`, `limit`, `sortBy`, `sortOrder`, `searchTerm` and module filters, and return `meta`.
-
-| # | Method | Path | Role | Purpose |
-|--:|---|---|---|---|
-| 1 | GET | `/health` | Public | Liveness + database check |
-| 2 | POST | `/auth/register` | Public | Email/password sign-up (always CUSTOMER), returns token |
-| 3 | POST | `/auth/login` | Public | Login, returns Bearer token |
-| 4 | POST | `/auth/logout` | Auth | Revoke the current session |
-| 5 | POST | `/auth/refresh-token` | Auth | Rotate the session (new token, old one revoked) |
-| 6 | GET | `/auth/google?challenge=` | Public | Start Google sign-in (302 to Google) |
-| 7 | GET | `/auth/google/complete` | Public (browser) | Internal landing after Google; 302 to the frontend with a one-time code |
-| 8 | POST | `/auth/google/exchange` | Public | Exchange one-time code + verifier for a token |
-| 9 | POST | `/auth/change-password` | Auth | Better Auth: change password |
-| 10 | GET | `/auth/get-session` | Auth | Better Auth: current session |
-| 11 | POST | `/auth/revoke-sessions` | Auth | Better Auth: sign out everywhere |
-| 12 | POST | `/auth/revoke-other-sessions` | Auth | Better Auth: sign out other devices |
-| 13 | GET | `/auth/ok` | Public | Better Auth: health |
-| 14 | GET | `/auth/callback/google` | Public (Google) | Better Auth: Google OAuth redirect URI |
-| 15 | GET | `/users/me` | Auth | Own profile (+ courier profile) |
-| 16 | PATCH | `/users/me` | Auth | Update own name/phone/address/image (audited) |
-| 17 | GET | `/zones` | Public | List zones |
-| 18 | GET | `/zones/:id` | Public | Zone detail |
-| 19 | POST | `/zones` | Admin | Create zone |
-| 20 | PATCH | `/zones/:id` | Admin | Update zone |
-| 21 | DELETE | `/zones/:id` | Admin | Soft-delete zone (refused while in use) |
-| 22 | GET | `/hubs` | Public | List hubs (filter by zone) |
-| 23 | GET | `/hubs/:id` | Public | Hub detail |
-| 24 | POST | `/hubs` | Admin | Create hub |
-| 25 | PATCH | `/hubs/:id` | Admin | Update hub |
-| 26 | DELETE | `/hubs/:id` | Admin | Soft-delete hub (refused while in use) |
-| 27 | POST | `/pricing/estimate` | Public | Price quote for zones + service + weight |
-| 28 | GET | `/pricing` | Admin | List pricing rules |
-| 29 | GET | `/pricing/:id` | Admin | Pricing rule detail |
-| 30 | POST | `/pricing` | Admin | Create pricing rule |
-| 31 | PATCH | `/pricing/:id` | Admin | Update pricing rule |
-| 32 | DELETE | `/pricing/:id` | Admin | Soft-delete pricing rule |
-| 33 | POST | `/shipments` | Customer | Create shipment (server-priced, tracking id) |
-| 34 | GET | `/shipments` | Auth | List (customer: own, courier: assigned, admin: all) |
-| 35 | GET | `/shipments/:id` | Auth | Detail with status history (scoped as above) |
-| 36 | PATCH | `/shipments/:id` | Customer | Edit own shipment before pickup (weight/service re-priced; locked after payment) |
-| 37 | POST | `/shipments/:id/cancel` | Customer, Admin | Cancel before PICKED_UP (refund if paid) |
-| 38 | DELETE | `/shipments/:id` | Admin | Soft-delete (PENDING or terminal only) |
-| 39 | POST | `/shipments/:id/pickup` | Customer | Schedule pickup (requires PAID) |
-| 40 | POST | `/shipments/:id/assign` | Admin | Assign an available courier in the zone |
-| 41 | POST | `/shipments/:id/unassign` | Admin | Unassign courier |
-| 42 | PATCH | `/shipments/:id/status` | Courier, Admin | Status change through the state machine |
-| 43 | POST | `/shipments/:id/proof` | Courier | Upload proof-of-delivery photo (multipart, ≤ 4 MB) |
-| 44 | GET | `/tracking/:trackingId` | Public | Public tracking timeline |
-| 45 | GET | `/couriers` | Admin | Couriers for assignment (zone, hub, availability) |
-| 46 | GET | `/couriers/me/tasks` | Courier | Own assigned shipments |
-| 47 | GET | `/couriers/me/earnings` | Courier | Own earnings + summary |
-| 48 | PATCH | `/couriers/me/availability` | Courier | Set availability |
-| 49 | GET | `/admin/users` | Admin | List users |
-| 50 | POST | `/admin/users` | Admin | Create a courier (with profile) or admin account |
-| 51 | PATCH | `/admin/users/:id/role` | Admin | Change role |
-| 52 | PATCH | `/admin/users/:id/status` | Admin | Activate / deactivate (revokes sessions) |
-| 53 | GET | `/admin/dashboard-stats` | Admin | Totals, status breakdown, revenue, top couriers |
-| 54 | GET | `/admin/audit-logs` | Admin | Audit trail (filters: actor, entity, action, dates) |
-| 55 | GET | `/admin/payments` | Admin | All payments |
-| 56 | POST | `/admin/payments/:id/refund` | Admin | Retry or complete a pending refund |
-| 57 | POST | `/payments/initiate` | Customer | Create Payment + Stripe Checkout Session, returns URL |
-| 58 | GET | `/payments/verify?session_id=` | Customer, Admin | Success-page check (server-side Stripe lookup) |
-| 59 | GET | `/payments/my` | Customer | Own payments |
-| 60 | GET | `/payments/:id` | Customer, Admin | Payment detail (own / any) |
-| 61 | POST | `/payments/webhook` | Stripe | Signed webhook (raw body, idempotent) |
-| 62 | GET | `/notifications/my` | Auth | Own notifications (`unread` filter) |
-| 63 | PATCH | `/notifications/read-all` | Auth | Mark all read |
-| 64 | PATCH | `/notifications/:id/read` | Auth | Mark one read |
-
-**Responses**
-
-```jsonc
-// success (lists add meta)
-{ "success": true, "message": "Shipments retrieved successfully", "data": [ ... ],
-  "meta": { "page": 1, "limit": 10, "total": 12, "totalPages": 2 } }
-// error (validation, auth, not found, conflict, rate limit, ...)
-{ "success": false, "message": "Validation failed", "errors": [ { "path": "weightKg", "message": "..." } ] }
+  USER { uuid id string email Role role UserStatus status }
+  SHIPMENT { uuid id string trackingId ShipmentStatus status decimal weightLb decimal price ShipmentPaymentStatus paymentStatus }
+  PRICING_RULE { ServiceType serviceType decimal baseFee decimal baseWeightLb decimal perLbFee decimal maxWeightLb }
+  PAYMENT { decimal amount PaymentStatus status string stripeSessionId }
+  AUDIT_LOG { string action string entityType json before json after }
 ```
 
-Status codes: 200/201 success, 400 validation, 401 no/invalid token, 403 wrong role, 404 not found (or not yours), 409 conflict (state machine, duplicates), 413/415 upload, 429 rate limit.
+`STRIPE_EVENT` (processed webhook ids) and Better Auth's `VERIFICATION` table stand alone. Indexes cover the filtered and sorted columns: status, payment status, customer/courier + date, zones, service type, `createdAt`, `deletedAt`, the unique tracking id, Stripe ids, audit entity/action/date and notification user + read state.
 
-## Environment variables
+**Pricing:** `price = baseFee + ceil(max(0, weightLb − baseWeightLb)) × perLbFee`. A zone-pair rule wins over the service type's default rule; above `maxWeightLb` the quote is refused (422).
 
-Copy `.env.example` to `.env` and fill it in. Names and purpose only; never commit real values.
+## API conventions
 
-| Variable | Required | Purpose |
-|---|:-:|---|
-| `NODE_ENV` | | `development` / `production` / `test` (production on Vercel) |
-| `PORT` | | Local port (default 5000) |
-| `DATABASE_URL` | ✓ | **Pooled** Postgres URL used by the app at runtime |
-| `DIRECT_URL` | | **Direct** (non-pooled) URL used by Prisma CLI for migrations |
-| `CORS_ORIGINS` | | Comma-separated browser origins allowed to call the API |
-| `FRONTEND_URL` | | Frontend origin for email links and the Google sign-in landing page |
-| `FRONTEND_SUCCESS_URL` | ✓ | Stripe Checkout success page (frontend) |
-| `FRONTEND_CANCEL_URL` | ✓ | Stripe Checkout cancel page (frontend) |
-| `BETTER_AUTH_SECRET` | ✓ | ≥ 32-char secret that signs sessions and cookies |
-| `BFF_SHARED_SECRET` | production | ≥ 32-char secret shared with the frontend BFF; when `x-bff-secret` matches, `x-client-ip` becomes the rate-limit key (see docs/DEPLOYMENT.md) |
-| `BETTER_AUTH_URL` | ✓ | This API's origin (used for Google callbacks and secure cookies) |
-| `GOOGLE_CLIENT_ID` | ✓ | Google OAuth client id |
-| `GOOGLE_CLIENT_SECRET` | ✓ | Google OAuth client secret |
-| `STRIPE_SECRET_KEY` | ✓ | Stripe secret key (test mode: `sk_test_…`) |
-| `STRIPE_WEBHOOK_SECRET` | ✓ | Signing secret of the webhook endpoint (`whsec_…`) |
-| `UPSTASH_REDIS_REST_URL` | | Upstash Redis REST URL (cache + shared rate limits) |
-| `UPSTASH_REDIS_REST_TOKEN` | | Upstash Redis REST token |
-| `REDIS_KEY_PREFIX` | | Key prefix per environment (default `carrivo:v1:`) |
-| `CLOUDINARY_CLOUD_NAME` | ✓ | Cloudinary account (proof-of-delivery images) |
-| `CLOUDINARY_API_KEY` | ✓ | Cloudinary API key |
-| `CLOUDINARY_API_SECRET` | ✓ | Cloudinary API secret |
-| `RESEND_API_KEY` | | Resend key; without it, notifications are stored but not emailed |
-| `EMAIL_FROM` | | Sender, e.g. `Carrivo <noreply@your-domain>` |
-| `SEED_DEMO_PASSWORD` | seed only | Password for the seeded demo accounts |
-| `SEED_CONFIRM_DB_HOST` | seed in production | Must equal the target DB host when `NODE_ENV=production` |
-| `SEED_RESET_DEMO_PASSWORDS` | seed only | `true` re-sets existing demo accounts' passwords |
-| `DEV_ALLOW_MARK_PAID` | dev only | Enables `scripts/dev-mark-paid.ts` locally; never set in Vercel |
-| `SMOKE_PASSWORD` (+ per-role variants) | smoke only | Demo password for `npm run smoke` |
+- Base path `/api/v1`. JSON in and out (proof upload is multipart).
+- **Success:** `{ "success": true, "message": "...", "data": ..., "meta"?: { "page", "limit", "total", "totalPages" } }`
+- **Error:** `{ "success": false, "message": "...", "errors": [ { "path": "body.weightLb", "message": "..." } ] }`
+- **Lists** accept `page`, `limit` (max 100), `sortBy`, `sortOrder` (`asc`/`desc`), `searchTerm` and module filters, and return `meta`.
+- **Dates** in queries: `YYYY-MM-DD` means that calendar day in America/New_York; full ISO timestamps are also accepted.
+- **Status codes:** 200/201 success · 400 validation · 401 missing or invalid token · 403 wrong role or read-only account · 404 not found **or not yours** (existence is not revealed) · 409 conflict (state machine, duplicates) · 413/415 upload · 422 business rule (e.g. no price for that route) · 429 rate limit.
+- Every POST, PATCH and PUT is validated with Zod. The Stripe webhook is the one exception; its signature is verified instead.
 
-The app validates its environment at startup and stops with a list of the missing or invalid **names** (it never prints values).
+## Endpoints
 
-## Local setup
+64 endpoints: 58 of ours plus 6 allow-listed Better Auth endpoints. "Auth" = any signed-in role. "Staff" = ADMIN and ADMIN_VIEWER (reads only). The Postman collection has an example request and response for each.
 
-Requires Node.js ≥ 22.12, npm, a Postgres database (a Neon dev branch or a local Postgres), and optionally the Stripe CLI.
+| Method | Path | Role | Purpose |
+|---|---|---|---|
+| GET | `/health` | Public | Liveness + database check |
+| POST | `/auth/register` | Public | Sign up (always CUSTOMER), returns token |
+| POST | `/auth/login` | Public | Login, returns bearer token |
+| POST | `/auth/logout` | Auth | Revoke the current session |
+| POST | `/auth/refresh-token` | Auth | Rotate the session (old token revoked) |
+| GET | `/auth/google?challenge=` | Public | Start Google sign-in (302) |
+| GET | `/auth/google/complete` | Browser | Landing after Google; 302 to the frontend with a one-time code |
+| POST | `/auth/google/exchange` | Public | One-time code + verifier → token |
+| POST | `/auth/change-password` | Auth (not viewer) | Better Auth: change password |
+| GET | `/auth/get-session` | Auth | Better Auth: current session |
+| POST | `/auth/revoke-sessions`, `/auth/revoke-other-sessions` | Auth (not viewer) | Better Auth: sign out everywhere / other devices |
+| GET | `/auth/ok`, `/auth/callback/google` | Public | Better Auth health / Google redirect URI |
+| GET, PATCH | `/users/me` | Auth (PATCH not viewer) | Own profile |
+| GET | `/zones`, `/zones/:id`, `/hubs`, `/hubs/:id` | Public | Zones and hubs (cached) |
+| POST, PATCH, DELETE | `/zones…`, `/hubs…` | Admin | Manage zones and hubs (delete refused while in use) |
+| POST | `/pricing/estimate` | Public | Price quote |
+| GET | `/pricing`, `/pricing/:id` | Staff | Pricing rules |
+| POST, PATCH, DELETE | `/pricing…` | Admin | Manage pricing rules |
+| POST | `/shipments` | Customer | Create (server-priced, tracking id) |
+| GET | `/shipments`, `/shipments/:id` | Auth | Customer: own · courier: assigned · staff: all |
+| PATCH | `/shipments/:id` | Customer | Edit own before payment (re-priced) |
+| POST | `/shipments/:id/cancel` | Customer, Admin | Cancel before pickup (refund if paid) |
+| DELETE | `/shipments/:id` | Admin | Soft delete (PENDING or terminal) |
+| POST | `/shipments/:id/pickup` | Customer | Schedule pickup window (requires PAID) |
+| POST | `/shipments/:id/assign`, `/unassign` | Admin | Courier assignment |
+| PATCH | `/shipments/:id/status` | Courier, Admin | Status change through the state machine |
+| POST | `/shipments/:id/proof` | Courier | Proof-of-delivery photo (multipart, ≤ 4 MB) |
+| GET | `/tracking/:trackingId` | Public | Public timeline (cached 15 s) |
+| GET | `/couriers` | Staff | Couriers for assignment |
+| GET | `/couriers/me/tasks`, `/couriers/me/earnings` | Courier | Own tasks and earnings |
+| PATCH | `/couriers/me/availability` | Courier | Availability |
+| GET | `/admin/users`, `/admin/dashboard-stats`, `/admin/audit-logs`, `/admin/payments` | Staff | Admin reads |
+| POST | `/admin/users` | Admin | Create a courier or admin |
+| PATCH | `/admin/users/:id/role`, `/admin/users/:id/status` | Admin | Change role (CUSTOMER, COURIER, ADMIN only) / activate–deactivate |
+| POST | `/admin/payments/:id/refund` | Admin | Retry or complete a refund |
+| POST | `/payments/initiate` | Customer | Payment row + Stripe Checkout Session URL |
+| GET | `/payments/verify?session_id=` | Customer, Admin | Success-page reconciliation (server-side Stripe lookup) |
+| GET | `/payments/my` | Customer | Own payments |
+| GET | `/payments/:id` | Customer (own), Staff | Payment detail |
+| POST | `/payments/webhook` | Stripe | Signed webhook (raw body, idempotent) |
+| GET | `/notifications/my` | Auth | Own notifications |
+| PATCH | `/notifications/read-all`, `/notifications/:id/read` | Auth (not viewer) | Mark read |
 
-```bash
-git clone https://github.com/Zarif207/carrivo-backend.git
-cd carrivo-backend
-npm install                 # also runs prisma generate
-cp .env.example .env        # fill in the values (see above)
-npm run db:deploy           # apply migrations (or `npm run db:migrate` while changing the schema)
-npm run db:seed             # demo data (see below)
-npm run dev                 # http://localhost:5000/api/v1/health
+## Auth model
+
+- **Better Auth** owns password hashing, sessions and Google OAuth. Only an allow-list of its endpoints is reachable over HTTP (`BETTER_AUTH_ALLOWED_PATHS` in `src/app/lib/auth.ts`); endpoints that return raw tokens (e.g. `list-sessions`) or act as a password oracle are not exposed.
+- **Bearer tokens:** every protected route takes `Authorization: Bearer <token>`. Tokens last 7 days; `/auth/refresh-token` rotates a still-valid token and revokes the old one; `/auth/logout` revokes it. Deactivated users can't log in, refresh or use existing tokens.
+- **Roles:** `CUSTOMER`, `COURIER`, `ADMIN`, `ADMIN_VIEWER`. `role` is a Better Auth field with `input: false` and a `user.create.before` hook that forces `CUSTOMER` for every sign-up path, including Google. Staff roles are created by the seed (viewer) or by an admin (`POST /admin/users`: COURIER or ADMIN).
+- **Guards:** `authenticate` (session, active account, read-only rule) → `authorize(...roles)` → ownership checks in services.
+- **Read-only rule:** one central check, `violatesReadOnly(role, method, url)` in `src/app/middlewares/readOnly.ts`, keyed on the HTTP method and role. It runs inside `authenticate` (so every protected route gets it) and in front of Better Auth's own handler. New routes are covered automatically; a test walks the real route table to prove it.
+- **Google sign-in (PKCE one-time-code handoff):** no token ever appears in a URL.
+  1. The frontend creates a random `codeVerifier` and opens `GET /auth/google?challenge=<base64url(SHA-256(verifier))>`.
+  2. After Google, the API redirects to `FRONTEND_URL/auth/google/callback?code=<one-time code>` (or `?error=account_exists | account_deactivated | google_cancelled | google_failed`).
+  3. The frontend posts `{ code, codeVerifier }` to `/auth/google/exchange` within 60 seconds; the code works once and returns the same `{ token, expiresAt, user }` as login.
+  4. Google sign-in never links to an existing email/password account.
+
+## Payments
+
+```mermaid
+sequenceDiagram
+  participant C as Customer (frontend)
+  participant A as Carrivo API
+  participant S as Stripe
+  C->>A: POST /payments/initiate {shipmentId}
+  A->>A: Payment row (PENDING), metadata {shipmentId, paymentId}
+  A->>S: Create Checkout Session (USD)
+  A-->>C: { url }
+  C->>S: Pay on Stripe Checkout
+  S->>A: POST /payments/webhook (signed)
+  A->>A: verify signature · skip if event id already processed
+  A->>A: one transaction: Payment PAID, shipment paymentStatus PAID, audit row, notification
+  S-->>C: redirect to FRONTEND_SUCCESS_URL?session_id=…
+  C->>A: GET /payments/verify?session_id=…
+  A->>S: retrieve session (server-side)
+  A-->>C: payment status (reconciles if the webhook was missed)
 ```
+
+- A payment is never marked paid from client input: only the verified webhook or the server-side session lookup can do it.
+- **Idempotency:** processed Stripe event ids are stored (`stripe_events`); already-PAID payments are ignored.
+- **Refunds:** cancelling a paid shipment before pickup creates a Stripe refund; `charge.refunded` / `refund.failed` update it, and admins can retry a pending refund.
+- Handled events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`, `payment_intent.payment_failed`, `charge.refunded`, `refund.failed`.
+
+## Shipment state machine
+
+One transition table (`TRANSITIONS` in `src/app/modules/shipment/shipment.constants.ts`) lists the roles allowed for each move, and every change goes through one service function. In one transaction it checks the move, the actor's role and ownership, updates the shipment, and writes a status-history row and an audit row; notifications go out after the commit.
+
+```mermaid
+stateDiagram-v2
+  [*] --> PENDING
+  PENDING --> PICKUP_SCHEDULED: customer schedules pickup (must be PAID)
+  PENDING --> CANCELLED: customer / admin
+  PICKUP_SCHEDULED --> COURIER_ASSIGNED: admin assigns
+  PICKUP_SCHEDULED --> CANCELLED: customer / admin
+  COURIER_ASSIGNED --> PICKUP_SCHEDULED: admin unassigns
+  COURIER_ASSIGNED --> PICKED_UP: courier
+  COURIER_ASSIGNED --> CANCELLED: customer / admin
+  PICKED_UP --> AT_ORIGIN_HUB: admin
+  AT_ORIGIN_HUB --> IN_TRANSIT: admin
+  IN_TRANSIT --> AT_DESTINATION_HUB: admin
+  AT_DESTINATION_HUB --> OUT_FOR_DELIVERY: admin
+  OUT_FOR_DELIVERY --> DELIVERED: courier (earning created)
+  OUT_FOR_DELIVERY --> FAILED_DELIVERY: courier (reason)
+  FAILED_DELIVERY --> OUT_FOR_DELIVERY: courier retry (max 3 attempts)
+  FAILED_DELIVERY --> RETURNED: admin
+  DELIVERED --> [*]
+  RETURNED --> [*]
+  CANCELLED --> [*]
+```
+
+Courier assignment re-checks availability and zone inside the transaction with row locks, so two concurrent requests can't double-assign a courier.
+
+## Rate limiting
+
+| Limiter | Scope | Limit |
+|---|---|---|
+| Global | every route except the Stripe webhook | 300 requests / 15 min per visitor |
+| Auth | login, register, change-password | 20 **failed** attempts / 15 min per visitor |
+
+- Counters live in Redis (shared by all serverless instances); without Redis they fall back to memory.
+- The key is the connecting IP (`trust proxy` set for Vercel). When the frontend's server sends `x-bff-secret` matching `BFF_SHARED_SECRET` (constant-time compare) and a valid `x-client-ip`, that IP is used instead, so visitors behind the BFF don't share one bucket. A browser can't choose its own key.
+- 429 responses use the error envelope and standard `RateLimit` headers.
+
+## Caching
+
+Only responses that are identical for every caller are cached (Redis, `REDIS_KEY_PREFIX` per environment):
+
+| Data | TTL | Invalidated by |
+|---|---|---|
+| Zones, hubs (lists and details) | 120 s | any zone/hub write |
+| Price estimates | 120 s | zone or pricing writes |
+| Public tracking | 15 s | expiry |
+| Admin dashboard stats | 60 s | expiry |
+
+Role-scoped data (shipments, payments, users) is never cached. A Redis error is logged and the request falls through to the database.
+
+## Security
+
+**What is protected and how**
+
+- **HTTP hardening:** `helmet` headers, `x-powered-by` off, 100 KB JSON limit, 4 MB upload limit with type checks.
+- **CORS allow-list:** only origins in `CORS_ORIGINS`; other browser origins get 403.
+- **Rate limits:** see [Rate limiting](#rate-limiting); stricter on authentication.
+- **Input validation:** Zod on every body, query and params; US address, phone and ZIP formats; unknown keys are rejected where it matters (e.g. `role` on sign-up).
+- **Role guards:** `authenticate` + `authorize` on every protected route, ownership checks in services (other users' records answer 404), and the central read-only rule for `ADMIN_VIEWER`. Tests walk the real route table to check them.
+- **Account safety:** role is never client-settable; deactivation revokes sessions; Better Auth endpoints are allow-listed.
+- **Secret handling:** secrets come only from environment variables, validated at startup (error messages list names, never values). Responses never include password hashes, session tokens or provider secrets; audit snapshots are redacted on write and on read.
+- **Webhook verification:** Stripe signatures are checked over the raw request body before anything is read; events are processed once.
+- **No secrets in logs:** only unexpected (5xx) errors are logged, as the error itself, never the request headers or body; responses never include stack traces. Seed and reset scripts print hosts and emails only.
+- **Production scripts:** seeding and resetting refuse to run unless the operator confirms the database host (and, for reset, types an exact phrase).
+
+**Responsible disclosure.** If you find a vulnerability, please report it privately to the repository owner (use GitHub's private vulnerability reporting on this repository) instead of opening a public issue. Include steps to reproduce; please don't access other users' data or degrade the service while testing. We aim to reply within a few days.
+
+**Intentionally not documented publicly:** real hostnames of the database, cache and storage services, account and project ids, environment variable values, demo passwords, internal dashboards, and the exact detection thresholds beyond the published rate limits.
+
+## Testing
+
+`npm test` runs 167 unit and HTTP tests with `node:test` (no database or external service needed; Redis is disabled in tests). Highlights:
+
+- **Read-only rule** (`src/app/middlewares/readOnly.test.ts`): walks the real route table; a viewer gets 403 on every mutating route, is allowed on every admin GET, and is refused on customer/courier-only routes. Routes added later are covered automatically.
+- **Role escalation** (`src/app/modules/auth/auth.roles.test.ts`): registration and Google exchange reject a `role` field; the Better Auth hook forces `CUSTOMER`.
+- Pricing (pounds), the state machine, money, US validation, America/New_York dates (DST), pagination, audit redaction, Stripe helpers, image checks, email sender, notification text, Google PKCE helpers, rate-limit keys, and the seed/reset guards.
+
+Also available: `npm run smoke -- <baseUrl>` (read-only checks against any deployment, about 60 requests) and the Postman collection (`docs/postman_collection.json`) with an **RBAC matrix** folder, including an Admin Viewer section, that asserts exact status codes.
+
+Not covered by automated tests: live Stripe, Google, Cloudinary and Resend calls, and database migrations (run them against a disposable branch first, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)).
+
+## Scripts
 
 | Script | What it does |
 |---|---|
 | `npm run dev` | Start with reload (tsx watch) |
-| `npm run build` / `npm start` | Generate Prisma client + compile to `dist/` / run the compiled server |
+| `npm run build` / `npm start` | Generate the Prisma client and compile / run the compiled server |
 | `npm run typecheck` | `tsc --noEmit` |
-| `npm test` | Unit tests (node:test) |
-| `npm run smoke -- <baseUrl>` | Read-only smoke test against any deployment |
+| `npm test` | All tests |
+| `npm run smoke -- <baseUrl>` | Read-only smoke test |
 | `npm run db:migrate` / `db:deploy` | Create a migration (dev) / apply migrations |
-| `npm run db:seed` / `db:studio` | Seed demo data / open Prisma Studio |
-| `npm run dev:mark-paid -- <trackingId>` | **Dev only**: mark a shipment paid without Stripe (refuses in production and on Vercel) |
+| `npm run db:seed` | Idempotent US demo seed |
+| `npm run db:reset-demo` | Guarded reset of demo data, then reseed |
+| `npm run db:studio` | Prisma Studio |
+| `npm run dev:mark-paid -- <trackingId>` | Dev only: mark a shipment paid without Stripe (refuses in production and on Vercel) |
 
-## Seeding and demo accounts
+## Local setup
 
-`npm run db:seed` is idempotent. It upserts 2 zones, 2 hubs and 8 pricing rules, and creates through Better Auth (so passwords are hashed properly) 1 admin, 2 couriers and 2 customers. It also adds 12 sample shipments across the statuses, with pickups, payments and an earning.
-
-| Role | Email | Password |
-|---|---|---|
-| ADMIN | `admin@carrivo.dev` | `********` (placeholder only) |
-| COURIER | `courier1@carrivo.dev`, `courier2@carrivo.dev` | `********` (placeholder only) |
-| CUSTOMER | `customer1@carrivo.dev`, `customer2@carrivo.dev` | `********` (placeholder only) |
-
-- All demo accounts use `SEED_DEMO_PASSWORD`. The seed never prints it.
-- Accounts that already exist keep their password. `SEED_RESET_DEMO_PASSWORDS=true` re-sets them, revokes their sessions and writes an audit row per account (emails only).
-- **Production** (`NODE_ENV=production`): the seed refuses to run unless `SEED_CONFIRM_DB_HOST` equals the database host. The password must be at least 16 characters, mix 3 kinds of characters, and contain no guessable words. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
-
-## Testing
-
-**Unit tests:** `npm test` runs about 100 tests covering pricing, the state machine, money, pagination, audit redaction, Stripe helpers, image validation, the email sender, notification content, the Google PKCE helpers and the seed safety guards.
-
-**Smoke test (local or live):**
+Requires Node.js ≥ 22.12, npm, a PostgreSQL database (local or a cloud dev branch), and optionally the Stripe CLI.
 
 ```bash
-SMOKE_PASSWORD='<demo password>' npm run smoke -- http://localhost:5000
-SMOKE_PASSWORD='<demo password>' npm run smoke -- https://<your-api>.vercel.app
+npm install                 # also runs prisma generate
+cp .env.example .env        # fill in your own values
+npm run db:deploy           # apply migrations
+npm run db:seed             # US demo data
+npm run dev                 # http://localhost:5000/api/v1/health
 ```
 
-It checks health, public tracking, 404s, a validation error, 401/403 role checks, ownership 404s, and a read-only pass over every list endpoint for all three roles, then prints a PASS/FAIL table (exit code 1 on any failure).
+**Stripe locally:** `stripe listen --forward-to localhost:5000/api/v1/payments/webhook --events <the 7 events above>`, put the printed signing secret in `.env` as `STRIPE_WEBHOOK_SECRET`, restart, then pay with test card `4242 4242 4242 4242`.
 
-- **It is safe to run against production.** It can only send GET requests plus an allow-list of login, logout and refused probes, and every probe carries an invalid body. It never creates shipments, payments, uploads or emails. Its login sessions are revoked at the end.
-- **Rate limit:** each run makes about 60 requests, and the global rate limit is 300 requests per 15 minutes per IP.
+**Google locally:** add `http://localhost:5000/api/v1/auth/callback/google` as an authorized redirect URI of your OAuth client.
 
-**Postman:** import `docs/postman_collection.json` and read the collection description ("How to use").
-1. Set `baseUrl` and `demoPassword`.
-2. Run the three **Login as …** requests; they save the tokens automatically.
-3. Explore the folders, or run **RBAC matrix** in the Runner: 35 requests that must all be refused with the exact status.
+## Environment variables
 
-## Stripe (test mode) locally
+Copy `.env.example` to `.env`. Names and purpose only; never commit values. The app validates them at startup and lists missing or invalid **names**.
 
-1. Install the [Stripe CLI](https://docs.stripe.com/stripe-cli) and run `stripe login` (test mode).
-2. Forward webhooks to the local API with the events we handle:
+| Variable | Required | Purpose |
+|---|:-:|---|
+| `NODE_ENV` | | `development` / `production` / `test` |
+| `PORT` | | Local port (default 5000) |
+| `DATABASE_URL` | ✓ | Pooled Postgres connection used at runtime |
+| `DIRECT_URL` | | Direct connection for the Prisma CLI (migrations) |
+| `CORS_ORIGINS` | | Comma-separated allowed browser origins |
+| `FRONTEND_URL` | | Frontend origin (email links, Google landing) |
+| `FRONTEND_SUCCESS_URL` | ✓ | Stripe Checkout success page |
+| `FRONTEND_CANCEL_URL` | ✓ | Stripe Checkout cancel page |
+| `BETTER_AUTH_SECRET` | ✓ | Signs sessions and cookies (≥ 32 chars) |
+| `BETTER_AUTH_URL` | ✓ | This API's public origin |
+| `BFF_SHARED_SECRET` | production | Shared with the frontend server; enables per-visitor rate-limit keys (≥ 32 chars) |
+| `GOOGLE_CLIENT_ID` | ✓ | Google OAuth client id |
+| `GOOGLE_CLIENT_SECRET` | ✓ | Google OAuth client secret |
+| `STRIPE_SECRET_KEY` | ✓ | Stripe secret key (test mode) |
+| `STRIPE_WEBHOOK_SECRET` | ✓ | Signing secret of the webhook endpoint |
+| `UPSTASH_REDIS_REST_URL` | | Redis REST URL (cache, shared rate limits) |
+| `UPSTASH_REDIS_REST_TOKEN` | | Redis REST token |
+| `REDIS_KEY_PREFIX` | | Key prefix per environment |
+| `CLOUDINARY_CLOUD_NAME` | ✓ | Image storage account |
+| `CLOUDINARY_API_KEY` | ✓ | Image storage key |
+| `CLOUDINARY_API_SECRET` | ✓ | Image storage secret |
+| `RESEND_API_KEY` | | Email; without it notifications are stored, not emailed |
+| `EMAIL_FROM` | | Sender address |
+| `SEED_DEMO_PASSWORD` | seed / reset | Password of the demo accounts |
+| `SEED_ADMIN_PASSWORD` | | Separate password for `admin@carrivo.dev` (same strength rules; must differ from the demo password) |
+| `SEED_CONFIRM_DB_HOST` | production seed, every reset | Must equal the target database host |
+| `SEED_RESET_DEMO_PASSWORDS` | | `true` re-sets existing demo accounts' passwords (audited) |
+| `RESET_CONFIRM` | reset | Must be exactly `reset demo data on <host>` |
+| `DEV_ALLOW_MARK_PAID` | dev only | Enables the mark-paid helper locally |
+| `SMOKE_PASSWORD` (+ per-role variants) | smoke only | Password used by `npm run smoke` |
 
-   ```bash
-   stripe listen --forward-to localhost:5000/api/v1/payments/webhook \
-     --events checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed,checkout.session.expired,payment_intent.payment_failed,charge.refunded,refund.failed
-   ```
+Seed, reset, smoke and dev-only variables are never set in Vercel.
 
-3. Put the printed `whsec_…` into `.env` as `STRIPE_WEBHOOK_SECRET` and restart `npm run dev`.
-4. As a customer (Postman):
-   1. **Shipments → Create shipment**.
-   2. **Payments → Initiate payment**, then open `data.url`.
-   3. Pay with card `4242 4242 4242 4242`, any future expiry and any CVC.
-5. The CLI shows `checkout.session.completed → 200`. The payment becomes `PAID`, the shipment `paymentStatus` becomes `PAID`, and a PAYMENT_RECEIVED notification is created. `GET /payments/verify?session_id=…` (the success page) reconciles the payment too, in case the webhook was missed.
-6. Refunds: cancel a paid shipment before pickup. The CLI then shows `charge.refunded`.
+## Deployment (Vercel)
 
-`stripe trigger …` events carry no Carrivo metadata, so the API acknowledges them with 200 and ignores them.
+`api/index.ts` exports the Express app and `vercel.json` rewrites every path to it (one function, 30 s max duration). Set the environment variables for **Production**, apply migrations from your machine with `npm run db:deploy`, register the Stripe webhook endpoint and the Google redirect URI for the live domain, then redeploy. The full checklist, including safe production seeding and post-deploy checks, is in **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
 
-## Authentication
+## Seed and reset
 
-Every protected route takes `Authorization: Bearer <token>`. Tokens come from `POST /api/v1/auth/register`, `POST /api/v1/auth/login` or the Google flow below. Role is never client-settable: new accounts (including Google ones) are `CUSTOMER`.
+`npm run db:seed` is idempotent. It creates US demo data:
 
-- Tokens last 7 days.
-- `POST /auth/refresh-token` rotates the token and `POST /auth/logout` revokes it.
-- Deactivated users can't log in, refresh or use existing tokens.
-- Auth routes have a stricter rate limit (20 requests per 15 minutes per IP).
+- **Zones:** New York Metro (`NYC`) and Los Angeles Metro (`LA`).
+- **Hubs:** Queens and Jersey City; Downtown LA and Long Beach.
+- **Pricing (USD, lb):** Standard and Express cross-country defaults, cheaper within-metro rules, and Same Day within a metro only.
+- **Accounts** (created through Better Auth so passwords are hashed properly):
 
-### Google sign-in
+  | Role | Email |
+  |---|---|
+  | ADMIN | `admin@carrivo.dev` |
+  | ADMIN_VIEWER | `viewer@carrivo.dev` |
+  | COURIER | `courier1@carrivo.dev` (New York), `courier2@carrivo.dev` (Los Angeles) |
+  | CUSTOMER | `customer1@carrivo.dev`, `customer2@carrivo.dev` |
 
-A browser flow that ends in the same `{ token, expiresAt, user }` response as login. No token is ever put in a URL or a redirect:
+- **12 sample shipments** across the statuses, with pickups, payments and an earning. Names are fictional; phone numbers use the fictional 555-0100 to 555-0199 range.
 
-1. The frontend creates a random `codeVerifier`, keeps it (sessionStorage), and navigates the browser to `GET /api/v1/auth/google?challenge=<base64url(SHA-256(codeVerifier)), no padding>`.
-2. The user signs in at Google, which redirects to `/api/v1/auth/callback/google`.
-3. The API redirects to `FRONTEND_URL/auth/google/callback?code=<one-time code>`, or to `?error=account_exists | account_deactivated | google_cancelled | google_failed`.
-4. The frontend calls `POST /api/v1/auth/google/exchange` with `{ "code": "...", "codeVerifier": "..." }` within 60 seconds. The code works once.
+Passwords: every demo account uses `SEED_DEMO_PASSWORD`; set `SEED_ADMIN_PASSWORD` to give the real admin its own. Neither is ever printed. Existing accounts keep their password unless `SEED_RESET_DEMO_PASSWORDS=true` (sessions revoked, audited). In production the seed requires `SEED_CONFIRM_DB_HOST` and strong passwords (16+ characters, 3 character kinds, no guessable words).
 
-`account_exists` means the email already has an account. Google sign-in never links to an existing account; sign in with the password instead.
+**Resetting demo data** (`npm run db:reset-demo`) deletes all shipments with their history, pickups, payments, earnings and notifications, all audit logs, all pricing rules, hubs and zones, and the demo and test accounts (`*@carrivo.dev`, `*@example.com`, `phase<n>.test.*`). Other registered users are kept. It then reseeds. It refuses to run unless `SEED_CONFIRM_DB_HOST` equals the database host **and** `RESET_CONFIRM` is exactly `reset demo data on <that host>`; all deletes run in one transaction. Step by step: [docs/DEPLOYMENT.md → Resetting demo data](docs/DEPLOYMENT.md#resetting-demo-data).
 
-Frontend paths used in redirects and email links live in `src/app/config/frontendRoutes.ts`.
+## Roadmap
 
-#### Setup
-
-Google Cloud Console → APIs & Services → Credentials → OAuth client ID (Web application), **Authorized redirect URIs**:
-
-- `http://localhost:5000/api/v1/auth/callback/google`
-- `https://<your-api>.vercel.app/api/v1/auth/callback/google`
-
-No Authorized JavaScript origins are needed. Set these locally and in Vercel:
-- `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`;
-- `BETTER_AUTH_URL`: exactly the API origin;
-- `FRONTEND_URL`: the frontend origin.
-
-While the OAuth app is in **Testing**, only the test users listed in the Console can sign in. Publish it for the live demo (see `docs/DEPLOYMENT.md`).
-
-#### Manual test without a frontend
-
-With the API running (`npm run dev`):
-
-```bash
-# 1. Verifier and S256 challenge (base64url, no padding)
-VERIFIER=$(openssl rand -base64 48 | tr '+/' '-_' | tr -d '=\n')
-CHALLENGE=$(printf '%s' "$VERIFIER" | openssl dgst -sha256 -binary | openssl base64 -A | tr '+/' '-_' | tr -d '=')
-echo "Open in a browser: http://localhost:5000/api/v1/auth/google?challenge=$CHALLENGE"
-```
-
-2. Open the printed URL and sign in with Google. The browser ends on `http://localhost:3000/auth/google/callback?code=...`. The page doesn't need to exist: copy the `code` value from the address bar.
-3. Within 60 seconds, in the same terminal:
-
-```bash
-CODE='<paste the code>'
-curl -s -X POST http://localhost:5000/api/v1/auth/google/exchange \
-  -H 'Content-Type: application/json' \
-  -d "{\"code\":\"$CODE\",\"codeVerifier\":\"$VERIFIER\"}"
-```
-
-The response holds the Bearer token. Postman: **Auth → Google: exchange code**, with the `googleCode` and `googleCodeVerifier` collection variables. For the live API, replace `http://localhost:5000` with `https://<your-api>.vercel.app`; the browser then ends on your `FRONTEND_URL`.
-
-## Deployment
-
-Vercel serverless: `api/index.ts` exports the Express app, `vercel.json` rewrites every path to it, and functions run in `sin1` (Singapore, next to Neon and Upstash). The full production checklist covers env vars, database, migrations, the seed, Stripe, Google, CORS and post-deploy checks. It is in **[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)**.
+- Structured address fields (street, city, state, ZIP) instead of one validated text field.
+- Move the function region and data stores to a US region to match the US market.
+- OpenAPI spec generated from the Zod schemas, published alongside the Postman docs.
+- Audit records for refused (403) requests, for the read-only role in particular.
+- Integration tests against a disposable Postgres branch (migrations, seed, reset).
+- Courier route optimisation and live location; customer address book.
+- Cleanup of Cloudinary proof images on reset and on shipment deletion.

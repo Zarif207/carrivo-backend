@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { Role } from "../../../generated/prisma/enums.js";
 import { authenticate } from "../../middlewares/authenticate.js";
+import { STAFF_ROLES } from "../../config/roles.js";
 import { authorize } from "../../middlewares/authorize.js";
 import { validateRequest } from "../../middlewares/validateRequest.js";
 import { CourierController } from "./courier.controller.js";
@@ -21,6 +22,6 @@ router.patch(
 );
 
 // Admin: eligible couriers for the assignment screen.
-router.get("/", authorize(Role.ADMIN), validateRequest(CourierValidation.list), CourierController.list);
+router.get("/", authorize(...STAFF_ROLES), validateRequest(CourierValidation.list), CourierController.list);
 
 export const CourierRoutes = router;

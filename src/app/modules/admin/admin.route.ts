@@ -1,9 +1,11 @@
 import { Router } from "express";
 import { Role } from "../../../generated/prisma/enums.js";
 import { authenticate } from "../../middlewares/authenticate.js";
+import { STAFF_ROLES } from "../../config/roles.js";
 import { authorize } from "../../middlewares/authorize.js";
 import { validateRequest } from "../../middlewares/validateRequest.js";
-import { AuditRoutes } from "../audit/audit.route.js";
+import { AuditController } from "../audit/audit.controller.js";
+import { AuditValidation } from "../audit/audit.validation.js";
 import { PaymentController } from "../payment/payment.controller.js";
 import { PaymentValidation } from "../payment/payment.validation.js";
 import { AdminController } from "./admin.controller.js";
@@ -11,16 +13,19 @@ import { AdminValidation } from "./admin.validation.js";
 
 const router = Router();
 
-// Everything under /admin is ADMIN only.
-router.use(authenticate, authorize(Role.ADMIN));
+// /admin: staff only (ADMIN, plus ADMIN_VIEWER for reads).
+// Everyone here is staff; reads are open to ADMIN_VIEWER, every write needs ADMIN (and the
+// read-only rule in authenticate() rejects ADMIN_VIEWER mutations anyway).
+router.use(authenticate, authorize(...STAFF_ROLES));
+const adminOnly = authorize(Role.ADMIN);
 
 router.get("/users", validateRequest(AdminValidation.listUsers), AdminController.listUsers);
-router.post("/users", validateRequest(AdminValidation.createUser), AdminController.createUser);
-router.patch("/users/:id/role", validateRequest(AdminValidation.changeRole), AdminController.changeRole);
-router.patch("/users/:id/status", validateRequest(AdminValidation.changeStatus), AdminController.changeStatus);
+router.post("/users", adminOnly, validateRequest(AdminValidation.createUser), AdminController.createUser);
+router.patch("/users/:id/role", adminOnly, validateRequest(AdminValidation.changeRole), AdminController.changeRole);
+router.patch("/users/:id/status", adminOnly, validateRequest(AdminValidation.changeStatus), AdminController.changeStatus);
 router.get("/dashboard-stats", AdminController.dashboardStats);
-router.use("/audit-logs", AuditRoutes);
+router.get("/audit-logs", validateRequest(AuditValidation.list), AuditController.list);
 router.get("/payments", validateRequest(PaymentValidation.adminList), PaymentController.adminList);
-router.post("/payments/:id/refund", validateRequest(PaymentValidation.byId), PaymentController.retryRefund);
+router.post("/payments/:id/refund", adminOnly, validateRequest(PaymentValidation.byId), PaymentController.retryRefund);
 
 export const AdminRoutes = router;

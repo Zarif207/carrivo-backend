@@ -25,7 +25,8 @@ export const cache = createCache({ store: redis ? upstashStore(redis) : null, pr
 /**
  * Cache keys and TTLs. Only responses that are identical for every caller of the
  * endpoint are cached: public data (`public:`) and the admin-only dashboard
- * (`admin:`, read after authorize(ADMIN)). Role-scoped endpoints are never cached.
+ * (`admin:`, read after authorize(ADMIN, ADMIN_VIEWER): the same for every staff caller).
+ * Role-scoped endpoints are never cached.
  */
 export const CACHE_KEYS = {
   zones: "public:zones",

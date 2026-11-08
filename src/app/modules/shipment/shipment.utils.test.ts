@@ -36,14 +36,17 @@ describe("generateTrackingId", () => {
     for (let i = 0; i < 200; i += 1) assert.match(generateTrackingId(), TRACKING_ID_PATTERN);
   });
 
-  it("uses the Asia/Dhaka date (UTC+6)", () => {
-    // 19:00 UTC on Nov 5 is 01:00 on Nov 6 in Dhaka.
-    assert.equal(formatTrackingDate(new Date("2026-11-05T19:00:00Z")), "261106");
-    assert.equal(formatTrackingDate(new Date("2026-11-05T17:59:59Z")), "261105");
+  it("uses the US Eastern date (America/New_York, DST-aware)", () => {
+    // Winter (EST, UTC-5): 04:59 UTC on Nov 6 is still Nov 5 in New York; 05:00 UTC is Nov 6.
+    assert.equal(formatTrackingDate(new Date("2026-11-06T04:59:59Z")), "261105");
+    assert.equal(formatTrackingDate(new Date("2026-11-06T05:00:00Z")), "261106");
+    // Summer (EDT, UTC-4): the day changes at 04:00 UTC.
+    assert.equal(formatTrackingDate(new Date("2026-07-04T03:59:59Z")), "260703");
+    assert.equal(formatTrackingDate(new Date("2026-07-04T04:00:00Z")), "260704");
   });
 
   it("maps random bytes onto the look-alike-free alphabet", () => {
-    const id = generateTrackingId(new Date("2026-01-02T00:00:00Z"), () => Uint8Array.from([0, 31, 32, 255, 8, 9]));
+    const id = generateTrackingId(new Date("2026-01-02T17:00:00Z"), () => Uint8Array.from([0, 31, 32, 255, 8, 9]));
     assert.equal(id, "CRV-260102-2Z2ZAB");
     assert.doesNotMatch(id.slice(-6), /[01OI]/);
   });

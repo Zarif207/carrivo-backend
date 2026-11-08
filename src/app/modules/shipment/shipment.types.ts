@@ -21,7 +21,7 @@ export const shipmentListSelect = {
   receiverPhone: true,
   pickupAddress: true,
   deliveryAddress: true,
-  weightKg: true,
+  weightLb: true,
   price: true,
   currency: true,
   originZone: { select: zoneRefSelect },

@@ -4,8 +4,10 @@
  * Production seeding (NODE_ENV=production) is deliberately harder than local:
  * - SEED_CONFIRM_DB_HOST must equal the host the seed is about to write to, so a
  *   copy-pasted command can never seed the wrong database by accident;
- * - SEED_DEMO_PASSWORD must be strong, because the demo accounts (including the
- *   ADMIN) are public in the submission and live on the internet.
+ * - SEED_DEMO_PASSWORD must be strong, because the demo accounts are public in the
+ *   submission and live on the internet;
+ * - SEED_ADMIN_PASSWORD (optional) gives admin@carrivo.dev its own password, under the
+ *   same rules, and must differ from the demo password.
  *
  * Nothing here ever returns or prints the password itself.
  */
@@ -17,8 +19,8 @@ export const BASIC_PASSWORD_MIN_LENGTH = 8;
 const GUESSABLE = ["password", "carrivo", "123456", "qwerty", "admin", "demo"];
 
 /** Problems with the password (empty list = acceptable). Never echoes the value. */
-export const demoPasswordProblems = (password: string | undefined, strict: boolean): string[] => {
-  if (!password) return ["SEED_DEMO_PASSWORD is not set."];
+export const demoPasswordProblems = (password: string | undefined, strict: boolean, name = "SEED_DEMO_PASSWORD"): string[] => {
+  if (!password) return [`${name} is not set.`];
   const problems: string[] = [];
   const minLength = strict ? STRONG_PASSWORD_MIN_LENGTH : BASIC_PASSWORD_MIN_LENGTH;
   if (password.length < minLength) problems.push(`it must be at least ${minLength} characters (it has ${password.length}).`);
@@ -65,4 +67,15 @@ export const checkSeedTarget = (input: {
     return { ok: false, reason: `SEED_CONFIRM_DB_HOST (${confirm}) does not match the DATABASE_URL host (${host}). Nothing was written.` };
   }
   return { ok: true, host };
+};
+
+/**
+ * Optional separate password for the real admin account. Unset = the admin uses the demo
+ * password (as before). Set = same strength rules as the demo password, and it must differ.
+ */
+export const adminPasswordProblems = (adminPassword: string | undefined, demoPassword: string | undefined, strict: boolean): string[] => {
+  if (adminPassword === undefined) return [];
+  const problems = demoPasswordProblems(adminPassword, strict, "SEED_ADMIN_PASSWORD");
+  if (adminPassword === demoPassword) problems.push("it must differ from SEED_DEMO_PASSWORD.");
+  return problems;
 };

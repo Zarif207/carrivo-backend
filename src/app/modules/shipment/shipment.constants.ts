@@ -99,7 +99,7 @@ export const CANCELLABLE_STATUSES: readonly ShipmentStatus[] = [
 /** Admin soft delete is limited to shipments that are not moving. */
 export const ADMIN_DELETABLE_STATUSES: readonly ShipmentStatus[] = [ShipmentStatus.PENDING, ...TERMINAL_STATUSES];
 
-export const SHIPMENT_SORT_FIELDS = ["createdAt", "updatedAt", "price", "weightKg", "status", "trackingId"] as const;
+export const SHIPMENT_SORT_FIELDS = ["createdAt", "updatedAt", "price", "weightLb", "status", "trackingId"] as const;
 
 /** Pickup window rules for POST /shipments/:id/pickup. */
 export const PICKUP_MAX_WINDOW_HOURS = 12;
@@ -109,6 +109,5 @@ export const TRACKING_ID_PREFIX = "CRV";
 export const TRACKING_ID_PATTERN = /^CRV-\d{6}-[A-Z0-9]{6}$/;
 export const TRACKING_ID_MAX_ATTEMPTS = 5;
 
-/** Business timezone for tracking-id dates and date-only list filters (UTC+6, no DST). */
-export const BUSINESS_TIMEZONE = "Asia/Dhaka";
-export const BUSINESS_UTC_OFFSET = "+06:00";
+/** Business time zone (US Eastern, with daylight saving) for tracking-id dates and date-only filters. */
+export { BUSINESS_TIMEZONE } from "../../utils/timezone.js";

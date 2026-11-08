@@ -1,4 +1,5 @@
 import { FRONTEND_PATHS, joinFrontendUrl } from "../../config/frontendRoutes.js";
+import { formatBusinessDateTime } from "../../utils/timezone.js";
 
 /**
  * Pure notification/email building: no env, no database, so it is unit-tested
@@ -68,8 +69,8 @@ export const BRAND = "Carrivo";
 export const formatAmount = (amount: string, currency: string): string =>
   currency.toLowerCase() === "usd" ? `$${amount} USD` : `${amount} ${currency.toUpperCase()}`;
 
-/** Deterministic and timezone-free: "2026-11-06 09:15 UTC". */
-export const formatDateTime = (date: Date): string => `${date.toISOString().slice(0, 16).replace("T", " ")} UTC`;
+/** US Eastern time with its abbreviation: "Nov 6, 2026, 4:15 AM EST" (EDT in summer). */
+export const formatDateTime = (date: Date): string => formatBusinessDateTime(date);
 
 const firstName = (name: string): string => name.trim().split(/\s+/)[0] || name;
 

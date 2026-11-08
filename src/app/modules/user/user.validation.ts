@@ -1,15 +1,12 @@
 import { z } from "zod";
+import { phoneSchema, usAddressSchema } from "../../utils/commonValidation.js";
 
 const updateMe = z.object({
   body: z
     .strictObject({
       name: z.string().trim().min(2, { message: "Name must be at least 2 characters" }).max(100),
-      phone: z
-        .string()
-        .trim()
-        .regex(/^\+?[0-9\s-]{7,20}$/, { message: "Phone must be 7-20 digits, optionally with +, spaces or dashes" })
-        .nullable(),
-      address: z.string().trim().min(3).max(300).nullable(),
+      phone: phoneSchema.nullable(),
+      address: usAddressSchema.nullable(),
       image: z.url({ message: "Image must be a valid URL" }).nullable(),
     })
     .partial()

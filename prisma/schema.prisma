@@ -14,6 +14,8 @@ enum Role {
   CUSTOMER
   COURIER
   ADMIN
+  /// Read-only admin: every admin GET route, no mutations (see middlewares/readOnly.ts). Created by the seed only.
+  ADMIN_VIEWER
 }
 
 enum UserStatus {
@@ -223,7 +225,7 @@ model Hub {
 }
 
 // ───────────── Pricing ─────────────
-// price = baseFee + max(0, weightKg - baseWeightKg) * perKgFee
+// Weights in pounds, money in USD: price = baseFee + ceil(max(0, weightLb - baseWeightLb)) * perLbFee
 // Rule lookup (Phase 3): exact (service, origin, dest) → (service, null, null) fallback.
 model PricingRule {
   id                String      @id @default(uuid(7))
@@ -234,9 +236,9 @@ model PricingRule {
   destinationZoneId String?
   destinationZone   Zone?       @relation("PricingDestination", fields: [destinationZoneId], references: [id])
   baseFee           Decimal     @db.Decimal(10, 2)
-  baseWeightKg      Decimal     @default(1) @db.Decimal(8, 2)
-  perKgFee          Decimal     @db.Decimal(10, 2)
-  maxWeightKg       Decimal?    @db.Decimal(8, 2)
+  baseWeightLb      Decimal     @default(1) @db.Decimal(8, 2)
+  perLbFee          Decimal     @db.Decimal(10, 2)
+  maxWeightLb       Decimal?    @db.Decimal(8, 2)
   isActive          Boolean     @default(true)
   deletedAt         DateTime?
   createdAt         DateTime    @default(now())
@@ -299,7 +301,7 @@ model Shipment {
   currentHubId      String?
   currentHub        Hub?    @relation("CurrentHub", fields: [currentHubId], references: [id])
 
-  weightKg      Decimal     @db.Decimal(8, 2)
+  weightLb      Decimal     @db.Decimal(8, 2)
   description   String?
   declaredValue Decimal?    @db.Decimal(10, 2)
   isFragile     Boolean     @default(false)

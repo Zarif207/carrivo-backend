@@ -225,6 +225,8 @@ const changeRole = async (actor: Actor, id: string, payload: ChangeRoleInput, me
   if (id === actor.id) throw forbidden("You cannot change your own role");
   await prisma.$transaction(async (tx) => {
     const { admins, user } = await beginUserChange(tx, actor, id);
+    // Read-only viewer accounts are managed by the seed only, never through the API.
+    if (user.role === Role.ADMIN_VIEWER) throw forbidden("Viewer accounts are managed by the seed and can't change role");
     if (user.role === payload.role) {
       throw new ApiError(httpStatus.BAD_REQUEST, `User is already ${payload.role}`);
     }
@@ -305,7 +307,7 @@ const changeStatus = async (actor: Actor, id: string, payload: ChangeStatusInput
 
 // ───────── Dashboard ─────────
 
-/** 30 Dhaka calendar days (today included), zero-filled, computed in SQL. */
+/** 30 US Eastern calendar days (today included), zero-filled, computed in SQL (DST-aware). */
 const shipmentsPerDay = () =>
   prisma.$queryRaw<{ date: string; count: number }[]>`
     WITH days AS (

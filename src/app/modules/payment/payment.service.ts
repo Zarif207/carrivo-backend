@@ -25,6 +25,7 @@ import {
 } from "./payment.types.js";
 import { checkPaidAmount, isHandledStripeEvent, stripeId } from "./payment.utils.js";
 import type { AdminPaymentsQuery, MyPaymentsQuery } from "./payment.validation.js";
+import { isStaff } from "../../config/roles.js";
 
 type Db = Prisma.TransactionClient;
 
@@ -64,7 +65,7 @@ const audit = (
 // ───────── Read model ─────────
 
 const toDto = (row: PaymentRow, viewer: Actor): PaymentDto => {
-  const isAdmin = viewer.role === Role.ADMIN;
+  const isAdmin = isStaff(viewer.role);
   const open = row.status === PaymentStatus.PENDING && row.expiresAt !== null && row.expiresAt > new Date();
   return {
     id: row.id,
@@ -99,7 +100,7 @@ const toDto = (row: PaymentRow, viewer: Actor): PaymentDto => {
 /** Owner or admin; anyone else gets 404 so ids can't be probed. */
 const getById = async (viewer: Actor, id: string): Promise<PaymentDto> => {
   const row = await prisma.payment.findFirst({
-    where: { id, ...(viewer.role === Role.ADMIN ? {} : { userId: viewer.id }) },
+    where: { id, ...(isStaff(viewer.role) ? {} : { userId: viewer.id }) },
     select: paymentSelect,
   });
   if (!row) throw NOT_FOUND();
