@@ -1,4 +1,10 @@
-# 📦 Carrivo
+<a id="top"></a>
+
+<div align="center">
+
+<img src="src/app/icon.svg" alt="Carrivo logo: an orange rounded square with a dotted route between two stops" width="72" />
+
+# Carrivo
 
 **Door-to-door parcel delivery, in one API.** A REST API for a US courier platform: customers book and pay for shipments, couriers pick them up and deliver them with a photo, admins run zones, hubs, pricing, assignments, payments and users, and a read-only admin viewer can see everything without changing anything.
 
