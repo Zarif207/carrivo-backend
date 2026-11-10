@@ -325,10 +325,10 @@ sequenceDiagram
     participant DB as PostgreSQL
 
     C->>API: POST /shipments/:id/pickup (windowStart, windowEnd)
-    API->>DB: Check owner, PENDING and PAID; window in the future, within 30 days, at most 12 h
+    API->>DB: Check owner, PENDING and PAID - window in the future, within 30 days, at most 12 h
     API->>DB: One transaction: PickupRequest SCHEDULED, shipment PICKUP_SCHEDULED, history, audit
     A->>API: POST /shipments/:id/assign (courierId)
-    API->>DB: Lock the courier row; re-check active, available and in the origin zone
+    API->>DB: Lock the courier row, then re-check active, available and in the origin zone
     API->>DB: Shipment COURIER_ASSIGNED, history, audit, notifications
     K->>API: PATCH /shipments/:id/status (PICKED_UP)
     API->>DB: Shipment PICKED_UP, PickupRequest COMPLETED
@@ -347,7 +347,7 @@ sequenceDiagram
     participant DB as PostgreSQL
 
     C->>API: POST /api/v1/payments/initiate (shipmentId)
-    API->>DB: Check owner, UNPAID, payable; reuse an open session if there is one
+    API->>DB: Check owner, UNPAID and payable - reuse an open session if there is one
     API->>DB: Payment row (PENDING)
     API->>S: Create Checkout Session (USD, metadata shipmentId and paymentId)
     API-->>C: 201 checkoutUrl, paymentId, expiresAt
