@@ -35,6 +35,7 @@ import {
   type ShipmentListItem,
   type StatusSnapshot,
 } from "./shipment.types.js";
+import { StaffNotify } from "../notification/notification.staff.js";
 import { withTrackingIdRetry } from "./shipment.utils.js";
 import type {
   AssignInput,
@@ -313,6 +314,8 @@ const changeStatus = async (input: ChangeStatusInput): Promise<ShipmentDetail> =
     return { id: s.id, emails };
   });
   void NotificationService.sendAfterCommit(emails);
+  // After commit; never throws. Only DELIVERED, FAILED_DELIVERY and CANCELLED reach staff.
+  await StaffNotify.shipmentStatus(id, input.toStatus);
   return loadDetailAndInvalidate(id);
 };
 
@@ -486,6 +489,7 @@ const create = async (actor: Actor, payload: CreateShipmentInput, meta: RequestM
     }),
   );
   void NotificationService.sendAfterCommit(emails);
+  await StaffNotify.shipmentCreated(id);
   return loadDetailAndInvalidate(id);
 };
 

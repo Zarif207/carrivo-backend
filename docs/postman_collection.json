@@ -136,6 +136,10 @@
       "type": "string"
     },
     {
+      "key": "staffNotificationId",
+      "value": ""
+    },
+    {
       "key": "otherShipmentId",
       "value": "",
       "type": "string"
@@ -9612,7 +9616,7 @@
     },
     {
       "name": "Notifications",
-      "description": "In-app notifications for the signed-in user (any role), created in the same transaction as the event:\nSHIPMENT_CREATED, COURIER_ASSIGNED (customer + courier), PICKED_UP, OUT_FOR_DELIVERY, DELIVERED, FAILED_DELIVERY, PAYMENT_RECEIVED, REFUND_COMPLETED.\nEach also sends a Carrivo email (Resend) after the commit; email failures never fail a request. Links in emails use FRONTEND_URL + the paths in src/app/config/frontendRoutes.ts.",
+      "description": "Every role, always the caller's own rows (another user's id answers 404). Customers and couriers get shipment and payment updates; ADMIN and ADMIN_VIEWER get the staff feed (bookings, payments, refunds, deliveries, failed attempts, cancellations, zone/hub changes, new couriers), each with a `link` to the admin page to open. ADMIN_VIEWER may mark its own notifications read; deleting stays 403.",
       "item": [
         {
           "name": "My notifications",
@@ -9731,7 +9735,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Notifications retrieved successfully\",\n  \"data\": [\n    {\n      \"id\": \"01a1afc9-bea1-7569-bea3-9b3eaad0036d\",\n      \"type\": \"DELIVERED\",\n      \"title\": \"CRV-261106-SKNT7M delivered\",\n      \"message\": \"Your shipment CRV-261106-SKNT7M was delivered to Ryan <b>Miller</b>. Proof of delivery is on your shipment page.\",\n      \"readAt\": \"2026-11-06T07:36:44.965Z\",\n      \"createdAt\": \"2026-11-06T07:36:36.769Z\",\n      \"shipment\": {\n        \"id\": \"01a1afc8-7369-7652-b7be-ea7f8abaa731\",\n        \"trackingId\": \"CRV-261106-SKNT7M\"\n      },\n      \"isRead\": true\n    },\n    {\n      \"id\": \"01a1afc9-88d6-7328-adb1-d3bc8c3a96b9\",\n      \"type\": \"OUT_FOR_DELIVERY\",\n      \"title\": \"CRV-261106-SKNT7M is out for delivery\",\n      \"message\": \"Your shipment CRV-261106-SKNT7M is out for delivery to Ryan <b>Miller</b>.\",\n      \"readAt\": \"2026-11-06T07:36:45.416Z\",\n      \"createdAt\": \"2026-11-06T07:36:22.998Z\",\n      \"shipment\": {\n        \"id\": \"01a1afc8-7369-7652-b7be-ea7f8abaa731\",\n        \"trackingId\": \"CRV-261106-SKNT7M\"\n      },\n      \"isRead\": true\n    }\n  ],\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 3,\n    \"total\": 8,\n    \"totalPages\": 3\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Notifications retrieved successfully\",\n  \"data\": [\n    {\n      \"id\": \"01a1afc9-bea1-7569-bea3-9b3eaad0036d\",\n      \"type\": \"DELIVERED\",\n      \"title\": \"CRV-261106-SKNT7M delivered\",\n      \"message\": \"Your shipment CRV-261106-SKNT7M was delivered to Ryan <b>Miller</b>. Proof of delivery is on your shipment page.\",\n      \"link\": \"/shipments/01a1afc8-7369-7652-b7be-ea7f8abaa731\",\n      \"readAt\": \"2026-11-06T07:36:44.965Z\",\n      \"createdAt\": \"2026-11-06T07:36:36.769Z\",\n      \"shipment\": {\n        \"id\": \"01a1afc8-7369-7652-b7be-ea7f8abaa731\",\n        \"trackingId\": \"CRV-261106-SKNT7M\"\n      },\n      \"isRead\": true\n    },\n    {\n      \"id\": \"01a1afc9-88d6-7328-adb1-d3bc8c3a96b9\",\n      \"type\": \"OUT_FOR_DELIVERY\",\n      \"title\": \"CRV-261106-SKNT7M is out for delivery\",\n      \"message\": \"Your shipment CRV-261106-SKNT7M is out for delivery to Ryan <b>Miller</b>.\",\n      \"link\": \"/shipments/01a1afc8-7369-7652-b7be-ea7f8abaa731\",\n      \"readAt\": \"2026-11-06T07:36:45.416Z\",\n      \"createdAt\": \"2026-11-06T07:36:22.998Z\",\n      \"shipment\": {\n        \"id\": \"01a1afc8-7369-7652-b7be-ea7f8abaa731\",\n        \"trackingId\": \"CRV-261106-SKNT7M\"\n      },\n      \"isRead\": true\n    }\n  ],\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 3,\n    \"total\": 8,\n    \"totalPages\": 3\n  }\n}"
             },
             {
               "name": "400 Invalid filter",
@@ -9785,6 +9789,76 @@
                 }
               ],
               "body": "{\n  \"success\": false,\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    {\n      \"path\": \"query.unread\",\n      \"message\": \"Invalid option: expected one of \\\"true\\\"|\\\"false\\\"\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Unread count",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/unread-count",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "unread-count"
+              ]
+            },
+            "description": "The caller's unread and total notification counts, for a badge.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/notifications/unread-count",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notifications",
+                    "unread-count"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Unread count retrieved successfully\",\n  \"data\": {\n    \"unread\": 3,\n    \"total\": 7\n  }\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('counts', () => { pm.expect(body.data.unread).to.be.a('number'); pm.expect(body.data.total).to.be.at.least(body.data.unread); });"
+                ]
+              }
             }
           ]
         },
@@ -9843,7 +9917,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Notification marked as read\",\n  \"data\": {\n    \"id\": \"01a1afc9-bea1-7569-bea3-9b3eaad0036d\",\n    \"type\": \"DELIVERED\",\n    \"title\": \"CRV-261106-SKNT7M delivered\",\n    \"message\": \"Your shipment CRV-261106-SKNT7M was delivered to Ryan <b>Miller</b>. Proof of delivery is on your shipment page.\",\n    \"readAt\": \"2026-11-06T07:36:44.965Z\",\n    \"createdAt\": \"2026-11-06T07:36:36.769Z\",\n    \"shipment\": {\n      \"id\": \"01a1afc8-7369-7652-b7be-ea7f8abaa731\",\n      \"trackingId\": \"CRV-261106-SKNT7M\"\n    },\n    \"isRead\": true\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Notification marked as read\",\n  \"data\": {\n    \"id\": \"01a1afc9-bea1-7569-bea3-9b3eaad0036d\",\n    \"type\": \"DELIVERED\",\n    \"title\": \"CRV-261106-SKNT7M delivered\",\n    \"message\": \"Your shipment CRV-261106-SKNT7M was delivered to Ryan <b>Miller</b>. Proof of delivery is on your shipment page.\",\n    \"link\": \"/shipments/01a1afc8-7369-7652-b7be-ea7f8abaa731\",\n    \"readAt\": \"2026-11-06T07:36:44.965Z\",\n    \"createdAt\": \"2026-11-06T07:36:36.769Z\",\n    \"shipment\": {\n      \"id\": \"01a1afc8-7369-7652-b7be-ea7f8abaa731\",\n      \"trackingId\": \"CRV-261106-SKNT7M\"\n    },\n    \"isRead\": true\n  }\n}"
             },
             {
               "name": "404 Not yours",
@@ -9928,6 +10002,252 @@
                 }
               ],
               "body": "{\n  \"success\": true,\n  \"message\": \"All notifications marked as read\",\n  \"data\": {\n    \"updated\": 0\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Staff feed (admin viewer)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/my?unread=true&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "my"
+              ],
+              "query": [
+                {
+                  "key": "unread",
+                  "value": "true"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "The admin viewer's own staff notifications (ADMIN sees the same feed with its own rows). `link` is the admin page to open.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{viewerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/notifications/my?unread=true&limit=10",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notifications",
+                    "my"
+                  ],
+                  "query": [
+                    {
+                      "key": "unread",
+                      "value": "true"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Notifications retrieved successfully\",\n  \"data\": [\n    {\n      \"id\": \"01a1c5d7-b9c0-7d11-8a3e-1f2b3c4d5e6f\",\n      \"type\": \"PAYMENT_FAILED\",\n      \"title\": \"Payment failed for CRV-261110-ZQ8D9P\",\n      \"message\": \"The $16.20 USD payment for CRV-261110-ZQ8D9P failed: Asynchronous payment failed. The customer must start a new payment.\",\n      \"link\": \"/admin/payments?status=FAILED\",\n      \"readAt\": null,\n      \"createdAt\": \"2026-11-10T14:23:31.240Z\",\n      \"shipment\": {\n        \"id\": \"01a1c5d7-b6be-74a4-bc96-e8f85c05b15d\",\n        \"trackingId\": \"CRV-261110-ZQ8D9P\"\n      },\n      \"isRead\": false\n    },\n    {\n      \"id\": \"01a1c5d7-b8f1-7a20-9c44-0d1e2f3a4b5c\",\n      \"type\": \"HUB_CHANGED\",\n      \"title\": \"Hub HUB-NYC-BX created\",\n      \"message\": \"Carrivo Admin created the hub Bronx Hub (HUB-NYC-BX, Bronx).\",\n      \"link\": \"/admin/settings?tab=hubs\",\n      \"readAt\": null,\n      \"createdAt\": \"2026-11-10T14:23:30.912Z\",\n      \"shipment\": null,\n      \"isRead\": false\n    },\n    {\n      \"id\": \"01a1c5d4-84b8-7033-9308-9cf99bb0e510\",\n      \"type\": \"FAILED_DELIVERY\",\n      \"title\": \"Delivery failed for CRV-261101-SEED12\",\n      \"message\": \"Attempt 3 of 3 for CRV-261101-SEED12 failed: Recipient not available. No attempts left: mark it returned.\",\n      \"link\": \"/admin/shipments/01a1c5d3-e58e-7455-8ede-044e8eaf3ecc\",\n      \"readAt\": null,\n      \"createdAt\": \"2026-11-10T09:20:01.588Z\",\n      \"shipment\": {\n        \"id\": \"01a1c5d3-e58e-7455-8ede-044e8eaf3ecc\",\n        \"trackingId\": \"CRV-261101-SEED12\"\n      },\n      \"isRead\": false\n    }\n  ],\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 3,\n    \"totalPages\": 1\n  }\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('links to admin pages', () => body.data.forEach((n) => pm.expect(n.link).to.match(/^\\/admin\\//)));",
+                  "if (body.data && body.data[0]) pm.collectionVariables.set('staffNotificationId', body.data[0].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Viewer marks own notification read",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/{{staffNotificationId}}/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "{{staffNotificationId}}",
+                "read"
+              ]
+            },
+            "description": "Allowed for ADMIN_VIEWER: its own read state is not a business write (the only viewer mutations are this, read-all, logout and refresh-token).",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{viewerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/notifications/{{staffNotificationId}}/read",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notifications",
+                    "{{staffNotificationId}}",
+                    "read"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Notification marked as read\",\n  \"data\": {\n    \"id\": \"01a1c5d4-84b8-7033-9308-9cf99bb0e510\",\n    \"type\": \"FAILED_DELIVERY\",\n    \"title\": \"Delivery failed for CRV-261101-SEED12\",\n    \"message\": \"Attempt 3 of 3 for CRV-261101-SEED12 failed: Recipient not available. No attempts left: mark it returned.\",\n    \"link\": \"/admin/shipments/01a1c5d3-e58e-7455-8ede-044e8eaf3ecc\",\n    \"readAt\": \"2026-11-10T14:30:02.118Z\",\n    \"createdAt\": \"2026-11-10T09:20:01.588Z\",\n    \"shipment\": {\n      \"id\": \"01a1c5d3-e58e-7455-8ede-044e8eaf3ecc\",\n      \"trackingId\": \"CRV-261101-SEED12\"\n    },\n    \"isRead\": true\n  }\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('read', () => pm.expect(pm.response.json().data.isRead).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete one",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/{{notificationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "{{notificationId}}"
+              ]
+            },
+            "description": "Deletes one of the caller's own notifications (others → 404). Refused with 403 for ADMIN_VIEWER.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/notifications/{{notificationId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notifications",
+                    "{{notificationId}}"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Notification deleted\",\n  \"data\": {\n    \"id\": \"01a1afc9-bea1-7569-bea3-9b3eaad0036d\"\n  }\n}"
+            },
+            {
+              "name": "404 Not yours",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/notifications/{{notificationId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notifications",
+                    "{{notificationId}}"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Notification not found\",\n  \"errors\": []\n}"
             }
           ]
         }
@@ -13938,6 +14258,75 @@
                   "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to access this resource\",\n  \"errors\": []\n}"
                 }
               ]
+            }
+          ]
+        },
+        {
+          "name": "403 · viewer → delete a notification",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/019a0000-0000-7000-8000-000000000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "019a0000-0000-7000-8000-000000000000"
+              ]
+            },
+            "description": "The viewer may mark its notifications read, but deleting one is a write: the central read-only rule answers 403 before the service runs.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{viewerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "403 Read-only",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/notifications/019a0000-0000-7000-8000-000000000000",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "notifications",
+                    "019a0000-0000-7000-8000-000000000000"
+                  ]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"This account is read-only\",\n  \"errors\": []\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "pm.test('read-only message', () => pm.expect(pm.response.json().message).to.eql('This account is read-only'));"
+                ]
+              }
             }
           ]
         }

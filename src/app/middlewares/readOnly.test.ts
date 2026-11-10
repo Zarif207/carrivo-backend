@@ -16,6 +16,7 @@ const { AuthRoutes } = await import("../modules/auth/auth.route.js");
 const { moduleRoutes } = await import("../routes/index.js");
 const { authenticate } = await import("./authenticate.js");
 const { READ_ONLY_MESSAGE, violatesReadOnly } = await import("./readOnly.js");
+const { NotificationService } = await import("../modules/notification/notification.service.js");
 
 /*
  * The read-only rule is tested against the REAL route table: every route the app exposes is
@@ -90,6 +91,14 @@ const PUBLIC_MUTATIONS = new Set([
   `POST ${API}/pricing/estimate`,
 ]);
 
+/** The only mutations a viewer may make (reviewed list): its session, and its own notification read state. */
+const VIEWER_ALLOWED_MUTATIONS = new Set([
+  `POST ${API}/auth/logout`,
+  `POST ${API}/auth/refresh-token`,
+  `PATCH ${API}/notifications/read-all`,
+  `PATCH ${API}/notifications/:id/read`,
+]);
+
 /** Admin GET routes the viewer must NOT get, with the reason. */
 const VIEWER_GET_EXCLUSIONS = new Set([`GET ${API}/payments/verify`]); // verify can write (reconciles a paid session)
 
@@ -113,6 +122,22 @@ describe("violatesReadOnly", () => {
     assert.equal(violatesReadOnly(Role.ADMIN_VIEWER, "POST", `${API}/auth/logout/`), false);
     assert.equal(violatesReadOnly(Role.ADMIN_VIEWER, "PATCH", `${API}/auth/logout`), true);
     assert.equal(violatesReadOnly(Role.ADMIN_VIEWER, "POST", `${API}/auth/change-password`), true);
+  });
+
+  it("lets ADMIN_VIEWER mark its own notifications read, and nothing else on notifications", () => {
+    assert.equal(violatesReadOnly(Role.ADMIN_VIEWER, "PATCH", `${API}/notifications/${SAMPLE_ID}/read`), false);
+    assert.equal(violatesReadOnly(Role.ADMIN_VIEWER, "patch", `${API}/notifications/read-all?x=1`), false);
+    assert.equal(violatesReadOnly(Role.ADMIN_VIEWER, "PATCH", `${API}/notifications/read-all/`), false);
+    // Every other verb or shape stays read-only.
+    assert.equal(violatesReadOnly(Role.ADMIN_VIEWER, "DELETE", `${API}/notifications/${SAMPLE_ID}`), true);
+    assert.equal(violatesReadOnly(Role.ADMIN_VIEWER, "DELETE", `${API}/notifications/${SAMPLE_ID}/read`), true);
+    assert.equal(violatesReadOnly(Role.ADMIN_VIEWER, "POST", `${API}/notifications/read-all`), true);
+    assert.equal(violatesReadOnly(Role.ADMIN_VIEWER, "PUT", `${API}/notifications/${SAMPLE_ID}/read`), true);
+    assert.equal(violatesReadOnly(Role.ADMIN_VIEWER, "PATCH", `${API}/notifications/${SAMPLE_ID}`), true);
+    assert.equal(violatesReadOnly(Role.ADMIN_VIEWER, "PATCH", `${API}/notifications/${SAMPLE_ID}/read/extra`), true);
+    assert.equal(violatesReadOnly(Role.ADMIN_VIEWER, "PATCH", `${API}/notifications/a/b/read`), true);
+    assert.equal(violatesReadOnly(Role.ADMIN_VIEWER, "PATCH", `${API}/shipments/${SAMPLE_ID}/read`), true);
+    assert.equal(violatesReadOnly(Role.ADMIN_VIEWER, "PATCH", `/x${API}/notifications/read-all`), true);
   });
 });
 
@@ -141,9 +166,14 @@ describe("route table", () => {
 
   it("no mutating route lists ADMIN_VIEWER without ADMIN-level checks (read-only rule backs it up)", () => {
     for (const r of ROUTES.filter((x) => MUTATING.has(x.method) && x.authenticated)) {
-      const allowed = `${r.method} ${r.path}` === `POST ${API}/auth/logout` || `${r.method} ${r.path}` === `POST ${API}/auth/refresh-token`;
+      const allowed = VIEWER_ALLOWED_MUTATIONS.has(`${r.method} ${r.path}`);
       assert.equal(violatesReadOnly(Role.ADMIN_VIEWER, r.method, concrete(r.path)), !allowed, `${r.method} ${r.path}`);
     }
+  });
+
+  it("every reviewed viewer mutation is a real route", () => {
+    const real = new Set(ROUTES.map((r) => `${r.method} ${r.path}`));
+    assert.deepEqual([...VIEWER_ALLOWED_MUTATIONS].filter((m) => !real.has(m)), []);
   });
 
   it("STAFF_ROLES is exactly ADMIN + ADMIN_VIEWER", () => {
@@ -182,12 +212,62 @@ describe("HTTP: a viewer session", () => {
   };
 
   it("gets 403 'read-only' on every authenticated mutating route", async () => {
-    const targets = ROUTES.filter((r) => MUTATING.has(r.method) && r.authenticated && !r.path.endsWith("/logout") && !r.path.endsWith("/refresh-token"));
+    const targets = ROUTES.filter((r) => MUTATING.has(r.method) && r.authenticated && !VIEWER_ALLOWED_MUTATIONS.has(`${r.method} ${r.path}`));
     assert.ok(targets.length > 15);
+    assert.ok(targets.some((r) => r.method === "DELETE" && r.path === `${API}/notifications/:id`), "DELETE /notifications/:id is checked");
     for (const r of targets) {
       const { status, body } = await call(r.method, concrete(r.path));
       assert.equal(status, 403, `${r.method} ${r.path} -> ${status}`);
       assert.equal(body?.message, READ_ONLY_MESSAGE, `${r.method} ${r.path}`);
+    }
+  });
+
+  it("may mark its OWN notifications read (the service gets the session user's id)", async () => {
+    const seen: string[] = [];
+    const one = mock.method(NotificationService, "markRead", async (userId: string, id: string) => {
+      seen.push(`one:${userId}:${id}`);
+      return { id, type: "DELIVERED", title: "t", message: "m", link: null, readAt: new Date(), createdAt: new Date(), shipment: null, isRead: true } as never;
+    });
+    const all = mock.method(NotificationService, "markAllRead", async (userId: string) => {
+      seen.push(`all:${userId}`);
+      return { updated: 2 };
+    });
+    try {
+      const single = await call("PATCH", `${API}/notifications/${SAMPLE_ID}/read`);
+      assert.equal(single.status, 200, JSON.stringify(single.body));
+      const every = await call("PATCH", `${API}/notifications/read-all`);
+      assert.equal(every.status, 200, JSON.stringify(every.body));
+      // Ownership: the id passed down is always the caller's, never something from the request.
+      assert.deepEqual(seen, [`one:viewer-id:${SAMPLE_ID}`, "all:viewer-id"]);
+    } finally {
+      one.mock.restore();
+      all.mock.restore();
+    }
+  });
+
+  it("gets the friendly 403 on DELETE /notifications/:id, before the service runs", async () => {
+    const remove = mock.method(NotificationService, "remove", async () => ({ id: SAMPLE_ID }));
+    try {
+      const { status, body } = await call("DELETE", `${API}/notifications/${SAMPLE_ID}`);
+      assert.equal(status, 403);
+      assert.equal(body?.message, READ_ONLY_MESSAGE);
+      assert.equal(remove.mock.callCount(), 0);
+    } finally {
+      remove.mock.restore();
+    }
+  });
+
+  it("reads its own unread count (scoped to the session user)", async () => {
+    const count = mock.method(NotificationService, "unreadCount", async (userId: string) => {
+      assert.equal(userId, "viewer-id");
+      return { unread: 4, total: 7 };
+    });
+    try {
+      const res = await fetch(`${base}${API}/notifications/unread-count`, { headers: { authorization: "Bearer test-token" } });
+      assert.equal(res.status, 200);
+      assert.deepEqual(((await res.json()) as { data: unknown }).data, { unread: 4, total: 7 });
+    } finally {
+      count.mock.restore();
     }
   });
 

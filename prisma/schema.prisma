@@ -87,6 +87,13 @@ enum NotificationType {
   FAILED_DELIVERY
   PAYMENT_RECEIVED
   REFUND_COMPLETED
+  // Staff-only (ADMIN + ADMIN_VIEWER feed, see notification.staff.ts)
+  SHIPMENT_CANCELLED
+  PAYMENT_FAILED
+  REFUND_FAILED
+  ZONE_CHANGED
+  HUB_CHANGED
+  COURIER_ADDED
 }
 
 enum EmailStatus {
@@ -492,6 +499,10 @@ model Notification {
   type        NotificationType
   title       String
   message     String
+  /// Frontend path to open (e.g. /admin/shipments/<id>); null on rows written before it existed.
+  link        String?
+  /// Per-recipient idempotency key ("<event key>:<userId>"); replays of the same event insert nothing.
+  dedupeKey   String?          @unique
   readAt      DateTime?
   emailStatus EmailStatus      @default(PENDING)
   emailError  String? // short provider message; never the address or API key

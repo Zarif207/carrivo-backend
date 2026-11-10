@@ -50,7 +50,7 @@ const insert = async (db: Db, shipmentId: string, items: { recipient: Recipient;
   for (const { recipient, input } of items) {
     const content = buildNotification(input);
     const row = await db.notification.create({
-      data: { userId: recipient.id, shipmentId, type: content.type, title: content.title, message: content.message },
+      data: { userId: recipient.id, shipmentId, type: content.type, title: content.title, message: content.message, link: content.linkPath },
       select: { id: true },
     });
     pending.push({ notificationId: row.id, to: recipient.email, recipientName: recipient.name, content });
@@ -209,6 +209,26 @@ const markAllRead = async (userId: string): Promise<{ updated: number }> => {
   return { updated: count };
 };
 
+/** The caller's unread total (for a badge), plus their total. */
+const unreadCount = async (userId: string): Promise<{ unread: number; total: number }> => {
+  const [unread, total] = await Promise.all([
+    prisma.notification.count({ where: { userId, readAt: null } }),
+    prisma.notification.count({ where: { userId } }),
+  ]);
+  return { unread, total };
+};
+
+/**
+ * Deletes one of the caller's own notifications (others → 404, never revealed).
+ * A notification is a personal inbox item, not a business record, so this is a real
+ * delete; shipments, payments and the audit log are untouched.
+ */
+const remove = async (userId: string, id: string): Promise<{ id: string }> => {
+  const { count } = await prisma.notification.deleteMany({ where: { id, userId } });
+  if (count === 0) throw new ApiError(httpStatus.NOT_FOUND, "Notification not found");
+  return { id };
+};
+
 export const NotificationService = {
   forStatusChange,
   forShipmentCreated,
@@ -218,4 +238,6 @@ export const NotificationService = {
   listMine,
   markRead,
   markAllRead,
+  unreadCount,
+  remove,
 };

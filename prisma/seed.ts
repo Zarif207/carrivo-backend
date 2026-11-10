@@ -6,6 +6,8 @@
  * - Pricing rules are matched by their fixed `name` and updated or created.
  * - Sample shipments use fixed tracking ids (CRV-261101-SEEDxx); an existing one is
  *   left untouched (it may have been changed through the API since).
+ * - Sample staff notifications (admin + viewer feed) use fixed "seed:" dedupe keys, so a
+ *   re-run inserts nothing and never touches rows read or deleted since.
  *
  * The demo password comes from SEED_DEMO_PASSWORD; it is never stored in code
  * and never printed. SEED_ADMIN_PASSWORD (optional) gives admin@carrivo.dev its own
@@ -32,8 +34,11 @@ import { auth } from "../src/app/lib/auth.js";
 import { prisma } from "../src/app/lib/prisma.js";
 import { AUDIT_ACTIONS, AUDIT_ENTITIES } from "../src/app/modules/audit/audit.constants.js";
 import { calculateCourierEarning } from "../src/app/modules/courier/courier.utils.js";
+import { STAFF_RECIPIENT_WHERE, staffRows } from "../src/app/modules/notification/notification.staff.js";
+import { buildStaffNotification, type StaffEvent, type StaffShipmentFacts } from "../src/app/modules/notification/notification.staff.utils.js";
 import { calculatePrice } from "../src/app/modules/pricing/pricing.utils.js";
-import { allowedTransitions } from "../src/app/modules/shipment/shipment.constants.js";
+import { MAX_DELIVERY_ATTEMPTS, allowedTransitions } from "../src/app/modules/shipment/shipment.constants.js";
+import { formatMoney } from "../src/app/utils/money.js";
 import { adminPasswordProblems, checkSeedTarget, demoPasswordProblems } from "./seed.safety.js";
 import { PRICING_RULES, ZONES } from "./seed.network.js";
 
@@ -539,6 +544,108 @@ const syncSeedMoney = async (): Promise<{ repriced: number; payments: number; ea
  * same as sign-up), revokes its sessions and audits it. Returns false when the
  * account has no email/password credential (e.g. Google-only).
  */
+/**
+ * A few staff notifications so the admin and viewer feeds aren't empty in the demo: built
+ * with the same builder as the live events, from the sample shipments above. Additive and
+ * re-runnable: each row has a fixed "seed:<slug>:<userId>" key under the unique index.
+ */
+const seedStaffNotifications = async (): Promise<{ created: number; skipped: number }> => {
+  const recipients = await prisma.user.findMany({ where: STAFF_RECIPIENT_WHERE, select: { id: true } });
+  const shipments = await prisma.shipment.findMany({
+    where: { trackingId: { in: ["CRV-261101-SEED01", "CRV-261101-SEED07", "CRV-261101-SEED09", "CRV-261101-SEED10", "CRV-261101-SEED12"] } },
+    select: {
+      id: true,
+      trackingId: true,
+      serviceType: true,
+      price: true,
+      currency: true,
+      failureReason: true,
+      failedAttempts: true,
+      cancelReason: true,
+      customer: { select: { name: true } },
+      courier: { select: { name: true } },
+      originZone: { select: { name: true } },
+      destinationZone: { select: { name: true } },
+      payments: { where: { status: PaymentStatus.PAID }, select: { id: true, amount: true, paidAmount: true, currency: true }, take: 1 },
+    },
+  });
+  const byTracking = new Map(shipments.map((s) => [s.trackingId, s]));
+  const facts = (trackingId: string): StaffShipmentFacts | null => {
+    const s = byTracking.get(trackingId);
+    if (!s) return null;
+    const route = s.originZone.name === s.destinationZone.name ? `within ${s.originZone.name}` : `${s.originZone.name} to ${s.destinationZone.name}`;
+    return { id: s.id, trackingId: s.trackingId, route, customerName: s.customer.name };
+  };
+  const courier = await prisma.user.findUnique({
+    where: { email: "courier2@carrivo.dev" },
+    select: { id: true, name: true, email: true, courierProfile: { select: { zone: { select: { name: true } } } } },
+  });
+  const hub = await prisma.hub.findUnique({ where: { code: "HUB-ATL-AP" }, select: { id: true, code: true, name: true, city: true } });
+
+  // [slug, hours ago, read?, event]; a missing sample (renamed or deleted) just drops its row.
+  const samples: [string, number, boolean, StaffEvent | null][] = [];
+  const created = facts("CRV-261101-SEED01");
+  const s01 = byTracking.get("CRV-261101-SEED01");
+  if (created && s01) {
+    samples.push(["shipment-created-seed01", 1, false, { kind: "SHIPMENT_CREATED", shipment: created, serviceType: s01.serviceType, amount: formatMoney(s01.price), currency: s01.currency }]);
+  }
+  const s10 = byTracking.get("CRV-261101-SEED10");
+  const paid = s10?.payments[0];
+  if (s10 && paid) {
+    samples.push(["payment-received-seed10", 2, false, {
+      kind: "PAYMENT_RECEIVED",
+      payment: { paymentId: paid.id, shipment: { id: s10.id, trackingId: s10.trackingId }, amount: formatMoney(paid.paidAmount ?? paid.amount), currency: paid.currency },
+    }]);
+  }
+  const failed = facts("CRV-261101-SEED12");
+  const s12 = byTracking.get("CRV-261101-SEED12");
+  if (failed && s12) {
+    samples.push(["failed-delivery-seed12", 5, false, {
+      kind: "FAILED_DELIVERY",
+      shipment: failed,
+      reason: s12.failureReason ?? "Recipient not available",
+      attempt: Math.max(s12.failedAttempts, 1),
+      maxAttempts: MAX_DELIVERY_ATTEMPTS,
+    }]);
+  }
+  const cancelled = facts("CRV-261101-SEED09");
+  if (cancelled) {
+    samples.push(["shipment-cancelled-seed09", 26, false, {
+      kind: "SHIPMENT_CANCELLED",
+      shipment: cancelled,
+      reason: byTracking.get("CRV-261101-SEED09")?.cancelReason ?? "Customer changed plans",
+      refundPending: false,
+    }]);
+  }
+  const delivered = facts("CRV-261101-SEED07");
+  if (delivered) {
+    samples.push(["delivered-seed07", 50, true, { kind: "DELIVERED", shipment: delivered, courierName: byTracking.get("CRV-261101-SEED07")?.courier?.name ?? null }]);
+  }
+  if (courier) {
+    samples.push(["courier-added-courier2", 6 * 24, true, {
+      kind: "COURIER_ADDED",
+      user: { id: courier.id, name: courier.name, email: courier.email },
+      zoneName: courier.courierProfile?.zone.name ?? null,
+      via: "created",
+      actorName: "Carrivo Admin",
+    }]);
+  }
+  if (hub) {
+    samples.push(["hub-created-atl-ap", 7 * 24, true, { kind: "HUB_CHANGED", action: "created", hub, actorName: "Carrivo Admin" }]);
+  }
+
+  const now = Date.now();
+  const data = samples.flatMap(([slug, hoursAgo, read, event]) => {
+    if (!event) return [];
+    const content = { ...buildStaffNotification(event), dedupeKey: `seed:${slug}` };
+    const at = new Date(now - hoursAgo * HOUR);
+    return staffRows(content, recipients.map((r) => r.id)).map((row) => ({ ...row, createdAt: at, readAt: read ? at : null }));
+  });
+  if (data.length === 0) return { created: 0, skipped: 0 };
+  const { count } = await prisma.notification.createMany({ data, skipDuplicates: true });
+  return { created: count, skipped: data.length - count };
+};
+
 const resetDemoPassword = async (userId: string, email: string, password: string): Promise<boolean> => {
   const ctx = await auth.$context;
   if (!(await ctx.internalAdapter.findCredentialAccount(userId))) return false;
@@ -620,6 +727,8 @@ async function main(): Promise<void> {
   console.log(
     `Seed: ${money.repriced} sample shipment(s) re-priced in ${PLATFORM_CURRENCY}, ${money.payments} seed payment(s) and ${money.earnings} earning(s) aligned.`,
   );
+  const notices = await seedStaffNotifications();
+  console.log(`Seed: staff notifications ${notices.created} created, ${notices.skipped} already present.`);
 
   console.log(
     `\nDemo accounts (password from SEED_DEMO_PASSWORD${env.SEED_ADMIN_PASSWORD ? "; the admin uses SEED_ADMIN_PASSWORD" : ""}; never printed):`,

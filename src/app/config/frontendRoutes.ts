@@ -13,6 +13,25 @@ export const FRONTEND_PATHS = {
   courierTask: (shipmentId: string): string => `/courier/tasks/${encodeURIComponent(shipmentId)}`,
   /** Where Google sign-in lands with ?code=... or ?error=... */
   googleCallback: "/auth/google/callback",
+  /** Admin shipment detail (src/app/admin/shipments/[id]). */
+  adminShipment: (shipmentId: string): string => `/admin/shipments/${encodeURIComponent(shipmentId)}`,
+  /** Admin payments list, optionally filtered (src/app/admin/payments reads ?status= and ?requiresReview=true). */
+  adminPayments: (filter?: { status?: string; requiresReview?: boolean }): string => {
+    const params = new URLSearchParams();
+    if (filter?.status) params.set("status", filter.status);
+    if (filter?.requiresReview) params.set("requiresReview", "true");
+    const query = params.toString();
+    return query ? `/admin/payments?${query}` : "/admin/payments";
+  },
+  /** Admin settings tab (src/app/admin/settings reads ?tab=zones|hubs|pricing). */
+  adminSettings: (tab: "zones" | "hubs" | "pricing"): string => `/admin/settings?tab=${tab}`,
+  /** Admin user management (src/app/admin/users). */
+  adminUsers: "/admin/users",
+  /**
+   * Admin notification feed. NOT a frontend page yet: only the fallback for a staff
+   * notice with no better target (no event uses it today).
+   */
+  adminNotifications: "/admin/notifications",
 } as const;
 
 /** Joins an origin (no trailing slash) and a path from FRONTEND_PATHS. */

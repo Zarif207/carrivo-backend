@@ -13,6 +13,7 @@ import type { RequestMeta } from "../../utils/requestMeta.js";
 import { AUDIT_ACTIONS, AUDIT_ENTITIES } from "../audit/audit.constants.js";
 import { AuditService } from "../audit/audit.service.js";
 import type { Actor } from "../audit/audit.types.js";
+import { StaffNotify } from "../notification/notification.staff.js";
 import { BUSINESS_TIMEZONE, TERMINAL_STATUSES } from "../shipment/shipment.constants.js";
 import { adminUserSelect, type AdminUser, type AdminUserRow, type DashboardStats } from "./admin.types.js";
 import type {
@@ -36,6 +37,13 @@ const toAdminUser = ({ courierProfile, ...user }: AdminUserRow): AdminUser => {
   const { deletedAt: _deletedAt, ...profile } = courierProfile;
   return { ...user, courierProfile: profile };
 };
+
+const courierSummary = (user: AdminUser) => ({
+  id: user.id,
+  name: user.name,
+  email: user.email,
+  zoneName: user.courierProfile?.zone.name ?? null,
+});
 
 const getUser = async (id: string): Promise<AdminUser> => {
   const row = await prisma.user.findFirst({ where: { id, deletedAt: null }, select: adminUserSelect });
@@ -153,7 +161,9 @@ const createUser = async (actor: Actor, payload: CreateUserInput, meta: RequestM
     await prisma.user.delete({ where: { id: userId } }).catch(() => undefined);
     throw error;
   }
-  return getUser(userId);
+  const created = await getUser(userId);
+  if (created.role === Role.COURIER) await StaffNotify.courierAdded(courierSummary(created), "created", actor);
+  return created;
 };
 
 /**
@@ -267,7 +277,9 @@ const changeRole = async (actor: Actor, id: string, payload: ChangeRoleInput, me
       meta,
     });
   });
-  return getUser(id);
+  const updated = await getUser(id);
+  if (payload.role === Role.COURIER) await StaffNotify.courierAdded(courierSummary(updated), "role_changed", actor);
+  return updated;
 };
 
 /** Activate / deactivate. Deactivation revokes every session immediately. */

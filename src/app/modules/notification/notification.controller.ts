@@ -21,4 +21,14 @@ const markAllRead = catchAsync(async (req, res) => {
   sendResponse(res, { statusCode: httpStatus.OK, message: "All notifications marked as read", data });
 });
 
-export const NotificationController = { listMine, markRead, markAllRead };
+const unreadCount = catchAsync(async (req, res) => {
+  const data = await NotificationService.unreadCount(getAuthUser(req).id);
+  sendResponse(res, { statusCode: httpStatus.OK, message: "Unread count retrieved successfully", data });
+});
+
+const remove = catchAsync(async (req, res) => {
+  const data = await NotificationService.remove(getAuthUser(req).id, String(req.params["id"]));
+  sendResponse(res, { statusCode: httpStatus.OK, message: "Notification deleted", data });
+});
+
+export const NotificationController = { listMine, unreadCount, markRead, markAllRead, remove };

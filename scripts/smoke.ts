@@ -329,6 +329,7 @@ const main = async (): Promise<void> => {
     ["ADMIN", "/admin/payments?limit=5"],
     ["ADMIN", "/admin/dashboard-stats", false],
     ["ADMIN", "/notifications/my?limit=5"],
+    ["ADMIN", "/notifications/unread-count", false],
     ["COURIER", "/couriers/me/tasks?limit=5"],
     ["COURIER", "/couriers/me/earnings?limit=5"],
     ["COURIER", "/shipments?limit=5"],

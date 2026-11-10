@@ -13,6 +13,7 @@ import type { RequestMeta } from "../../utils/requestMeta.js";
 import { AUDIT_ACTIONS, AUDIT_ENTITIES, type AuditAction } from "../audit/audit.constants.js";
 import { AuditService } from "../audit/audit.service.js";
 import type { Actor } from "../audit/audit.types.js";
+import { StaffNotify } from "../notification/notification.staff.js";
 import { NotificationService } from "../notification/notification.service.js";
 import type { PendingEmail } from "../notification/notification.types.js";
 import {
@@ -398,17 +399,22 @@ const markPaidFromSession = async (session: Stripe.Checkout.Session, event: Stri
     return "paid";
   });
   void NotificationService.sendAfterCommit(emails);
+  // "paid" is returned by exactly one caller (guarded update), and the dedupe key is the
+  // payment id, so the webhook and /verify can never both notify staff.
+  const paidPaymentId = session.metadata?.["paymentId"];
+  if (outcome === "paid" && paidPaymentId) await StaffNotify.paymentReceived(paidPaymentId);
   return outcome;
 };
 
 /** PENDING → EXPIRED or FAILED for a session (guarded; repeat calls are no-ops). */
-const closePendingBySession = (
+const closePendingBySession = async (
   sessionId: string,
   status: typeof PaymentStatus.EXPIRED | typeof PaymentStatus.FAILED,
   event: Stripe.Event | null,
   reason?: string,
-): Promise<WebhookOutcome> =>
-  prisma.$transaction(async (tx) => {
+): Promise<WebhookOutcome> => {
+  let closedPaymentId: string | null = null;
+  const outcome = await prisma.$transaction(async (tx): Promise<WebhookOutcome> => {
     const payment = await tx.payment.findFirst({ where: { stripeSessionId: sessionId }, select: { id: true } });
     if (!(await recordEvent(tx, event, payment?.id ?? null))) return "duplicate_event";
     if (!payment) return "unknown_payment";
@@ -421,8 +427,13 @@ const closePendingBySession = (
       sessionId,
       reason: reason ?? null,
     });
+    closedPaymentId = payment.id;
     return status === PaymentStatus.EXPIRED ? "expired" : "failed";
   });
+  // Terminal failures only: expired sessions and card declines (the customer can retry) stay quiet.
+  if (outcome === "failed" && closedPaymentId) await StaffNotify.paymentFailed(closedPaymentId, reason ?? "Payment failed");
+  return outcome;
+};
 
 // ───────── Refunds ─────────
 
@@ -504,6 +515,7 @@ const processRefund = async (paymentId: string, actor: Actor | null): Promise<Pa
       completeRefund(tx, payment.id, { stripeRefundId: null, source: `local (${payment.provider} payment, no Stripe charge)`, actor }),
     );
     void NotificationService.sendAfterCommit(emails ?? []);
+    if (emails) await StaffNotify.refundCompleted(payment.id);
     return PaymentStatus.REFUNDED;
   }
 
@@ -524,6 +536,7 @@ const processRefund = async (paymentId: string, actor: Actor | null): Promise<Pa
     if (refund.status === "succeeded") {
       const emails = await prisma.$transaction((tx) => completeRefund(tx, payment.id, { stripeRefundId: refund.id, source: "stripe", actor }));
       void NotificationService.sendAfterCommit(emails ?? []);
+      if (emails) await StaffNotify.refundCompleted(payment.id);
       return PaymentStatus.REFUNDED;
     }
     await prisma.payment.update({ where: { id: payment.id }, data: { stripeRefundId: refund.id } });
@@ -536,6 +549,8 @@ const processRefund = async (paymentId: string, actor: Actor | null): Promise<Pa
       });
       await audit(tx, AUDIT_ACTIONS.PAYMENT_REFUND_FAILED, payment.id, { error: errorText(error) }, actor);
     });
+    // No Stripe refund id to key on: every failed attempt is its own event.
+    await StaffNotify.refundFailed(payment.id, errorText(error), null);
     return PaymentStatus.REFUND_PENDING;
   }
 };
@@ -594,6 +609,7 @@ const handleWebhookEvent = async (event: Stripe.Event): Promise<WebhookOutcome> 
     case "charge.refunded": {
       const charge = event.data.object;
       let emails: PendingEmail[] = [];
+      let refundedPaymentId: string | null = null;
       const outcome = await prisma.$transaction(async (tx): Promise<WebhookOutcome> => {
         const payment = await paymentByIntent(tx, stripeId(charge.payment_intent));
         if (!(await recordEvent(tx, event, payment?.id ?? null))) return "duplicate_event";
@@ -608,14 +624,17 @@ const handleWebhookEvent = async (event: Stripe.Event): Promise<WebhookOutcome> 
         const done = await completeRefund(tx, payment.id, { stripeRefundId: null, source: "webhook charge.refunded", actor: null });
         if (!done) return "already_processed";
         emails = done;
+        refundedPaymentId = payment.id;
         return "refunded";
       });
       void NotificationService.sendAfterCommit(emails);
+      if (outcome === "refunded" && refundedPaymentId) await StaffNotify.refundCompleted(refundedPaymentId);
       return outcome;
     }
     case "refund.failed": {
       const refund = event.data.object;
-      return prisma.$transaction(async (tx) => {
+      const failed: { paymentId: string | null; reason: string } = { paymentId: null, reason: "" };
+      const outcome = await prisma.$transaction(async (tx): Promise<WebhookOutcome> => {
         const payment = await paymentByIntent(tx, stripeId(refund.payment_intent));
         if (!(await recordEvent(tx, event, payment?.id ?? null))) return "duplicate_event";
         if (!payment) return "unknown_payment";
@@ -630,8 +649,13 @@ const handleWebhookEvent = async (event: Stripe.Event): Promise<WebhookOutcome> 
           },
         });
         await audit(tx, AUDIT_ACTIONS.PAYMENT_REFUND_FAILED, payment.id, { refundId: refund.id, reason });
+        failed.paymentId = payment.id;
+        failed.reason = refund.failure_reason ?? "unknown reason";
         return "refund_failed_recorded";
       });
+      // Keyed on the Stripe refund id: a replayed refund.failed adds nothing.
+      if (failed.paymentId) await StaffNotify.refundFailed(failed.paymentId, failed.reason, refund.id);
+      return outcome;
     }
     default:
       return "ignored";

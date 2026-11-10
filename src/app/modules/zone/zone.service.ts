@@ -10,6 +10,7 @@ import type { RequestMeta } from "../../utils/requestMeta.js";
 import { AUDIT_ACTIONS, AUDIT_ENTITIES } from "../audit/audit.constants.js";
 import { AuditService } from "../audit/audit.service.js";
 import type { Actor } from "../audit/audit.types.js";
+import { StaffNotify } from "../notification/notification.staff.js";
 import { TERMINAL_STATUSES } from "../shipment/shipment.constants.js";
 import { zoneSelect, type ZoneDto } from "./zone.types.js";
 import type { CreateZoneInput, UpdateZoneInput, ZoneListQuery } from "./zone.validation.js";
@@ -149,18 +150,21 @@ const removeTx = (id: string, actor: Actor, meta: RequestMeta): Promise<ZoneDto>
 const create = async (payload: CreateZoneInput, actor: Actor, meta: RequestMeta): Promise<ZoneDto> => {
   const zone = await createTx(payload, actor, meta);
   await cache.invalidate(CACHE_KEYS.zones);
+  await StaffNotify.zoneChanged("created", zone, actor);
   return zone;
 };
 
 const update = async (id: string, payload: UpdateZoneInput, actor: Actor, meta: RequestMeta): Promise<ZoneDto> => {
   const zone = await updateTx(id, payload, actor, meta);
   await cache.invalidate(CACHE_KEYS.zones, CACHE_KEYS.hubs, CACHE_KEYS.pricingEstimate);
+  await StaffNotify.zoneChanged("updated", zone, actor);
   return zone;
 };
 
 const remove = async (id: string, actor: Actor, meta: RequestMeta): Promise<ZoneDto> => {
   const zone = await removeTx(id, actor, meta);
   await cache.invalidate(CACHE_KEYS.zones, CACHE_KEYS.hubs, CACHE_KEYS.pricingEstimate);
+  await StaffNotify.zoneChanged("deleted", zone, actor);
   return zone;
 };
 

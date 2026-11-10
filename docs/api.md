@@ -278,22 +278,69 @@ Raw body, `Stripe-Signature` verified. **200** with `data: { eventId, type, outc
 
 ## Notifications
 
-Every role; always scoped to the caller.
+Every role; always scoped to the caller. Another user's notification answers **404**, never 403, so ids aren't confirmed.
+
+**Who gets what.** Customers and couriers get shipment and payment updates (created in the same transaction as the change, then emailed). `ADMIN` and `ADMIN_VIEWER` get an in-app staff feed, written after the change commits (one row per active staff user; inactive or deleted staff are skipped; a failure is logged and never fails the request):
+
+| Type | Event | `link` |
+| --- | --- | --- |
+| `SHIPMENT_CREATED` | A customer books a shipment | `/admin/shipments/<id>` |
+| `PAYMENT_RECEIVED` | A payment is marked paid (webhook or verify) | `/admin/shipments/<id>` |
+| `DELIVERED` | A courier delivers | `/admin/shipments/<id>` |
+| `FAILED_DELIVERY` | A delivery attempt fails (one per attempt) | `/admin/shipments/<id>` |
+| `SHIPMENT_CANCELLED` | A shipment is cancelled (says if a refund is pending) | `/admin/shipments/<id>` |
+| `PAYMENT_FAILED` | `checkout.session.async_payment_failed` (card declines and expired sessions stay quiet) | `/admin/payments?status=FAILED` |
+| `REFUND_COMPLETED` | A refund completes (API, retry or `charge.refunded`) | `/admin/payments?status=REFUNDED` |
+| `REFUND_FAILED` | `refund.failed`, or a refund call that throws | `/admin/payments?requiresReview=true` |
+| `ZONE_CHANGED` | A zone is created, updated or deleted | `/admin/settings?tab=zones` |
+| `HUB_CHANGED` | A hub is created, updated or deleted | `/admin/settings?tab=hubs` |
+| `COURIER_ADDED` | An admin creates a courier or changes a user's role to `COURIER` | `/admin/users` |
+
+A staff notice with no better target falls back to `/admin/notifications` (no event uses it today; the frontend has no such page yet). Other status changes (picked up, in transit, ...) don't notify staff.
+
+**Idempotency.** Staff rows store `dedupeKey = "<event key>:<userId>"` under a unique index and are inserted with `createMany(skipDuplicates)`. Keys: `PAYMENT_RECEIVED:payment:<paymentId>` (shared by the webhook and `/payments/verify`), `PAYMENT_FAILED:payment:<paymentId>`, `REFUND_COMPLETED:payment:<paymentId>`, `REFUND_FAILED:payment:<paymentId>:<stripeRefundId>`, `FAILED_DELIVERY:shipment:<id>:attempt:<n>`, and `<TYPE>:shipment:<id>` for the other shipment events. Admin actions (zones, hubs, users) can't be replayed and have no key. This sits on top of the `stripe_events` table, which already drops a replayed webhook.
 
 ### `GET /notifications/my`
 Query: `unread` (`true | false`, omit for all), `page`, `limit`, `sortOrder`.
-**200:** `Notification[] { id, type, title, message, readAt, isRead, createdAt, shipment: { id, trackingId } | null }` + meta. `meta.total` with `unread=true` is the badge count.
+**200:** `Notification[] { id, type, title, message, link, readAt, isRead, createdAt, shipment: { id, trackingId } | null }` + meta. `link` is a frontend path (`null` only on rows written before it existed).
+
+```json
+{
+  "success": true,
+  "message": "Notifications retrieved successfully",
+  "data": [
+    {
+      "id": "01a1c5d4-84b8-7033-9308-9cf99bb0e510",
+      "type": "FAILED_DELIVERY",
+      "title": "Delivery failed for CRV-261101-SEED12",
+      "message": "Attempt 3 of 3 for CRV-261101-SEED12 failed: Recipient not available. No attempts left: mark it returned.",
+      "link": "/admin/shipments/01a1c5d3-e58e-7455-8ede-044e8eaf3ecc",
+      "readAt": null,
+      "isRead": false,
+      "createdAt": "2026-11-10T09:20:01.588Z",
+      "shipment": { "id": "01a1c5d3-e58e-7455-8ede-044e8eaf3ecc", "trackingId": "CRV-261101-SEED12" }
+    }
+  ],
+  "meta": { "page": 1, "limit": 10, "total": 7, "totalPages": 1 }
+}
+```
+
+### `GET /notifications/unread-count`
+**200:** `{ unread: number, total: number }` for the caller.
 
 ### `PATCH /notifications/:id/read`
-**200:** the notification. Not for `ADMIN_VIEWER`.
+**200:** the notification (an already-read one keeps its `readAt`). Allowed for `ADMIN_VIEWER`.
 
 ### `PATCH /notifications/read-all`
-**200:** `{ updated: number }`. Not for `ADMIN_VIEWER`.
+**200:** `{ updated: number }`. Allowed for `ADMIN_VIEWER`.
+
+### `DELETE /notifications/:id`
+**200:** `{ id }`. Deletes one of the caller's own notifications (a personal inbox item; shipments, payments and the audit log are untouched). **403** for `ADMIN_VIEWER`.
 
 ## Read-only accounts (ADMIN_VIEWER)
 
-- Allowed: every admin and staff `GET` (dashboard stats, users, shipments, payments, audit logs, zones, hubs, pricing rules, couriers), `GET /users/me`, its own notifications, and `POST /auth/logout` and `POST /auth/refresh-token`.
-- Refused with **403** `This account is read-only`: every other `POST`, `PUT`, `PATCH` and `DELETE`, including its own profile, password, session revocation and mark-as-read.
+- Allowed: every admin and staff `GET` (dashboard stats, users, shipments, payments, audit logs, zones, hubs, pricing rules, couriers), `GET /users/me`, its own notifications and unread count, `PATCH /notifications/:id/read` and `PATCH /notifications/read-all` (its own read state, not a business write), and `POST /auth/logout` and `POST /auth/refresh-token`.
+- Refused with **403** `This account is read-only`: every other `POST`, `PUT`, `PATCH` and `DELETE`, including its own profile, password, session revocation and deleting a notification.
 - Not allowed on customer- or courier-only routes, or on `GET /payments/verify` (it can write).
 - The rule is one function, `violatesReadOnly(role, method, url)` in `src/app/middlewares/readOnly.ts`, run inside `authenticate` and in front of Better Auth. `readOnly.test.ts` walks the real route table.
 

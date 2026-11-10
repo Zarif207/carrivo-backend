@@ -10,6 +10,7 @@ import type { RequestMeta } from "../../utils/requestMeta.js";
 import { AUDIT_ACTIONS, AUDIT_ENTITIES } from "../audit/audit.constants.js";
 import { AuditService } from "../audit/audit.service.js";
 import type { Actor } from "../audit/audit.types.js";
+import { StaffNotify } from "../notification/notification.staff.js";
 import { TERMINAL_STATUSES } from "../shipment/shipment.constants.js";
 import { hubSelect, type HubDto } from "./hub.types.js";
 import type { CreateHubInput, HubListQuery, UpdateHubInput } from "./hub.validation.js";
@@ -173,18 +174,21 @@ const removeTx = (id: string, actor: Actor, meta: RequestMeta): Promise<HubDto> 
 const create = async (payload: CreateHubInput, actor: Actor, meta: RequestMeta): Promise<HubDto> => {
   const hub = await createTx(payload, actor, meta);
   await cache.invalidate(CACHE_KEYS.hubs);
+  await StaffNotify.hubChanged("created", hub, actor);
   return hub;
 };
 
 const update = async (id: string, payload: UpdateHubInput, actor: Actor, meta: RequestMeta): Promise<HubDto> => {
   const hub = await updateTx(id, payload, actor, meta);
   await cache.invalidate(CACHE_KEYS.hubs);
+  await StaffNotify.hubChanged("updated", hub, actor);
   return hub;
 };
 
 const remove = async (id: string, actor: Actor, meta: RequestMeta): Promise<HubDto> => {
   const hub = await removeTx(id, actor, meta);
   await cache.invalidate(CACHE_KEYS.hubs);
+  await StaffNotify.hubChanged("deleted", hub, actor);
   return hub;
 };
 

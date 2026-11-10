@@ -10,7 +10,7 @@ import { catchAsync } from "../utils/catchAsync.js";
 /*
  * The read-only rule, keyed on HTTP method + role (never per route):
  * a READ_ONLY_ROLES account (ADMIN_VIEWER) may only use safe methods, plus the session
- * endpoints it needs to stay signed in or leave. Called from authenticate() for every
+ * endpoints it needs to stay signed in or leave, plus marking its own notifications read. Called from authenticate() for every
  * protected route, and from blockReadOnlyOnBetterAuth for Better Auth's own endpoints.
  */
 
@@ -18,6 +18,16 @@ const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 /** Mutations a read-only account may still make: ending or rotating its own session. */
 export const READ_ONLY_ALLOWED_MUTATIONS: ReadonlySet<string> = new Set(["POST /api/v1/auth/logout", "POST /api/v1/auth/refresh-token"]);
+
+/**
+ * Parameterized exceptions, anchored on both ends. Only the caller's OWN notification read
+ * state: marking read is not a business write (the service scopes it to the caller's rows).
+ * DELETE /notifications/:id is deliberately absent, so a viewer still gets the 403.
+ */
+export const READ_ONLY_ALLOWED_PATTERNS: readonly { method: string; path: RegExp }[] = [
+  { method: "PATCH", path: /^\/api\/v1\/notifications\/read-all$/ },
+  { method: "PATCH", path: /^\/api\/v1\/notifications\/[^/]+\/read$/ },
+];
 
 export const READ_ONLY_MESSAGE = "This account is read-only";
 
@@ -28,7 +38,9 @@ export function violatesReadOnly(role: Role, method: string, url: string): boole
   if (!isReadOnlyRole(role)) return false;
   const verb = method.toUpperCase();
   if (SAFE_METHODS.has(verb)) return false;
-  return !READ_ONLY_ALLOWED_MUTATIONS.has(`${verb} ${pathOnly(url)}`);
+  const path = pathOnly(url);
+  if (READ_ONLY_ALLOWED_MUTATIONS.has(`${verb} ${path}`)) return false;
+  return !READ_ONLY_ALLOWED_PATTERNS.some((rule) => rule.method === verb && rule.path.test(path));
 }
 
 export const readOnlyError = (): ApiError => new ApiError(httpStatus.FORBIDDEN, READ_ONLY_MESSAGE);

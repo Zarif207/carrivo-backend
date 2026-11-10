@@ -5,7 +5,7 @@ PostgreSQL through Prisma 7. The schema is one file, [`prisma/schema.prisma`](..
 - **Ids:** domain rows use UUID v7 (`@default(uuid(7))`, time-ordered); Better Auth tables use the string ids Better Auth generates.
 - **Money:** `Decimal(10,2)` in US dollars, returned by the API as 2-decimal strings (`"6.00"`).
 - **Weights:** `Decimal(8,2)` in pounds (`weightLb`, `baseWeightLb`, `maxWeightLb`).
-- **Soft delete:** mutable entities carry `deletedAt`; every read excludes deleted rows. Notifications, status history, audit logs, earnings and Stripe events are append-only.
+- **Soft delete:** mutable entities carry `deletedAt`; every read excludes deleted rows. Status history, audit logs, earnings and Stripe events are append-only. Notifications are personal inbox items: only their read state changes, and their owner may delete one.
 - **Table names** are snake_case plurals (`@@map`).
 
 ## Entity relationship diagram
@@ -168,6 +168,8 @@ erDiagram
     string userId FK
     uuid shipmentId FK
     NotificationType type
+    string link
+    string dedupeKey UK
     datetime readAt
     EmailStatus emailStatus
   }
@@ -192,7 +194,7 @@ erDiagram
 | `StripeEvent` (`stripe_events`) | Processed webhook event ids | Primary key is the Stripe event id: webhook idempotency |
 | `CourierEarning` (`courier_earnings`) | The courier's share of a delivered shipment | One per shipment (`shipmentId` unique); `PENDING` or `PAID` |
 | `AuditLog` (`audit_logs`) | Who changed what | `before` and `after` snapshots, redacted on write and on read; `actorId` null means the system |
-| `Notification` (`notifications`) | In-app notifications plus email status | Created in the same transaction as the change; the email is sent after commit |
+| `Notification` (`notifications`) | In-app notifications plus email status | Customer and courier rows are created in the same transaction as the change, and their email is sent after commit. Staff rows (ADMIN, ADMIN_VIEWER) are written after commit, in-app only (`emailStatus` `SKIPPED`), with a unique per-recipient `dedupeKey` so replayed events add nothing. `link` is the frontend path to open |
 
 ## Enums
 
@@ -207,7 +209,7 @@ erDiagram
 | `VehicleType` | `BICYCLE`, `MOTORCYCLE`, `CAR`, `VAN`, `TRUCK` |
 | `PickupStatus` | `SCHEDULED`, `COMPLETED`, `CANCELLED` |
 | `EarningStatus` | `PENDING`, `PAID` |
-| `NotificationType` | `SHIPMENT_CREATED`, `COURIER_ASSIGNED`, `PICKED_UP`, `OUT_FOR_DELIVERY`, `DELIVERED`, `FAILED_DELIVERY`, `PAYMENT_RECEIVED`, `REFUND_COMPLETED` |
+| `NotificationType` | `SHIPMENT_CREATED`, `COURIER_ASSIGNED`, `PICKED_UP`, `OUT_FOR_DELIVERY`, `DELIVERED`, `FAILED_DELIVERY`, `PAYMENT_RECEIVED`, `REFUND_COMPLETED`; staff only: `SHIPMENT_CANCELLED`, `PAYMENT_FAILED`, `REFUND_FAILED`, `ZONE_CHANGED`, `HUB_CHANGED`, `COURIER_ADDED` |
 | `EmailStatus` | `PENDING`, `SENT`, `FAILED`, `SKIPPED` |
 
 ## Constraints
@@ -232,7 +234,7 @@ erDiagram
 | `stripe_events` | `paymentId` | Lookup by payment |
 | `courier_earnings` | `(courierId, createdAt)`, `status` | Earnings by date |
 | `audit_logs` | `(actorId, createdAt)`, `(entityType, entityId, createdAt)`, `(action, createdAt)`, `createdAt` | Each audit filter with newest-first order |
-| `notifications` | `(userId, readAt, createdAt)`, `(userId, createdAt)`, `shipmentId` | Unread filter and newest first |
+| `notifications` | `(userId, readAt, createdAt)`, `(userId, createdAt)`, `shipmentId`, `dedupeKey` (unique) | Unread filter and newest first; staff event idempotency |
 
 ## Transactions and concurrency
 

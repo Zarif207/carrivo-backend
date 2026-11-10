@@ -75,7 +75,7 @@ Hosting: Vercel (one serverless function). Database: PostgreSQL (Neon). Cache an
 
 These are public demo values. The admin account is private; use the admin viewer to explore the admin endpoints.
 
-The **admin viewer** (`ADMIN_VIEWER`) can call every admin and staff `GET` endpoint (dashboard stats, users, shipments, payments, audit logs, zones, hubs, pricing rules, couriers) and gets the same data an admin sees. Every write returns **403** ("This account is read-only"), including its own profile, password and mark-as-read; only logout and refresh-token are allowed. It can't use customer- or courier-only routes.
+The **admin viewer** (`ADMIN_VIEWER`) can call every admin and staff `GET` endpoint (dashboard stats, users, shipments, payments, audit logs, zones, hubs, pricing rules, couriers) and gets the same data an admin sees. Every write returns **403** ("This account is read-only"), including its own profile and password; only logout, refresh-token and marking its own notifications read are allowed. It can't use customer- or courier-only routes.
 
 **Stripe test card:** `4242 4242 4242 4242`, any future expiry date, any CVC. Payments run in Stripe **test mode**; no real money is charged.
 
@@ -156,16 +156,19 @@ US conventions throughout: prices in US dollars, weights in pounds (`weightLb`),
 <summary><b>Admin viewer (read-only)</b></summary>
 
 - Every admin and staff `GET` endpoint, with the same data an admin sees
-- Every write refused with 403 by one central rule, including Better Auth's own endpoints
+- Its own staff notification feed: list, unread count, mark one or all read
+- Every other write refused with 403 by one central rule, including Better Auth's own endpoints
 
 </details>
 
 <details>
 <summary><b>Notifications and email</b></summary>
 
-- Notifications for shipment created, courier assigned, picked up, out for delivery, delivered, failed delivery, payment received and refund completed
-- Written in the same transaction as the change; the email (Resend) goes out after the commit, and an email failure never fails the request
-- List (all, unread or read), mark one read, mark all read
+- Customers and couriers: shipment created, courier assigned, picked up, out for delivery, delivered, failed delivery, payment received and refund completed. Written in the same transaction as the change; the email (Resend) goes out after the commit, and an email failure never fails the request
+- Staff feed (every active admin and admin viewer, in-app only): shipment booked, paid, delivered, delivery failed (each attempt) and cancelled; payment failed (terminal async failure); refund completed or failed; zone or hub created, updated or deleted; courier account created or a user made a courier. Written after the commit, one row per recipient; a failure is logged and never fails the request
+- Replays are safe: staff rows carry a unique per-recipient key built from the event (the payment id for payments, the Stripe refund id for refund failures), so a replayed webhook, or `/payments/verify` racing the webhook, adds nothing
+- Every notification has a `link` the frontend can open (for example `/admin/shipments/<id>`, `/admin/payments?status=FAILED`, `/admin/settings?tab=hubs`)
+- List (all, unread or read), unread count, mark one read, mark all read, delete; always the caller's own rows
 
 </details>
 
@@ -379,7 +382,7 @@ sequenceDiagram
 
 ## API reference
 
-Every endpoint the API serves: 58 of ours plus 6 allow-listed Better Auth endpoints, all under `/api/v1` except the root. Request and response shapes are in [`docs/api.md`](docs/api.md). "Any" means any signed-in role; "Staff" means Admin and Admin viewer (reads only).
+Every endpoint the API serves: 60 of ours plus 6 allow-listed Better Auth endpoints, all under `/api/v1` except the root. Request and response shapes are in [`docs/api.md`](docs/api.md). "Any" means any signed-in role; "Staff" means Admin and Admin viewer (reads only).
 
 | Method | Path                                    | Role               | Description                                                     |
 | ------ | --------------------------------------- | ------------------ | --------------------------------------------------------------- |
@@ -445,9 +448,11 @@ Every endpoint the API serves: 58 of ours plus 6 allow-listed Better Auth endpoi
 | GET    | `/api/v1/payments/my`                   | Customer           | My payments                                                     |
 | GET    | `/api/v1/payments/:id`                  | Customer, Staff    | Payment details (customers: own only)                           |
 | POST   | `/api/v1/payments/webhook`              | Stripe             | Stripe webhook (signature verified, idempotent)                 |
-| GET    | `/api/v1/notifications/my`              | Any                | My notifications                                                |
-| PATCH  | `/api/v1/notifications/read-all`        | Any (not viewer)   | Mark all as read                                                |
-| PATCH  | `/api/v1/notifications/:id/read`        | Any (not viewer)   | Mark one as read                                                |
+| GET    | `/api/v1/notifications/my`              | Any                | My notifications (`unread=true` for unread only)                |
+| GET    | `/api/v1/notifications/unread-count`    | Any                | My unread and total count (for a badge)                         |
+| PATCH  | `/api/v1/notifications/read-all`        | Any                | Mark all of mine as read (viewer allowed: read state only)      |
+| PATCH  | `/api/v1/notifications/:id/read`        | Any                | Mark one of mine as read (viewer allowed: read state only)      |
+| DELETE | `/api/v1/notifications/:id`             | Any (not viewer)   | Delete one of mine                                              |
 
 ## Response & error format
 
@@ -660,7 +665,7 @@ npm run db:reset-demo    # deletes demo data, then reseeds
 1. **Import** [`docs/postman_collection.json`](docs/postman_collection.json).
 2. **`baseUrl`** defaults to `http://localhost:5000/api/v1`; for the live API set it to `https://carrivo-backend.vercel.app/api/v1`.
 3. Set the **`demoPassword`** collection variable to the demo password, then run **Auth → Login as Customer (demo)**, **Login as Courier (demo)** and **Login as Admin Viewer (demo, read-only)**. **Login as Admin (private credentials)** needs the private `adminEmail` variable and the admin's own password, or an admin from your own local seed.
-4. Tokens are saved automatically (`customerToken`, `courierToken`, `viewerToken`, `adminToken`, and `token` for the last login), and each folder uses the right one. IDs are captured from responses (`zoneId`, `destinationZoneId`, `hubId`, `destinationHubId`, `pricingRuleId`, `shipmentId`, `trackingId`, `courierId`, `paymentId`, `userId`, `notificationId`, `otherShipmentId`, plus `pickupStart` and `pickupEnd`), so requests can run in order.
+4. Tokens are saved automatically (`customerToken`, `courierToken`, `viewerToken`, `adminToken`, and `token` for the last login), and each folder uses the right one. IDs are captured from responses (`zoneId`, `destinationZoneId`, `hubId`, `destinationHubId`, `pricingRuleId`, `shipmentId`, `trackingId`, `courierId`, `paymentId`, `userId`, `notificationId`, `staffNotificationId`, `otherShipmentId`, plus `pickupStart` and `pickupEnd`), so requests can run in order.
 
 **Suggested demo order** (admin steps need the private login or a local seed)
 
@@ -691,7 +696,7 @@ The first deployments had a `vercel-build` script (`prisma generate && tsc --noE
 <details>
 <summary><b>Idempotent Stripe payments: webhook and verify</b></summary>
 
-Both the Stripe webhook and `GET /payments/verify` (the success page's server-side lookup) can mark a payment paid, possibly at the same moment. They share one function: each processed event id is stored in `stripe_events`, and the update in the transaction is conditional on the payment not already being `PAID`. Whichever runs first marks the payment and the shipment paid and writes the audit row and the notification; the other changes nothing. A paid amount that doesn't match, or a second payment for an already-paid shipment, is flagged with `requiresReview` instead of being applied silently.
+Both the Stripe webhook and `GET /payments/verify` (the success page's server-side lookup) can mark a payment paid, possibly at the same moment. They share one function: each processed event id is stored in `stripe_events`, and the update in the transaction is conditional on the payment not already being `PAID`. Whichever runs first marks the payment and the shipment paid and writes the audit row and the notification; the other changes nothing. The staff notification is keyed on the payment id under a unique index, so even a repeated call can't add a second row per admin. A paid amount that doesn't match, or a second payment for an already-paid shipment, is flagged with `requiresReview` instead of being applied silently.
 
 </details>
 

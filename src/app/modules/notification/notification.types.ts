@@ -55,6 +55,7 @@ export const notificationSelect = {
   type: true,
   title: true,
   message: true,
+  link: true,
   readAt: true,
   createdAt: true,
   shipment: { select: { id: true, trackingId: true } },
