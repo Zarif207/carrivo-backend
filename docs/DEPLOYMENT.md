@@ -39,7 +39,7 @@ Run from the project folder, on the commit you are deploying.
 - [ ] You have a way back: on a brand-new database there is nothing to lose. Otherwise create a Neon branch (snapshot) first: Neon → Branches → *Create branch* from `main`, named `pre-migrate-YYYYMMDD`.
 - [ ] You have chosen a **strong `SEED_DEMO_PASSWORD`**. It must not be your local dev password. Generate one, for example `openssl rand -base64 24`, and store it in your password manager.
   - The demo password goes into your submission, so anyone who reads it can log in as the demo accounts. A short or reused password would also be easy to guess and could unlock other places you've used it.
-- [ ] Optional but recommended: a separate **`SEED_ADMIN_PASSWORD`** for `admin@carrivo.dev`, so the public demo password does not open the real admin. Same strength rules; the seed refuses it if it equals the demo password. Reviewers can use the read-only `viewer@carrivo.dev` with the demo password instead.
+- [ ] Optional but recommended: a separate **`SEED_ADMIN_PASSWORD`** for the admin account, so the public demo password does not open the real admin. Same strength rules; the seed refuses it if it equals the demo password. Reviewers can use the read-only `viewer@carrivo.dev` with the demo password instead.
   - The seed refuses (in production) anything shorter than 16 characters, using fewer than 3 kinds of characters (lowercase, uppercase, digits, symbols), containing words such as `password`, `carrivo`, `admin` or `demo`, or repeating one character 4+ times.
 
 ### Commands
@@ -149,7 +149,7 @@ npx vercel build --prod    # builds into .vercel/output, deploys nothing
 | Preview deployments crash | Env vars set for Production only | Ignore preview URLs, or add the same vars to Preview (with test keys). |
 | `413 FUNCTION_PAYLOAD_TOO_LARGE` (Vercel page, not our JSON envelope) | Request body > 4.5 MB (Vercel's limit) | Our upload limit is 4 MB, so it only happens with oversized files; the frontend should compress photos. |
 | Webhook returns 400 "Invalid Stripe signature", and logs show `webhook raw body unavailable` | Body parsed before `express.raw` | Middleware order is correct in `app.ts` (webhook route before `express.json()`). If you ever see this log line, check that nothing was added above it. |
-| Webhook 400 with no such log line | Wrong `STRIPE_WEBHOOK_SECRET`: the CLI's local secret instead of the Dashboard endpoint's | Use the endpoint's own `whsec_…` (§5). |
+| Webhook 400 with no such log line | Wrong `STRIPE_WEBHOOK_SECRET`: the CLI's local secret instead of the Dashboard endpoint's | Use the endpoint's own signing secret (§5). |
 | Google `redirect_uri_mismatch` | Live callback not registered, or `BETTER_AUTH_URL` ≠ the real domain | §6. `BETTER_AUTH_URL` must be exactly `https://<project>.vercel.app`, with no path or trailing slash. |
 | Browser calls blocked by CORS | Frontend origin missing from `CORS_ORIGINS` | Add the exact origin (scheme + host, no slash). |
 | Email links or Google landing go to `localhost:3000` | `FRONTEND_URL` not set (it defaults to localhost) | Set `FRONTEND_URL` and the success/cancel URLs. |
@@ -172,7 +172,7 @@ Settings → Environment Variables, scope **Production**. Names only, with no va
 | `FRONTEND_CANCEL_URL` | `https://<frontend>.vercel.app/payment/cancel` |
 | `GOOGLE_CLIENT_ID` | OAuth client id (can be the same client as development) |
 | `GOOGLE_CLIENT_SECRET` | OAuth client secret |
-| `STRIPE_SECRET_KEY` | `sk_test_…` (test mode for the demo) |
+| `STRIPE_SECRET_KEY` | the Stripe secret key from test mode (test mode for the demo) |
 | `STRIPE_WEBHOOK_SECRET` | **new**, from the Dashboard endpoint in §5 (not the `stripe listen` one) |
 | `UPSTASH_REDIS_REST_URL` | Upstash REST URL |
 | `UPSTASH_REDIS_REST_TOKEN` | Upstash REST token |
@@ -231,11 +231,11 @@ Stripe Dashboard, **test mode** → Developers → **Webhooks** → *Add destina
    - `payment_intent.payment_failed`
    - `charge.refunded`
    - `refund.failed`
-4. Save, reveal the endpoint's **signing secret** (`whsec_…`), set it as `STRIPE_WEBHOOK_SECRET` in Vercel, and **redeploy**.
+4. Save, reveal the endpoint's **signing secret**, set it as `STRIPE_WEBHOOK_SECRET` in Vercel, and **redeploy**.
    - This secret belongs to this endpoint only. It differs from your `stripe listen` secret, and the local one stays in your `.env`.
 5. Test: make a test payment (§7). Then Webhooks → your endpoint → *Event deliveries* should show `200`.
 
-If you ever go live, live mode needs its own endpoint, its own secret and `sk_live_…`. That isn't needed for the assignment.
+If you ever go live, live mode needs its own endpoint, its own secret and a live-mode secret key. That isn't needed for the assignment.
 
 ## 6. Google OAuth for the live URL
 

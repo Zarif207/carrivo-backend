@@ -1,0 +1,269 @@
+# Carrivo database design
+
+PostgreSQL through Prisma 7. The schema is one file, [`prisma/schema.prisma`](../prisma/schema.prisma); migrations live in [`prisma/migrations/`](../prisma/migrations).
+
+- **Ids:** domain rows use UUID v7 (`@default(uuid(7))`, time-ordered); Better Auth tables use the string ids Better Auth generates.
+- **Money:** `Decimal(10,2)` in US dollars, returned by the API as 2-decimal strings (`"6.00"`).
+- **Weights:** `Decimal(8,2)` in pounds (`weightLb`, `baseWeightLb`, `maxWeightLb`).
+- **Soft delete:** mutable entities carry `deletedAt`; every read excludes deleted rows. Notifications, status history, audit logs, earnings and Stripe events are append-only.
+- **Table names** are snake_case plurals (`@@map`).
+
+## Entity relationship diagram
+
+```mermaid
+erDiagram
+  User ||--o{ Session : has
+  User ||--o{ Account : has
+  User ||--o| CourierProfile : "has (couriers)"
+  User ||--o{ Shipment : "books (customer)"
+  User ||--o{ Shipment : "delivers (courier)"
+  User ||--o{ ShipmentStatusHistory : "changes"
+  User ||--o{ PickupRequest : requests
+  User ||--o{ Payment : pays
+  User ||--o{ CourierEarning : earns
+  User ||--o{ AuditLog : "acts in"
+  User ||--o{ Notification : receives
+  Zone ||--o{ Hub : contains
+  Zone ||--o{ CourierProfile : "operates in"
+  Zone |o--o{ PricingRule : "origin / destination"
+  Zone ||--o{ Shipment : "origin / destination"
+  Hub |o--o{ CourierProfile : "based at"
+  Hub |o--o{ Shipment : "origin / destination / current"
+  Hub |o--o{ ShipmentStatusHistory : "at"
+  Shipment ||--o{ ShipmentStatusHistory : records
+  Shipment ||--o| PickupRequest : has
+  Shipment ||--o{ Payment : "paid by"
+  Shipment ||--o| CourierEarning : earns
+  Shipment |o--o{ Notification : about
+
+  User {
+    string id PK
+    string email UK
+    string name
+    Role role
+    UserStatus status
+    string phone
+    string address
+    datetime deletedAt
+  }
+  Session {
+    string id PK
+    string token UK
+    datetime expiresAt
+    string userId FK
+  }
+  Account {
+    string id PK
+    string providerId
+    string accountId
+    string userId FK
+  }
+  Verification {
+    string id PK
+    string identifier
+    datetime expiresAt
+  }
+  Zone {
+    uuid id PK
+    string code UK
+    string name
+    boolean isActive
+    datetime deletedAt
+  }
+  Hub {
+    uuid id PK
+    string code UK
+    string name
+    string address
+    string city
+    uuid zoneId FK
+    boolean isActive
+    datetime deletedAt
+  }
+  PricingRule {
+    uuid id PK
+    ServiceType serviceType
+    uuid originZoneId FK
+    uuid destinationZoneId FK
+    decimal baseFee
+    decimal baseWeightLb
+    decimal perLbFee
+    decimal maxWeightLb
+    boolean isActive
+  }
+  CourierProfile {
+    uuid id PK
+    string userId FK,UK
+    VehicleType vehicleType
+    uuid zoneId FK
+    uuid hubId FK
+    boolean isAvailable
+  }
+  Shipment {
+    uuid id PK
+    string trackingId UK
+    string customerId FK
+    string courierId FK
+    decimal weightLb
+    ServiceType serviceType
+    decimal price
+    json priceBreakdown
+    ShipmentStatus status
+    ShipmentPaymentStatus paymentStatus
+    int failedAttempts
+    string proofOfDeliveryUrl
+    datetime deletedAt
+  }
+  ShipmentStatusHistory {
+    uuid id PK
+    uuid shipmentId FK
+    ShipmentStatus fromStatus
+    ShipmentStatus toStatus
+    string note
+    uuid hubId FK
+    string changedById FK
+  }
+  PickupRequest {
+    uuid id PK
+    uuid shipmentId FK,UK
+    datetime scheduledAt
+    datetime scheduledUntil
+    PickupStatus status
+  }
+  Payment {
+    uuid id PK
+    uuid shipmentId FK
+    string userId FK
+    decimal amount
+    PaymentStatus status
+    string stripeSessionId UK
+    string stripePaymentIntentId UK
+    string stripeRefundId UK
+    boolean requiresReview
+  }
+  StripeEvent {
+    string id PK
+    string type
+    string paymentId
+  }
+  CourierEarning {
+    uuid id PK
+    string courierId FK
+    uuid shipmentId FK,UK
+    decimal amount
+    EarningStatus status
+  }
+  AuditLog {
+    uuid id PK
+    string actorId FK
+    Role actorRole
+    string action
+    string entityType
+    string entityId
+    json before
+    json after
+  }
+  Notification {
+    uuid id PK
+    string userId FK
+    uuid shipmentId FK
+    NotificationType type
+    datetime readAt
+    EmailStatus emailStatus
+  }
+```
+
+## Models
+
+| Model (table) | Purpose | Notes |
+| --- | --- | --- |
+| `User` (`users`) | Every account | Better Auth core table plus `role`, `phone`, `address`, `status`, `deletedAt`. `role` can't be set by clients (Better Auth field with `input: false` and a create hook that forces `CUSTOMER`) |
+| `Session` (`sessions`) | Bearer sessions | Unique `token`; deleted with the user (`onDelete: Cascade`) |
+| `Account` (`accounts`) | Credential and Google accounts | Holds the password hash for email/password accounts; deleted with the user |
+| `Verification` (`verifications`) | Better Auth's short-lived verification values | Managed by Better Auth |
+| `Zone` (`zones`) | Delivery zone (a metro area) | Unique `code` (upper-cased); soft delete; can't be deleted while hubs or couriers use it |
+| `Hub` (`hubs`) | Sorting hub inside a zone | Unique `code`; US address and city; soft delete; can't change zone or be deleted while in use |
+| `PricingRule` (`pricing_rules`) | How a service is priced on a route | Either a route rule (both zones set) or the service's default rule (both null) |
+| `CourierProfile` (`courier_profiles`) | Vehicle, zone, hub and availability of a courier | One per courier user (`userId` unique) |
+| `Shipment` (`shipments`) | A parcel from booking to the end | Unique `trackingId` (`CRV-YYMMDD-XXXXXX`); price and `priceBreakdown` snapshot set by the server; proof-of-delivery fields |
+| `ShipmentStatusHistory` (`shipment_status_history`) | One row per status change | `changedById` null means the system (for example a webhook) |
+| `PickupRequest` (`pickup_requests`) | The pickup window | One per shipment (`shipmentId` unique); `SCHEDULED` → `COMPLETED` on pickup or `CANCELLED` on cancel |
+| `Payment` (`payments`) | One Stripe Checkout attempt | Unique Stripe session, payment intent and refund ids; `requiresReview` flags amount mismatches, duplicates and refund failures |
+| `StripeEvent` (`stripe_events`) | Processed webhook event ids | Primary key is the Stripe event id: webhook idempotency |
+| `CourierEarning` (`courier_earnings`) | The courier's share of a delivered shipment | One per shipment (`shipmentId` unique); `PENDING` or `PAID` |
+| `AuditLog` (`audit_logs`) | Who changed what | `before` and `after` snapshots, redacted on write and on read; `actorId` null means the system |
+| `Notification` (`notifications`) | In-app notifications plus email status | Created in the same transaction as the change; the email is sent after commit |
+
+## Enums
+
+| Enum | Values |
+| --- | --- |
+| `Role` | `CUSTOMER`, `COURIER`, `ADMIN`, `ADMIN_VIEWER` |
+| `UserStatus` | `ACTIVE`, `INACTIVE` |
+| `ShipmentStatus` | `PENDING`, `PICKUP_SCHEDULED`, `COURIER_ASSIGNED`, `PICKED_UP`, `AT_ORIGIN_HUB`, `IN_TRANSIT`, `AT_DESTINATION_HUB`, `OUT_FOR_DELIVERY`, `DELIVERED`, `FAILED_DELIVERY`, `RETURNED`, `CANCELLED` |
+| `ShipmentPaymentStatus` | `UNPAID`, `PAID`, `REFUNDED` |
+| `PaymentStatus` | `PENDING`, `PAID`, `FAILED`, `EXPIRED`, `REFUND_PENDING`, `REFUNDED` |
+| `ServiceType` | `STANDARD`, `EXPRESS`, `SAME_DAY` |
+| `VehicleType` | `BICYCLE`, `MOTORCYCLE`, `CAR`, `VAN`, `TRUCK` |
+| `PickupStatus` | `SCHEDULED`, `COMPLETED`, `CANCELLED` |
+| `EarningStatus` | `PENDING`, `PAID` |
+| `NotificationType` | `SHIPMENT_CREATED`, `COURIER_ASSIGNED`, `PICKED_UP`, `OUT_FOR_DELIVERY`, `DELIVERED`, `FAILED_DELIVERY`, `PAYMENT_RECEIVED`, `REFUND_COMPLETED` |
+| `EmailStatus` | `PENDING`, `SENT`, `FAILED`, `SKIPPED` |
+
+## Constraints
+
+- **Unique:** `User.email`, `Session.token`, `Zone.code`, `Hub.code`, `CourierProfile.userId`, `Shipment.trackingId`, `PickupRequest.shipmentId`, `Payment.stripeSessionId`, `Payment.stripePaymentIntentId`, `Payment.stripeRefundId`, `CourierEarning.shipmentId`, and `StripeEvent.id` (the event id is the key).
+- **Foreign keys** default to `RESTRICT`, so shipments, payments and history can't be orphaned; only `Session` and `Account` cascade with their user. Rows are soft-deleted instead of removed.
+- **One of each:** one pickup request per shipment, one earning per delivered shipment, one courier profile per courier.
+
+## Indexes
+
+| Table | Indexes | Serves |
+| --- | --- | --- |
+| `users` | `(role, status)`, `status`, `deletedAt`, `createdAt` | Admin user list, last-admin check, dashboard counts |
+| `zones` | `(isActive, deletedAt)` | Public zone list |
+| `hubs` | `zoneId`, `deletedAt` | Hubs per zone |
+| `pricing_rules` | `(serviceType, originZoneId, destinationZoneId)`, `(isActive, deletedAt)` | Rule lookup for a quote |
+| `courier_profiles` | `(zoneId, isAvailable)`, `hubId`, `deletedAt` | Eligible couriers for assignment |
+| `shipments` | `status`, `paymentStatus`, `(customerId, createdAt)`, `(courierId, status)`, `originZoneId`, `destinationZoneId`, `serviceType`, `createdAt`, `deletedAt`, `originHubId`, `destinationHubId`, `currentHubId`; trigram GIN on `trackingId`, `receiverName`, `receiverPhone` | Every list filter and sort; case-insensitive `searchTerm` (`pg_trgm`, created in a migration); "hub still in use" checks |
+| `shipment_status_history` | `(shipmentId, createdAt)` | Timelines |
+| `pickup_requests` | `(status, scheduledAt)`, `deletedAt` | Pickup queue |
+| `payments` | `shipmentId`, `(userId, createdAt)`, `(status, createdAt)`, `requiresReview` | Payment history, admin filters |
+| `stripe_events` | `paymentId` | Lookup by payment |
+| `courier_earnings` | `(courierId, createdAt)`, `status` | Earnings by date |
+| `audit_logs` | `(actorId, createdAt)`, `(entityType, entityId, createdAt)`, `(action, createdAt)`, `createdAt` | Each audit filter with newest-first order |
+| `notifications` | `(userId, readAt, createdAt)`, `(userId, createdAt)`, `shipmentId` | Unread filter and newest first |
+
+## Transactions and concurrency
+
+- **Status changes:** one service function runs each change in `prisma.$transaction`. It updates the shipment with a conditional `updateMany` (the expected current status is part of the `WHERE`), so a concurrent change makes the count 0 and the request fails with 409. The same transaction writes the status-history row, the audit row, any notifications and the status's side effects (pickup completed or cancelled, courier earning on delivery).
+- **Courier assignment:** the courier's profile and user rows are locked with `SELECT … FOR UPDATE`, and availability and zone are re-checked inside the transaction, so two admins can't double-assign a courier.
+- **User changes:** role and status changes lock the user row; the last active admin can't be demoted or deactivated.
+- **Payments:** the webhook and the success-page verification share one function. Processed Stripe event ids are stored, and an already-PAID payment is ignored, so a payment is applied once.
+
+## Shipment lifecycle
+
+```mermaid
+stateDiagram-v2
+  [*] --> PENDING: customer books (server prices it)
+  PENDING --> PICKUP_SCHEDULED: customer schedules a pickup (shipment must be PAID)
+  PENDING --> CANCELLED: customer / admin
+  PICKUP_SCHEDULED --> COURIER_ASSIGNED: admin assigns
+  PICKUP_SCHEDULED --> CANCELLED: customer / admin (refund if paid)
+  COURIER_ASSIGNED --> PICKUP_SCHEDULED: admin unassigns
+  COURIER_ASSIGNED --> PICKED_UP: courier
+  COURIER_ASSIGNED --> CANCELLED: customer / admin (refund if paid)
+  PICKED_UP --> AT_ORIGIN_HUB: admin
+  AT_ORIGIN_HUB --> IN_TRANSIT: admin
+  IN_TRANSIT --> AT_DESTINATION_HUB: admin
+  AT_DESTINATION_HUB --> OUT_FOR_DELIVERY: admin
+  OUT_FOR_DELIVERY --> DELIVERED: courier (earning created)
+  OUT_FOR_DELIVERY --> FAILED_DELIVERY: courier (reason required)
+  FAILED_DELIVERY --> OUT_FOR_DELIVERY: courier retry (fewer than 3 attempts)
+  FAILED_DELIVERY --> RETURNED: admin
+  DELIVERED --> [*]
+  RETURNED --> [*]
+  CANCELLED --> [*]
+```
+
+The table lives in `TRANSITIONS` in `src/app/modules/shipment/shipment.constants.ts`.

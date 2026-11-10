@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Carrivo API",
-    "description": "REST API for **Carrivo**, a courier & logistics platform (customers ship and pay, couriers pick up and deliver, admins run hubs, zones, pricing, users and reports).\n\n## How to use\n1. **Set `baseUrl`** (collection variables): `http://localhost:5000/api/v1` locally, or `https://<your-api>.vercel.app/api/v1` for the live API.\n2. **Set `demoPassword`** to the demo password you were given (it is empty here on purpose; the collection never stores real passwords or tokens).\n3. **Run Auth → `Login as Admin (demo)`, `Login as Admin Viewer (demo, read-only)`, `Login as Courier (demo)`, `Login as Customer (demo)`.** Each saves its token into `adminToken`, `viewerToken`, `courierToken` or `customerToken` automatically, and every request already uses the right one (Authorization: Bearer).\n4. Explore the module folders in order: Zones → Hubs → Pricing → Shipments (create, pickup, assign, status flow, proof) → Tracking → Payments → Couriers → Admin → Notifications. Requests that create something save its id (`shipmentId`, `paymentId`, ...) for the next requests.\n5. **RBAC matrix**: run the folder (Runner) after logging in. Every request must be refused (401 / 403 / 404), except the viewer's reads (200) and has a test asserting the exact status; none of them can change data (forbidden-write probes carry an invalid body as a second safety net).\n\n**Response envelope**: success `{ success: true, message, data, meta? }` (meta = `{ page, limit, total, totalPages }` on lists); error `{ success: false, message, errors: [] }`.\n**Lists** accept `page`, `limit` (max 100), `sortBy`, `sortOrder`, `searchTerm` and module filters (see each request's disabled query params).\n**Money** is a decimal string in USD (e.g. `\"6.00\"`). **Weights** are pounds (`weightLb`); **addresses** are US format (`street, City, ST 12345`); **phones** are US numbers; dates are business days in America/New_York.\n\nPayments use Stripe **test mode** (card 4242 4242 4242 4242). Uploads (proof of delivery) are multipart, ≤ 4 MB; the frontend should compress photos first.",
+    "description": "REST API for **Carrivo**, a courier & logistics platform (customers ship and pay, couriers pick up and deliver, admins run hubs, zones, pricing, users and reports).\n\n## How to use\n1. **Set `baseUrl`** (collection variables): `http://localhost:5000/api/v1` locally, or `https://<your-api>.vercel.app/api/v1` for the live API.\n2. **Set `demoPassword`** to the demo password you were given (it is empty here on purpose; the collection never stores real passwords or tokens).\n3. **Run Auth → `Login as Admin (private credentials)`, `Login as Admin Viewer (demo, read-only)`, `Login as Courier (demo)`, `Login as Customer (demo)`.** Each saves its token into `adminToken`, `viewerToken`, `courierToken` or `customerToken` automatically, and every request already uses the right one (Authorization: Bearer).\n4. Explore the module folders in order: Zones → Hubs → Pricing → Shipments (create, pickup, assign, status flow, proof) → Tracking → Payments → Couriers → Admin → Notifications. Requests that create something save its id (`shipmentId`, `paymentId`, ...) for the next requests.\n5. **RBAC matrix**: run the folder (Runner) after logging in. Every request must be refused (401 / 403 / 404), except the viewer's reads (200) and has a test asserting the exact status; none of them can change data (forbidden-write probes carry an invalid body as a second safety net).\n\n**Response envelope**: success `{ success: true, message, data, meta? }` (meta = `{ page, limit, total, totalPages }` on lists); error `{ success: false, message, errors: [] }`.\n**Lists** accept `page`, `limit` (max 100), `sortBy`, `sortOrder`, `searchTerm` and module filters (see each request's disabled query params).\n**Money** is a decimal string in USD (e.g. `\"6.00\"`). **Weights** are pounds (`weightLb`); **addresses** are US format (`street, City, ST 12345`); **phones** are US numbers; dates are business days in America/New_York.\n\nPayments use Stripe **test mode** (card 4242 4242 4242 4242). Uploads (proof of delivery) are multipart, ≤ 4 MB; the frontend should compress photos first.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -139,6 +139,18 @@
       "key": "otherShipmentId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "adminEmail",
+      "value": "",
+      "type": "string",
+      "description": "Private: the admin account is not public. Set it locally (or use a local seed) to run the admin requests."
+    },
+    {
+      "key": "newAdminPassword",
+      "value": "",
+      "type": "string",
+      "description": "Password for the admin created by Admin / Create admin. Set it locally; never commit a value."
     }
   ],
   "item": [
@@ -646,7 +658,7 @@
           ]
         },
         {
-          "name": "Login as Admin (demo)",
+          "name": "Login as Admin (private credentials)",
           "event": [
             {
               "listen": "test",
@@ -684,7 +696,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@carrivo.dev\",\n  \"password\": \"{{demoPassword}}\"\n}",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{demoPassword}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -715,7 +727,7 @@
                 },
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"email\": \"admin@carrivo.dev\",\n  \"password\": \"{{demoPassword}}\"\n}",
+                  "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{demoPassword}}\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -732,7 +744,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Login successful\",\n  \"data\": {\n    \"token\": \"Xk2v9QpL7mN3rT8wY1zA4bC6dE0fG5hJ.lMn0pQ2rS4tU6vW8xY0zA2bC4dE6fG8hJ0kL2mN4pQ6=\",\n    \"expiresAt\": \"2026-11-12T15:30:00.000Z\",\n    \"user\": {\n      \"id\": \"0f8c2a4e-6b1d-4e1a-9c3f-2d5e7a9b1c3d\",\n      \"name\": \"Carrivo Admin\",\n      \"email\": \"admin@carrivo.dev\",\n      \"emailVerified\": true,\n      \"image\": null,\n      \"role\": \"ADMIN\",\n      \"status\": \"ACTIVE\",\n      \"phone\": \"(212) 555-0110\",\n      \"address\": null,\n      \"createdAt\": \"2026-11-05T15:20:20.325Z\",\n      \"updatedAt\": \"2026-11-05T15:20:20.325Z\"\n    }\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Login successful\",\n  \"data\": {\n    \"token\": \"Xk2v9QpL7mN3rT8wY1zA4bC6dE0fG5hJ.lMn0pQ2rS4tU6vW8xY0zA2bC4dE6fG8hJ0kL2mN4pQ6=\",\n    \"expiresAt\": \"2026-11-12T15:30:00.000Z\",\n    \"user\": {\n      \"id\": \"0f8c2a4e-6b1d-4e1a-9c3f-2d5e7a9b1c3d\",\n      \"name\": \"Carrivo Admin\",\n      \"email\": \"admin@example.com\",\n      \"emailVerified\": true,\n      \"image\": null,\n      \"role\": \"ADMIN\",\n      \"status\": \"ACTIVE\",\n      \"phone\": \"(212) 555-0110\",\n      \"address\": null,\n      \"createdAt\": \"2026-11-05T15:20:20.325Z\",\n      \"updatedAt\": \"2026-11-05T15:20:20.325Z\"\n    }\n  }\n}"
             }
           ]
         },
@@ -7922,7 +7934,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Second Admin\",\n  \"email\": \"admin2@carrivo.dev\",\n  \"password\": \"Admin2Pass!!\",\n  \"role\": \"ADMIN\"\n}",
+              "raw": "{\n  \"name\": \"Second Admin\",\n  \"email\": \"admin2@carrivo.dev\",\n  \"password\": \"{{newAdminPassword}}\",\n  \"role\": \"ADMIN\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -7953,7 +7965,7 @@
                 },
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Second Admin\",\n  \"email\": \"admin2@carrivo.dev\",\n  \"password\": \"Admin2Pass!!\",\n  \"role\": \"ADMIN\"\n}",
+                  "raw": "{\n  \"name\": \"Second Admin\",\n  \"email\": \"admin2@carrivo.dev\",\n  \"password\": \"{{newAdminPassword}}\",\n  \"role\": \"ADMIN\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -8546,7 +8558,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Audit logs retrieved successfully\",\n  \"data\": [\n    {\n      \"id\": \"01a1af30-0bd5-736e-80ce-a3155ac4c472\",\n      \"action\": \"USER_STATUS_CHANGED\",\n      \"entityType\": \"USER\",\n      \"entityId\": \"6f4a99a3-2216-4fbc-a5c7-33e8916c99a5\",\n      \"actorRole\": \"ADMIN\",\n      \"actor\": {\n        \"id\": \"6d498224-7a7c-471e-864e-377b482d0174\",\n        \"name\": \"Carrivo Admin\",\n        \"email\": \"admin@carrivo.dev\",\n        \"role\": \"ADMIN\"\n      },\n      \"before\": {\n        \"status\": \"INACTIVE\"\n      },\n      \"after\": {\n        \"reason\": null,\n        \"status\": \"ACTIVE\",\n        \"sessionsRevoked\": 0\n      },\n      \"ipAddress\": \"::1\",\n      \"userAgent\": \"node\",\n      \"createdAt\": \"2026-11-06T04:48:43.989Z\"\n    },\n    {\n      \"id\": \"01a1af30-0b77-726c-96f8-5657e6f051dc\",\n      \"action\": \"USER_STATUS_CHANGED\",\n      \"entityType\": \"USER\",\n      \"entityId\": \"6f4a99a3-2216-4fbc-a5c7-33e8916c99a5\",\n      \"actorRole\": \"ADMIN\",\n      \"actor\": {\n        \"id\": \"6d498224-7a7c-471e-864e-377b482d0174\",\n        \"name\": \"Carrivo Admin\",\n        \"email\": \"admin@carrivo.dev\",\n        \"role\": \"ADMIN\"\n      },\n      \"before\": {\n        \"status\": \"ACTIVE\"\n      },\n      \"after\": {\n        \"reason\": null,\n        \"status\": \"INACTIVE\",\n        \"sessionsRevoked\": 0\n      },\n      \"ipAddress\": \"::1\",\n      \"userAgent\": \"node\",\n      \"createdAt\": \"2026-11-06T04:48:43.895Z\"\n    }\n  ],\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 50,\n    \"total\": 23,\n    \"totalPages\": 1\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Audit logs retrieved successfully\",\n  \"data\": [\n    {\n      \"id\": \"01a1af30-0bd5-736e-80ce-a3155ac4c472\",\n      \"action\": \"USER_STATUS_CHANGED\",\n      \"entityType\": \"USER\",\n      \"entityId\": \"6f4a99a3-2216-4fbc-a5c7-33e8916c99a5\",\n      \"actorRole\": \"ADMIN\",\n      \"actor\": {\n        \"id\": \"6d498224-7a7c-471e-864e-377b482d0174\",\n        \"name\": \"Carrivo Admin\",\n        \"email\": \"admin@example.com\",\n        \"role\": \"ADMIN\"\n      },\n      \"before\": {\n        \"status\": \"INACTIVE\"\n      },\n      \"after\": {\n        \"reason\": null,\n        \"status\": \"ACTIVE\",\n        \"sessionsRevoked\": 0\n      },\n      \"ipAddress\": \"::1\",\n      \"userAgent\": \"node\",\n      \"createdAt\": \"2026-11-06T04:48:43.989Z\"\n    },\n    {\n      \"id\": \"01a1af30-0b77-726c-96f8-5657e6f051dc\",\n      \"action\": \"USER_STATUS_CHANGED\",\n      \"entityType\": \"USER\",\n      \"entityId\": \"6f4a99a3-2216-4fbc-a5c7-33e8916c99a5\",\n      \"actorRole\": \"ADMIN\",\n      \"actor\": {\n        \"id\": \"6d498224-7a7c-471e-864e-377b482d0174\",\n        \"name\": \"Carrivo Admin\",\n        \"email\": \"admin@example.com\",\n        \"role\": \"ADMIN\"\n      },\n      \"before\": {\n        \"status\": \"ACTIVE\"\n      },\n      \"after\": {\n        \"reason\": null,\n        \"status\": \"INACTIVE\",\n        \"sessionsRevoked\": 0\n      },\n      \"ipAddress\": \"::1\",\n      \"userAgent\": \"node\",\n      \"createdAt\": \"2026-11-06T04:48:43.895Z\"\n    }\n  ],\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 50,\n    \"total\": 23,\n    \"totalPages\": 1\n  }\n}"
             }
           ]
         },
@@ -10066,7 +10078,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"Authentication token is missing\",\n  \"errors\": [],\n  \"stack\": \"ApiError: Authentication token is missing\\n    at unauthorized (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:16:3)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:25:11)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/utils/catchAsync.ts:9:5)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"Authentication token is missing\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -10129,7 +10141,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"Authentication token is missing\",\n  \"errors\": [],\n  \"stack\": \"ApiError: Authentication token is missing\\n    at unauthorized (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:16:3)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:25:11)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/utils/catchAsync.ts:9:5)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at trimPrefix (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:342:13)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:297:9\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at router.handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:186:3)\\n    at router (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:60:12)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"Authentication token is missing\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -10220,7 +10232,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"Authentication token is missing\",\n  \"errors\": [],\n  \"stack\": \"ApiError: Authentication token is missing\\n    at unauthorized (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:16:3)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:25:11)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/utils/catchAsync.ts:9:5)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at trimPrefix (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:342:13)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:297:9\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at router.handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:186:3)\\n    at router (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:60:12)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"Authentication token is missing\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -10288,7 +10300,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid or expired authentication token\",\n  \"errors\": [],\n  \"stack\": \"ApiError: Invalid or expired authentication token\\n    at unauthorized (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:16:3)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:30:11)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid or expired authentication token\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -10358,7 +10370,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at trimPrefix (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:342:13)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:297:9\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -10428,7 +10440,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at trimPrefix (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:342:13)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:297:9\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -10498,7 +10510,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at trimPrefix (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:342:13)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:297:9\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -10594,7 +10606,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -10690,7 +10702,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -10786,7 +10798,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -10886,7 +10898,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at param (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:600:14)\\n    at param (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:610:14)\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:664:3)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -10986,7 +10998,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at param (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:600:14)\\n    at param (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:610:14)\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:664:3)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -11056,7 +11068,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at param (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:600:14)\\n    at param (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:610:14)\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:664:3)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -11128,7 +11140,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -11228,7 +11240,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -11324,7 +11336,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -11424,7 +11436,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at param (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:600:14)\\n    at param (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:610:14)\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:664:3)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -11524,7 +11536,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at param (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:600:14)\\n    at param (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:610:14)\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:664:3)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -11622,7 +11634,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -11692,7 +11704,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -11760,7 +11772,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -11858,7 +11870,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -11928,7 +11940,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at trimPrefix (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:342:13)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:297:9\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -11996,7 +12008,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -12092,7 +12104,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -12190,7 +12202,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -12260,7 +12272,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -12332,7 +12344,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -12404,7 +12416,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:582:12)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:291:5)\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authenticate.ts:49:3)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -12476,7 +12488,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": [],\n  \"stack\": \"ApiError: You do not have permission to perform this action\\n    at <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/middlewares/authorize.ts:15:12)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at next (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:157:13)\\n    at Route.dispatch (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/route.js:117:3)\\n    at handle (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:435:11)\\n    at Layer.handleRequest (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/lib/layer.js:152:17)\\n    at /Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:295:15\\n    at param (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:600:14)\\n    at param (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:610:14)\\n    at processParams (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/node_modules/router/index.js:664:3)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"You do not have permission to perform this action\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -12546,7 +12558,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"Shipment not found\",\n  \"errors\": [],\n  \"stack\": \"ApiError: Shipment not found\\n    at notFound (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/modules/shipment/shipment.service.ts:52:34)\\n    at Object.getById (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/modules/shipment/shipment.service.ts:534:24)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\\n    at async <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/modules/shipment/shipment.controller.ts:31:16)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"Shipment not found\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -12616,7 +12628,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"Shipment not found\",\n  \"errors\": [],\n  \"stack\": \"ApiError: Shipment not found\\n    at notFound (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/modules/shipment/shipment.service.ts:52:34)\\n    at Object.getById (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/modules/shipment/shipment.service.ts:534:24)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\\n    at async <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/modules/shipment/shipment.controller.ts:31:16)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"Shipment not found\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -12686,7 +12698,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"Payment not found\",\n  \"errors\": [],\n  \"stack\": \"ApiError: Payment not found\\n    at NOT_FOUND (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/modules/payment/payment.service.ts:37:35)\\n    at Object.getById (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/modules/payment/payment.service.ts:105:19)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\\n    at async <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/modules/payment/payment.controller.ts:35:16)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"Payment not found\",\n  \"errors\": []\n}"
             }
           ]
         },
@@ -12758,7 +12770,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"Notification not found\",\n  \"errors\": [],\n  \"stack\": \"ApiError: Notification not found\\n    at Object.markRead (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/modules/notification/notification.service.ts:203:19)\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\\n    at async <anonymous> (/Users/zarifhasan/Documents/MAIN FILE/VS Code Files/Programming Hero Lv-2/Assignments/L2-A6/Carrivo-Backend/src/app/modules/notification/notification.controller.ts:15:16)\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"Notification not found\",\n  \"errors\": []\n}"
             }
           ]
         },
