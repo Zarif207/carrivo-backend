@@ -35,22 +35,7 @@ import { calculateCourierEarning } from "../src/app/modules/courier/courier.util
 import { calculatePrice } from "../src/app/modules/pricing/pricing.utils.js";
 import { allowedTransitions } from "../src/app/modules/shipment/shipment.constants.js";
 import { adminPasswordProblems, checkSeedTarget, demoPasswordProblems } from "./seed.safety.js";
-
-interface SeedHub {
-  code: string;
-  name: string;
-  address: string;
-  city: string;
-  phone: string;
-}
-
-interface SeedZone {
-  code: string;
-  name: string;
-  description: string;
-  /** The first hub is the zone's main hub (code HUB-<zone code>); shipments route through it. */
-  hubs: [SeedHub, ...SeedHub[]];
-}
+import { PRICING_RULES, ZONES } from "./seed.network.js";
 
 interface SeedUser {
   name: string;
@@ -60,32 +45,8 @@ interface SeedUser {
   courier?: { zoneCode: string; hubCode: string; vehicleType: VehicleType; vehicleNumber: string };
 }
 
-/*
- * US demo data. Phone numbers use the fictional 555-0100 to 555-0199 range; street addresses are
- * generic (no real businesses or residents). Addresses follow "street, City, ST ZIP" (validated by
- * usAddressSchema in the API).
- */
-const ZONES: SeedZone[] = [
-  {
-    code: "NYC",
-    name: "New York Metro",
-    description: "Manhattan, Brooklyn, Queens and Jersey City",
-    hubs: [
-      { code: "HUB-NYC", name: "Queens Hub", address: "47-10 Austell Pl, Long Island City, NY 11101", city: "Long Island City", phone: "(212) 555-0100" },
-      { code: "HUB-NYC-JC", name: "Jersey City Hub", address: "180 Harbor Dr, Jersey City, NJ 07305", city: "Jersey City", phone: "(201) 555-0101" },
-    ],
-  },
-  {
-    code: "LA",
-    name: "Los Angeles Metro",
-    description: "Downtown LA, Santa Monica, Pasadena and Long Beach",
-    hubs: [
-      { code: "HUB-LA", name: "Downtown LA Hub", address: "1200 E 7th St, Los Angeles, CA 90021", city: "Los Angeles", phone: "(213) 555-0102" },
-      { code: "HUB-LA-LB", name: "Long Beach Hub", address: "2400 E Pacific Coast Hwy, Long Beach, CA 90804", city: "Long Beach", phone: "(562) 555-0103" },
-    ],
-  },
-];
-
+/* US demo users. Phone numbers use the fictional 555-0100 to 555-0199 range. Zones, hubs and
+ * pricing rules live in seed.network.ts. */
 const USERS: SeedUser[] = [
   { name: "Carrivo Admin", email: "admin@carrivo.dev", role: Role.ADMIN, phone: "(212) 555-0110" },
   { name: "Carrivo Viewer", email: "viewer@carrivo.dev", role: Role.ADMIN_VIEWER, phone: "(212) 555-0111" },
@@ -185,30 +146,6 @@ const seedUser = async (
 };
 
 // ───────────── Pricing rules (USD, the platform currency) ─────────────
-interface SeedRule {
-  name: string;
-  serviceType: ServiceType;
-  route: [string, string] | null; // [originZoneCode, destinationZoneCode]; null = default rule
-  baseFee: number;
-  baseWeightLb: number;
-  perLbFee: number;
-  maxWeightLb: number | null;
-}
-
-// Weights in pounds, prices in USD. Default rules price cross-country (New York <-> Los Angeles);
-// within-metro rules are cheaper. SAME_DAY has no default rule, so it is only offered within a
-// metro (an estimate between zones returns 422 "No pricing available").
-const PRICING_RULES: SeedRule[] = [
-  { name: "Standard - Cross-country", serviceType: ServiceType.STANDARD, route: null, baseFee: 12.0, baseWeightLb: 2, perLbFee: 1.25, maxWeightLb: 70 },
-  { name: "Standard - Within New York Metro", serviceType: ServiceType.STANDARD, route: ["NYC", "NYC"], baseFee: 6.5, baseWeightLb: 2, perLbFee: 0.6, maxWeightLb: 70 },
-  { name: "Standard - Within Los Angeles Metro", serviceType: ServiceType.STANDARD, route: ["LA", "LA"], baseFee: 6.5, baseWeightLb: 2, perLbFee: 0.6, maxWeightLb: 70 },
-  { name: "Express - Cross-country", serviceType: ServiceType.EXPRESS, route: null, baseFee: 24.0, baseWeightLb: 2, perLbFee: 2.5, maxWeightLb: 50 },
-  { name: "Express - Within New York Metro", serviceType: ServiceType.EXPRESS, route: ["NYC", "NYC"], baseFee: 11.0, baseWeightLb: 2, perLbFee: 1.0, maxWeightLb: 50 },
-  { name: "Express - Within Los Angeles Metro", serviceType: ServiceType.EXPRESS, route: ["LA", "LA"], baseFee: 11.0, baseWeightLb: 2, perLbFee: 1.0, maxWeightLb: 50 },
-  { name: "Same Day - Within New York Metro", serviceType: ServiceType.SAME_DAY, route: ["NYC", "NYC"], baseFee: 18.0, baseWeightLb: 2, perLbFee: 1.5, maxWeightLb: 20 },
-  { name: "Same Day - Within Los Angeles Metro", serviceType: ServiceType.SAME_DAY, route: ["LA", "LA"], baseFee: 18.0, baseWeightLb: 2, perLbFee: 1.5, maxWeightLb: 20 },
-];
-
 const seedPricingRules = async (ids: Map<string, string>): Promise<number> => {
   for (const rule of PRICING_RULES) {
     const data = {

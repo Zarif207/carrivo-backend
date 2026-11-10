@@ -134,6 +134,16 @@ Soft delete. **409** while in use.
 
 `price = baseFee + ceil(max(0, weightLb − baseWeightLb)) × perLbFee`. A route rule (both zones set) wins over the service's default rule (both zones null).
 
+The seeded network (8 zones, 16 hubs, 54 rules, defined in [`prisma/seed.network.ts`](../prisma/seed.network.ts)) prices by distance tier, using only that lookup:
+
+| Tier | Which routes | Rule | Standard | Express | Same Day |
+| --- | --- | --- | --- | --- | --- |
+| Metro | Origin and destination in the same zone | One route rule per zone | $6.50 + $0.60/lb | $11.00 + $1.00/lb | $18.00 + $1.50/lb |
+| Regional | Metros under ~750 miles apart: LA–SF, SF–Seattle, NYC–Chicago, NYC–Atlanta, Chicago–Atlanta, Atlanta–Miami, Atlanta–Houston (both directions) | One route rule per direction | $9.00 + $0.90/lb | $17.00 + $1.75/lb | not offered |
+| National | Every other pair of zones | The service's default rule | $12.00 + $1.25/lb | $24.00 + $2.50/lb | not offered (422) |
+
+Every rule includes the first 2 lb in the base fee; the per-pound fee applies to each started pound above that. Weight limits: Standard 70 lb, Express 50 lb, Same Day 20 lb.
+
 ### `POST /pricing/estimate`
 Public, cached 120 s.
 - **Body:** `{ weightLb, serviceType (STANDARD | EXPRESS | SAME_DAY), originZoneId, destinationZoneId }`

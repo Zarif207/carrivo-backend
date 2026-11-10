@@ -111,7 +111,7 @@ US conventions throughout: prices in US dollars, weights in pounds (`weightLb`),
 <summary><b>Public</b></summary>
 
 - Zones and hubs, with search, filters, pagination and sorting (cached)
-- Live price estimate for a zone pair, service and weight
+- Live price estimate for a zone pair, service and weight, priced by distance tier (metro, regional, national); the seeded network has 8 US metro zones and 16 hubs
 - Public tracking by tracking id (`CRV-YYMMDD-XXXXXX`): stops, cities and times only, never names, phone numbers or addresses
 - Register (always `CUSTOMER`) and log in with email and password, or sign in with Google
 - Health check with a database probe
@@ -184,7 +184,7 @@ US conventions throughout: prices in US dollars, weights in pounds (`weightLb`),
 | **Multer** + **Cloudinary**                  | Proof-of-delivery uploads (in memory, then stored on Cloudinary)         |
 | **Resend**                                   | Notification emails                                                      |
 | **helmet**, **cors**, **express-rate-limit** | HTTP hardening, origin allow-list, rate limits                           |
-| **`node:test`** + **tsx**                    | 167 unit and HTTP tests                                                  |
+| **`node:test`** + **tsx**                    | 181 unit and HTTP tests                                                  |
 | **Vercel**                                   | Serverless deployment (`api/index.ts`)                                   |
 
 ## Architecture
@@ -245,6 +245,7 @@ Module routers are flat (no nested routers), so the read-only test can walk ever
 │   ├── schema.prisma            # Models and enums
 │   ├── migrations/              # SQL migrations
 │   ├── seed.ts, seed.safety.ts  # Idempotent US demo seed and its guards
+│   ├── seed.network.ts          # Demo network: 8 zones, 16 hubs, 54 distance-tier pricing rules
 │   └── reset-demo.ts, reset.safety.ts   # Guarded demo-data reset and its guards
 ├── scripts/                     # Smoke test and dev-only helpers (never deployed)
 ├── src/
@@ -598,7 +599,7 @@ For Google locally, add `http://localhost:5000/api/v1/auth/callback/google` as a
 | `npm run build`                          | `prisma generate` + compile with `tsc`                                               |
 | `npm start`                              | Run the compiled server                                                              |
 | `npm run typecheck`                      | `tsc --noEmit`                                                                       |
-| `npm test`                               | 167 unit and HTTP tests (`node:test`; no database or network needed)                 |
+| `npm test`                               | 181 unit and HTTP tests (`node:test`; no database or network needed)                 |
 | `npm run smoke -- <baseUrl>`             | Read-only smoke test against any deployment (about 60 requests)                      |
 | `npm run db:generate`                    | Generate the Prisma client                                                           |
 | `npm run db:migrate`                     | `prisma migrate dev` (development)                                                   |
@@ -731,7 +732,7 @@ Better Auth's Google flow ends with a cookie session on the API's domain, but th
 - **No revenue time series:** dashboard stats give totals and shipments per day, not revenue per day.
 - **Proof images on Cloudinary** aren't cleaned up when a shipment is soft-deleted or demo data is reset.
 - **Region:** the function and data stores run in Singapore (`sin1`) next to the database; a US region would suit a US platform better.
-- **No integration tests against a real database:** the 167 tests are unit and HTTP tests with the database and network mocked; migrations, the seed and the reset are checked by hand on a disposable branch, with the Postman collection and the smoke test against deployments.
+- **No integration tests against a real database:** the 181 tests are unit and HTTP tests with the database and network mocked; migrations, the seed and the reset are checked by hand on a disposable branch, with the Postman collection and the smoke test against deployments.
 - **Next:** an OpenAPI spec generated from the Zod schemas, audit records for refused (403) requests, live courier location and route optimisation, and a customer address book.
 
 ## Author

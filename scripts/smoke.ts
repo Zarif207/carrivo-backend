@@ -14,10 +14,10 @@
  *                                      to the courier above (default: CRV-261101-SEED03)
  *
  * SAFE FOR PRODUCTION: it only sends GET requests, plus the few non-GET requests
- * in SAFE_WRITES below. Those are login/logout, or probes that MUST be refused, and
- * every probe carries an invalid body, so even a broken role check would stop at
- * validation (400): no shipment, payment, Stripe session, upload or email can be
- * created. The only rows it writes are the login sessions (revoked by the logouts
+ * in SAFE_WRITES below. Those are login/logout, public price quotes (they read
+ * pricing rules and write nothing), or probes that MUST be refused, and every probe
+ * carries an invalid body, so even a broken role check would stop at validation
+ * (400): no shipment, payment, Stripe session, upload or email can be created. The only rows it writes are the login sessions (revoked by the logouts
  * at the end); it writes no audit rows.
  */
 export {};
@@ -77,7 +77,7 @@ const RANDOM_UUID = "019a0000-0000-7000-8000-000000000000";
 const SAFE_WRITES = new Set([
   "POST /auth/login",
   "POST /auth/logout",
-  "POST /pricing/estimate", // always with an invalid body → 400
+  "POST /pricing/estimate", // public quote: reads pricing rules, writes nothing (plus one invalid body → 400)
   "POST /zones", // forbidden-role probe, invalid body
   "POST /shipments", // forbidden-role probe, invalid body
   "POST /payments/initiate", // forbidden-role probe, invalid body
@@ -217,6 +217,35 @@ const main = async (): Promise<void> => {
     const reply = await call("POST", "/pricing/estimate", { body: { weightLb: -1 } });
     const ok = reply.status === 400 && isEnvelope(reply, false) && Array.isArray(reply.body?.errors) && reply.body.errors.length > 0;
     return { ok, got: `${reply.status} errors=${Array.isArray(reply.body?.errors) ? reply.body.errors.length : "?"}` };
+  });
+  // Network: every active zone has a hub, and cross-zone quotes follow the pricing design
+  // (Standard and Express priced between any two zones; Same Day within one zone only → 422).
+  const zoneIds: string[] = [];
+  await check("zones and hubs", "200, every zone has a hub", async () => {
+    const zones = await call("GET", "/zones?limit=100");
+    const hubs = await call("GET", "/hubs?limit=100");
+    const zoneList = Array.isArray(zones.body?.data) ? (zones.body.data as { id?: string }[]) : [];
+    const hubList = Array.isArray(hubs.body?.data) ? (hubs.body.data as { zone?: { id?: string } }[]) : [];
+    zoneIds.push(...zoneList.flatMap((z) => (z.id ? [z.id] : [])));
+    const withHub = new Set(hubList.map((h) => h.zone?.id));
+    const missing = zoneIds.filter((id) => !withHub.has(id)).length;
+    const ok = zones.status === 200 && hubs.status === 200 && zoneIds.length > 0 && missing === 0;
+    return { ok, got: `${zones.status}/${hubs.status} zones=${zoneIds.length} hubs=${hubList.length}${missing ? ` without hub=${missing}` : ""}` };
+  });
+  const quote = (serviceType: string) => {
+    const [originZoneId, destinationZoneId] = zoneIds;
+    return call("POST", "/pricing/estimate", { body: { weightLb: 5, serviceType, originZoneId, destinationZoneId } });
+  };
+  await check("cross-zone Standard quote", "200 + total", async () => {
+    if (zoneIds.length < 2) return { ok: false, got: `needs 2 zones, found ${zoneIds.length}` };
+    const reply = await quote("STANDARD");
+    const total = (reply.body?.data as { total?: string } | undefined)?.total;
+    return { ok: reply.status === 200 && typeof total === "string", got: `${reply.status} total=${total ?? "?"}` };
+  });
+  await check("cross-zone Same Day → 422", "422 (within one zone only)", async () => {
+    if (zoneIds.length < 2) return { ok: false, got: `needs 2 zones, found ${zoneIds.length}` };
+    const reply = await quote("SAME_DAY");
+    return { ok: reply.status === 422 && isEnvelope(reply, false), got: describe(reply) };
   });
   await expectStatus("no token → 401", "GET", "/users/me", 401);
   await expectStatus("invalid token → 401", "GET", "/users/me", 401, { token: "not-a-real-session-token" });
