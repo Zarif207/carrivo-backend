@@ -80,3 +80,19 @@ export const authLimiter: RequestHandler = rateLimit({
   keyGenerator,
   store: store("auth"),
 });
+
+/**
+ * Courier applications (submit + cancel): a person applies a handful of times at most, so 10 an
+ * hour stops scripted spam (and staff-feed flooding) without getting in anyone's way. Mounted after
+ * authenticate(), so it counts per signed-in user (people sharing an office IP don't block each other).
+ */
+export const applicationLimiter: RequestHandler = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: "Too many courier application requests, please try again in an hour",
+  handler: limitHandler,
+  keyGenerator: (req, res) => (req.user ? `user:${req.user.id}` : keyGenerator(req, res)),
+  store: store("courier-applications"),
+});

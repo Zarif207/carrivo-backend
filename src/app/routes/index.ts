@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { AdminRoutes } from "../modules/admin/admin.route.js";
 import { CourierRoutes } from "../modules/courier/courier.route.js";
+import { CourierApplicationRoutes } from "../modules/courierApplication/courierApplication.route.js";
 import { PaymentRoutes } from "../modules/payment/payment.route.js";
 import { HealthRoutes } from "../modules/health/health.route.js";
 import { NotificationRoutes } from "../modules/notification/notification.route.js";
@@ -28,6 +29,7 @@ export const moduleRoutes: readonly ModuleRoute[] = [
   { path: "/pricing", route: PricingRoutes },
   { path: "/shipments", route: ShipmentRoutes },
   { path: "/couriers", route: CourierRoutes },
+  { path: "/courier-applications", route: CourierApplicationRoutes },
   { path: "/admin", route: AdminRoutes },
   { path: "/payments", route: PaymentRoutes },
   { path: "/notifications", route: NotificationRoutes },

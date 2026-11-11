@@ -22,7 +22,8 @@ export type StaffNotificationType =
   | "REFUND_FAILED"
   | "ZONE_CHANGED"
   | "HUB_CHANGED"
-  | "COURIER_ADDED";
+  | "COURIER_ADDED"
+  | "COURIER_APPLICATION_SUBMITTED";
 
 /** What notifyStaff stores for every recipient. */
 export interface StaffNotificationInput {
@@ -66,7 +67,20 @@ export type StaffEvent =
   | { kind: "REFUND_FAILED"; payment: StaffPaymentFacts; reason: string; attemptKey: string | null }
   | { kind: "ZONE_CHANGED"; action: ChangeAction; zone: { id: string; code: string; name: string }; actorName: string }
   | { kind: "HUB_CHANGED"; action: ChangeAction; hub: { id: string; code: string; name: string; city: string }; actorName: string }
-  | { kind: "COURIER_ADDED"; user: { id: string; name: string; email: string }; zoneName: string | null; via: "created" | "role_changed"; actorName: string };
+  | {
+      kind: "COURIER_ADDED";
+      user: { id: string; name: string; email: string };
+      zoneName: string | null;
+      /** "application": approved courier application (applicationId set, so the notice dedupes). */
+      via: "created" | "role_changed" | "application";
+      actorName: string;
+      applicationId?: string;
+    }
+  | {
+      kind: "COURIER_APPLICATION_SUBMITTED";
+      application: { id: string; vehicleType: string; zoneName: string | null };
+      applicant: { name: string; email: string };
+    };
 
 const label = (value: string): string => value.replace(/_/g, " ").toLowerCase();
 
@@ -186,15 +200,38 @@ export const buildStaffNotification = (event: StaffEvent): StaffNotificationInpu
         link: FRONTEND_PATHS.adminSettings("hubs"),
         dedupeKey: null,
       };
-    case "COURIER_ADDED":
+    case "COURIER_ADDED": {
+      const zone = event.zoneName ? ` in ${event.zoneName}` : "";
+      if (event.via === "application") {
+        return {
+          type: "COURIER_ADDED",
+          title: `New courier: ${event.user.name}`,
+          message: `${event.actorName} approved the courier application from ${event.user.name} (${event.user.email}). They now work as a courier${zone}.`,
+          link: FRONTEND_PATHS.adminUsers,
+          dedupeKey: event.applicationId ? `COURIER_ADDED:application:${event.applicationId}` : null,
+        };
+      }
       return {
         type: "COURIER_ADDED",
         title: `New courier: ${event.user.name}`,
         message: `${event.actorName} ${event.via === "created" ? "created a courier account for" : "made"} ${event.user.name} (${event.user.email})${
           event.via === "role_changed" ? " a courier" : ""
-        }${event.zoneName ? ` in ${event.zoneName}` : ""}.`,
+        }${zone}.`,
         link: FRONTEND_PATHS.adminUsers,
         dedupeKey: null,
       };
+    }
+    case "COURIER_APPLICATION_SUBMITTED": {
+      const a = event.application;
+      return {
+        type: "COURIER_APPLICATION_SUBMITTED",
+        title: `Courier application from ${event.applicant.name}`,
+        message: `${event.applicant.name} (${event.applicant.email}) applied to become a courier with a ${label(a.vehicleType)}${
+          a.zoneName ? `, preferring ${a.zoneName}` : ""
+        }. It is waiting for review.`,
+        link: FRONTEND_PATHS.adminCourierApplications({ status: "PENDING" }),
+        dedupeKey: `COURIER_APPLICATION_SUBMITTED:application:${a.id}`,
+      };
+    }
   }
 };

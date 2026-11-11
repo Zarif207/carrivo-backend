@@ -82,6 +82,9 @@ const SAFE_WRITES = new Set([
   "POST /shipments", // forbidden-role probe, invalid body
   "POST /payments/initiate", // forbidden-role probe, invalid body
   "PATCH /shipments/:id/status", // forbidden-role probe, invalid body
+  "POST /courier-applications", // forbidden-role probes (admin 403, courier 409), refused before validation; invalid body anyway
+  "PATCH /admin/courier-applications/:id/approve", // customer/courier probe (403), unknown id
+  "PATCH /admin/courier-applications/:id/reject", // customer probe (403), unknown id, invalid body
 ]);
 
 const routeKey = (method: string, path: string): string =>
@@ -298,12 +301,22 @@ const main = async (): Promise<void> => {
     ["ADMIN", "GET", "/couriers/me/tasks"],
     ["ADMIN", "POST", "/shipments", {}],
     ["ADMIN", "GET", "/payments/my"],
+    // Courier applications: only an ADMIN decides; only a CUSTOMER applies (the admin gets 403 below).
+    ["CUSTOMER", "GET", "/admin/courier-applications"],
+    ["CUSTOMER", "PATCH", `/admin/courier-applications/${RANDOM_UUID}/approve`, {}],
+    ["COURIER", "PATCH", `/admin/courier-applications/${RANDOM_UUID}/reject`, {}],
+    ["ADMIN", "POST", "/courier-applications", {}],
+    ["ADMIN", "GET", "/courier-applications/my"],
   ];
   for (const [role, method, path, body] of forbidden) {
     const name = `${role.toLowerCase()} ${method} ${path.replace(RANDOM_UUID, ":id")} → 403`;
     if (!has(role)) skip(name, role);
     else await expectStatus(name, method, path, 403, { as: role, ...(body !== undefined ? { body } : {}) });
   }
+
+  // A courier can't apply again: 409 "already a courier", before the (invalid) body is looked at.
+  if (has("COURIER")) await expectStatus("courier POST /courier-applications → 409", "POST", "/courier-applications", 409, { as: "COURIER", body: {} });
+  else skip("courier POST /courier-applications → 409", "COURIER");
 
   // 5. Ownership (404, not 403: other users' shipments are invisible)
   if (has("ADMIN")) {
@@ -316,6 +329,7 @@ const main = async (): Promise<void> => {
     }
   }
   if (has("ADMIN")) await expectStatus("unknown shipment id → 404", "GET", `/shipments/${RANDOM_UUID}`, 404, { as: "ADMIN" });
+  if (has("ADMIN")) await expectStatus("unknown courier application → 404", "GET", `/admin/courier-applications/${RANDOM_UUID}`, 404, { as: "ADMIN" });
 
   // 6. Read-only pass over the list endpoints
   const lists: [Role, string, boolean?][] = [
@@ -337,6 +351,10 @@ const main = async (): Promise<void> => {
     ["CUSTOMER", "/shipments?limit=5"],
     ["CUSTOMER", "/payments/my?limit=5"],
     ["CUSTOMER", "/notifications/my?limit=5"],
+    ["CUSTOMER", "/courier-applications/my", false],
+    ["COURIER", "/courier-applications/my", false],
+    ["ADMIN", "/admin/courier-applications?limit=5"],
+    ["ADMIN", "/admin/courier-applications?status=PENDING&limit=5"],
   ];
   for (const [role, path, paginated] of lists) {
     const name = `${role.toLowerCase()} GET ${path.split("?")[0]}`;

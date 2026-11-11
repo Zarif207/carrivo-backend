@@ -23,6 +23,9 @@ erDiagram
   User ||--o{ CourierEarning : earns
   User ||--o{ AuditLog : "acts in"
   User ||--o{ Notification : receives
+  User ||--o{ CourierApplication : "applies (customer)"
+  User |o--o{ CourierApplication : "reviews (admin)"
+  Zone |o--o{ CourierApplication : "preferred by"
   Zone ||--o{ Hub : contains
   Zone ||--o{ CourierProfile : "operates in"
   Zone |o--o{ PricingRule : "origin / destination"
@@ -98,6 +101,21 @@ erDiagram
     uuid zoneId FK
     uuid hubId FK
     boolean isAvailable
+  }
+  CourierApplication {
+    uuid id PK
+    string userId FK
+    CourierApplicationStatus status
+    string phone
+    uuid preferredZoneId FK
+    VehicleType vehicleType
+    string vehiclePlate
+    WorkAvailability availability
+    string experience
+    string about
+    string reviewedById FK
+    datetime reviewedAt
+    string reviewNote
   }
   Shipment {
     uuid id PK
@@ -187,6 +205,7 @@ erDiagram
 | `Hub` (`hubs`) | Sorting hub inside a zone | Unique `code`; US address and city; soft delete; can't change zone or be deleted while in use |
 | `PricingRule` (`pricing_rules`) | How a service is priced on a route | Either a route rule (both zones set) or the service's default rule (both null) |
 | `CourierProfile` (`courier_profiles`) | Vehicle, zone, hub and availability of a courier | One per courier user (`userId` unique) |
+| `CourierApplication` (`courier_applications`) | A customer's request to become a courier, and the admin's decision | At most one `PENDING` per user (partial unique index); a decision records `reviewedById`, `reviewedAt` and, for a rejection, `reviewNote`. Approval creates or restores the user's `CourierProfile` from it. Never stores licence, SSN or other government ID numbers. Append-only history (no `deletedAt`): rows only move `PENDING` → `APPROVED`, `REJECTED` or `CANCELLED` |
 | `Shipment` (`shipments`) | A parcel from booking to the end | Unique `trackingId` (`CRV-YYMMDD-XXXXXX`); price and `priceBreakdown` snapshot set by the server; proof-of-delivery fields |
 | `ShipmentStatusHistory` (`shipment_status_history`) | One row per status change | `changedById` null means the system (for example a webhook) |
 | `PickupRequest` (`pickup_requests`) | The pickup window | One per shipment (`shipmentId` unique); `SCHEDULED` → `COMPLETED` on pickup or `CANCELLED` on cancel |
@@ -206,17 +225,23 @@ erDiagram
 | `ShipmentPaymentStatus` | `UNPAID`, `PAID`, `REFUNDED` |
 | `PaymentStatus` | `PENDING`, `PAID`, `FAILED`, `EXPIRED`, `REFUND_PENDING`, `REFUNDED` |
 | `ServiceType` | `STANDARD`, `EXPRESS`, `SAME_DAY` |
-| `VehicleType` | `BICYCLE`, `MOTORCYCLE`, `CAR`, `VAN`, `TRUCK` |
+| `VehicleType` | `BICYCLE`, `MOTORCYCLE`, `CAR`, `VAN`, `TRUCK` (couriers and courier applications) |
+| `CourierApplicationStatus` | `PENDING`, `APPROVED`, `REJECTED`, `CANCELLED` (withdrawn by the applicant) |
+| `WorkAvailability` | `WEEKDAYS`, `WEEKENDS`, `FULL_TIME` |
 | `PickupStatus` | `SCHEDULED`, `COMPLETED`, `CANCELLED` |
 | `EarningStatus` | `PENDING`, `PAID` |
-| `NotificationType` | `SHIPMENT_CREATED`, `COURIER_ASSIGNED`, `PICKED_UP`, `OUT_FOR_DELIVERY`, `DELIVERED`, `FAILED_DELIVERY`, `PAYMENT_RECEIVED`, `REFUND_COMPLETED`; staff only: `SHIPMENT_CANCELLED`, `PAYMENT_FAILED`, `REFUND_FAILED`, `ZONE_CHANGED`, `HUB_CHANGED`, `COURIER_ADDED` |
+| `NotificationType` | `SHIPMENT_CREATED`, `COURIER_ASSIGNED`, `PICKED_UP`, `OUT_FOR_DELIVERY`, `DELIVERED`, `FAILED_DELIVERY`, `PAYMENT_RECEIVED`, `REFUND_COMPLETED`; staff only: `SHIPMENT_CANCELLED`, `PAYMENT_FAILED`, `REFUND_FAILED`, `ZONE_CHANGED`, `HUB_CHANGED`, `COURIER_ADDED`, `COURIER_APPLICATION_SUBMITTED`; applicant: `COURIER_APPLICATION_APPROVED`, `COURIER_APPLICATION_REJECTED` |
 | `EmailStatus` | `PENDING`, `SENT`, `FAILED`, `SKIPPED` |
 
 ## Constraints
 
 - **Unique:** `User.email`, `Session.token`, `Zone.code`, `Hub.code`, `CourierProfile.userId`, `Shipment.trackingId`, `PickupRequest.shipmentId`, `Payment.stripeSessionId`, `Payment.stripePaymentIntentId`, `Payment.stripeRefundId`, `CourierEarning.shipmentId`, and `StripeEvent.id` (the event id is the key).
 - **Foreign keys** default to `RESTRICT`, so shipments, payments and history can't be orphaned; only `Session` and `Account` cascade with their user. Rows are soft-deleted instead of removed.
-- **One of each:** one pickup request per shipment, one earning per delivered shipment, one courier profile per courier.
+- **One of each:** one pickup request per shipment, one earning per delivered shipment, one courier profile per courier, one pending courier application per user.
+- **Courier applications (migration SQL; Prisma can't express these and leaves them alone):**
+  - `courier_applications_one_pending_per_user`: `UNIQUE ("userId") WHERE "status" = 'PENDING'`.
+  - `CHECK`: an `APPROVED` or `REJECTED` row has `reviewedById` and `reviewedAt`; a `REJECTED` row has a non-blank `reviewNote`; lengths are capped (phone 30, plate 20, experience 500, about 1000, note 500), matching the Zod limits.
+  - Foreign keys: `userId` restricts deletes; `preferredZoneId` and `reviewedById` are set to null if that row is ever removed.
 
 ## Indexes
 
@@ -235,12 +260,14 @@ erDiagram
 | `courier_earnings` | `(courierId, createdAt)`, `status` | Earnings by date |
 | `audit_logs` | `(actorId, createdAt)`, `(entityType, entityId, createdAt)`, `(action, createdAt)`, `createdAt` | Each audit filter with newest-first order |
 | `notifications` | `(userId, readAt, createdAt)`, `(userId, createdAt)`, `shipmentId`, `dedupeKey` (unique) | Unread filter and newest first; staff event idempotency |
+| `courier_applications` | `(status, createdAt)`, `userId`, `preferredZoneId`, partial unique `userId WHERE status = 'PENDING'` | Admin queue (`?status=PENDING`, newest first), "my applications", zone filter, one pending per user |
 
 ## Transactions and concurrency
 
 - **Status changes:** one service function runs each change in `prisma.$transaction`. It updates the shipment with a conditional `updateMany` (the expected current status is part of the `WHERE`), so a concurrent change makes the count 0 and the request fails with 409. The same transaction writes the status-history row, the audit row, any notifications and the status's side effects (pickup completed or cancelled, courier earning on delivery).
 - **Courier assignment:** the courier's profile and user rows are locked with `SELECT … FOR UPDATE`, and availability and zone are re-checked inside the transaction, so two admins can't double-assign a courier.
 - **User changes:** role and status changes lock the user row; the last active admin can't be demoted or deactivated.
+- **Courier applications:** approve and reject lock the active admins, the applicant and the application row (`SELECT … FOR UPDATE`, in that order, like a role change) and require `PENDING`, so a second decision gets 409. Approval writes the profile, role, decision, session revocation, audit rows and notice in one transaction. Cancel locks the application row. Two simultaneous submits are settled by the partial unique index.
 - **Payments:** the webhook and the success-page verification share one function. Processed Stripe event ids are stored, and an already-PAID payment is ignored, so a payment is applied once.
 
 ## Shipment lifecycle

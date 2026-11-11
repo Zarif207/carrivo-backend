@@ -14,7 +14,6 @@ enum Role {
   CUSTOMER
   COURIER
   ADMIN
-  /// Read-only admin: every admin GET route, no mutations (see middlewares/readOnly.ts). Created by the seed only.
   ADMIN_VIEWER
 }
 
@@ -49,7 +48,7 @@ enum PaymentStatus {
   PAID
   FAILED
   EXPIRED
-  REFUND_PENDING // shipment cancelled; refund requested but not yet confirmed by Stripe
+  REFUND_PENDING 
   REFUNDED
 }
 
@@ -94,6 +93,24 @@ enum NotificationType {
   ZONE_CHANGED
   HUB_CHANGED
   COURIER_ADDED
+  // Courier applications: staff hear about new ones, the applicant about the decision.
+  COURIER_APPLICATION_SUBMITTED
+  COURIER_APPLICATION_APPROVED
+  COURIER_APPLICATION_REJECTED
+}
+
+enum CourierApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED // withdrawn by the applicant while PENDING
+}
+
+/// When an applicant can work (courier applications).
+enum WorkAvailability {
+  WEEKDAYS
+  WEEKENDS
+  FULL_TIME
 }
 
 enum EmailStatus {
@@ -118,17 +135,19 @@ model User {
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
-  sessions          Session[]
-  accounts          Account[]
-  courierProfile    CourierProfile?
-  shipments         Shipment[]              @relation("CustomerShipments")
-  assignedShipments Shipment[]              @relation("CourierShipments")
-  statusChanges     ShipmentStatusHistory[]
-  pickupRequests    PickupRequest[]
-  payments          Payment[]
-  earnings          CourierEarning[]
-  auditLogs         AuditLog[]
-  notifications     Notification[]
+  sessions                    Session[]
+  accounts                    Account[]
+  courierProfile              CourierProfile?
+  shipments                   Shipment[]              @relation("CustomerShipments")
+  assignedShipments           Shipment[]              @relation("CourierShipments")
+  statusChanges               ShipmentStatusHistory[]
+  pickupRequests              PickupRequest[]
+  payments                    Payment[]
+  earnings                    CourierEarning[]
+  auditLogs                   AuditLog[]
+  notifications               Notification[]
+  courierApplications         CourierApplication[]    @relation("CourierApplicant")
+  reviewedCourierApplications CourierApplication[]    @relation("CourierApplicationReviewer")
 
   @@index([role, status]) // admin user list, last-admin lock, dashboard counts
   @@index([status])
@@ -197,10 +216,11 @@ model Zone {
 
   hubs                 Hub[]
   couriers             CourierProfile[]
-  originShipments      Shipment[]       @relation("OriginZone")
-  destinationShipments Shipment[]       @relation("DestinationZone")
-  originPricingRules   PricingRule[]    @relation("PricingOrigin")
-  destPricingRules     PricingRule[]    @relation("PricingDestination")
+  originShipments      Shipment[]           @relation("OriginZone")
+  destinationShipments Shipment[]           @relation("DestinationZone")
+  originPricingRules   PricingRule[]        @relation("PricingOrigin")
+  destPricingRules     PricingRule[]        @relation("PricingDestination")
+  courierApplications  CourierApplication[]
 
   @@index([isActive, deletedAt])
   @@map("zones")
@@ -279,6 +299,38 @@ model CourierProfile {
   @@map("courier_profiles")
 }
 
+/// A CUSTOMER asking to become a COURIER; an ADMIN approves (user becomes COURIER with a
+/// CourierProfile) or rejects (reviewNote required). No driver licence, SSN or other government ID
+/// is collected. The migration SQL adds what Prisma can't express:
+/// - partial unique index courier_applications_one_pending_per_user: at most ONE PENDING per user,
+/// - CHECK constraints: a decision has reviewer + time, a rejection has a note, text length caps.
+/// Prisma doesn't model either, and leaves both alone (`migrate diff` against a migrated DB is empty).
+model CourierApplication {
+  id              String                   @id @default(uuid(7))
+  userId          String
+  user            User                     @relation("CourierApplicant", fields: [userId], references: [id])
+  status          CourierApplicationStatus @default(PENDING)
+  phone           String // US format (phoneSchema)
+  preferredZoneId String?
+  preferredZone   Zone?                    @relation(fields: [preferredZoneId], references: [id])
+  vehicleType     VehicleType
+  vehiclePlate    String?
+  availability    WorkAvailability
+  experience      String? // max 500
+  about           String? // max 1000
+  reviewedById    String?
+  reviewedBy      User?                    @relation("CourierApplicationReviewer", fields: [reviewedById], references: [id])
+  reviewedAt      DateTime?
+  reviewNote      String? // required on REJECTED, max 500
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  @@index([status, createdAt]) // admin queue: ?status=PENDING, newest first
+  @@index([userId]) // "my application" + history
+  @@index([preferredZoneId]) // admin zone filter
+  @@map("courier_applications")
+}
+
 // ───────────── Shipment ─────────────
 model Shipment {
   id         String @id @default(uuid(7))
@@ -318,14 +370,13 @@ model Shipment {
   priceBreakdown Json // snapshot of rule + components
   currency       String  @default("usd") // platform currency (PLATFORM_CURRENCY in code)
 
-  status             ShipmentStatus        @default(PENDING)
-  paymentStatus      ShipmentPaymentStatus @default(UNPAID)
-  failedAttempts     Int                   @default(0)
-  failureReason      String?
-  cancelReason       String?
-  // Proof of delivery (Cloudinary). Never part of public tracking.
+  status                    ShipmentStatus        @default(PENDING)
+  paymentStatus             ShipmentPaymentStatus @default(UNPAID)
+  failedAttempts            Int                   @default(0)
+  failureReason             String?
+  cancelReason              String?
   proofOfDeliveryUrl        String?
-  proofOfDeliveryPublicId   String? // to replace/delete the image
+  proofOfDeliveryPublicId   String? 
   proofOfDeliveryUploadedAt DateTime?
 
   estimatedDeliveryAt DateTime?
@@ -351,13 +402,9 @@ model Shipment {
   @@index([serviceType])
   @@index([createdAt])
   @@index([deletedAt])
-  // FK lookups for the "hub still in use" check on hub delete.
   @@index([originHubId])
   @@index([destinationHubId])
   @@index([currentHubId])
-  // Trigram GIN indexes back the case-insensitive `contains` search (ILIKE '%term%').
-  // Needs the pg_trgm extension, created in the migration SQL (the schema-level
-  // `extensions` field is still a preview feature in Prisma 7).
   @@index([trackingId(ops: raw("gin_trgm_ops"))], type: Gin, map: "shipments_trackingId_trgm_idx")
   @@index([receiverName(ops: raw("gin_trgm_ops"))], type: Gin, map: "shipments_receiverName_trgm_idx")
   @@index([receiverPhone(ops: raw("gin_trgm_ops"))], type: Gin, map: "shipments_receiverPhone_trgm_idx")
@@ -368,12 +415,12 @@ model ShipmentStatusHistory {
   id          String          @id @default(uuid(7))
   shipmentId  String
   shipment    Shipment        @relation(fields: [shipmentId], references: [id])
-  fromStatus  ShipmentStatus? // null for creation
+  fromStatus  ShipmentStatus? 
   toStatus    ShipmentStatus
   note        String?
   hubId       String?
   hub         Hub?            @relation(fields: [hubId], references: [id])
-  changedById String? // null = system (e.g. webhook)
+  changedById String? 
   changedBy   User?           @relation(fields: [changedById], references: [id])
   createdAt   DateTime        @default(now())
 
@@ -390,8 +437,8 @@ model PickupRequest {
   pickupAddress  String
   contactName    String
   contactPhone   String
-  scheduledAt    DateTime // pickup window start
-  scheduledUntil DateTime // pickup window end
+  scheduledAt    DateTime 
+  scheduledUntil DateTime 
   notes          String?
   status         PickupStatus @default(SCHEDULED)
   completedAt    DateTime?
@@ -450,7 +497,7 @@ model StripeEvent {
 
 model CourierEarning {
   id         String        @id @default(uuid(7))
-  courierId  String // User.id
+  courierId  String 
   courier    User          @relation(fields: [courierId], references: [id])
   shipmentId String        @unique // one earning per delivered shipment
   shipment   Shipment      @relation(fields: [shipmentId], references: [id])
@@ -467,11 +514,11 @@ model CourierEarning {
 // ───────────── Audit ─────────────
 model AuditLog {
   id         String   @id @default(uuid(7))
-  actorId    String? // null = system
+  actorId    String? 
   actor      User?    @relation(fields: [actorId], references: [id])
   actorRole  Role?
-  action     String // e.g. SHIPMENT_STATUS_CHANGED (TS const union)
-  entityType String // e.g. SHIPMENT, PAYMENT, USER
+  action     String 
+  entityType String 
   entityId   String
   before     Json?
   after      Json?
@@ -479,7 +526,6 @@ model AuditLog {
   userAgent  String?
   createdAt  DateTime @default(now())
 
-  // (filter, createdAt): each admin audit-log filter is served together with the newest-first sort.
   @@index([actorId, createdAt])
   @@index([entityType, entityId, createdAt])
   @@index([action, createdAt])
@@ -488,8 +534,7 @@ model AuditLog {
 }
 
 // ───────────── Notifications ─────────────
-// Append-only (no deletedAt): rows are only ever marked read. Created in the same
-// transaction as the business change; the email is sent after commit.
+
 model Notification {
   id          String           @id @default(uuid(7))
   userId      String
@@ -499,17 +544,15 @@ model Notification {
   type        NotificationType
   title       String
   message     String
-  /// Frontend path to open (e.g. /admin/shipments/<id>); null on rows written before it existed.
   link        String?
-  /// Per-recipient idempotency key ("<event key>:<userId>"); replays of the same event insert nothing.
   dedupeKey   String?          @unique
   readAt      DateTime?
   emailStatus EmailStatus      @default(PENDING)
-  emailError  String? // short provider message; never the address or API key
+  emailError  String? 
   emailSentAt DateTime?
   createdAt   DateTime         @default(now())
 
-  @@index([userId, readAt, createdAt]) // unread filter + newest first
+  @@index([userId, readAt, createdAt]) 
   @@index([userId, createdAt])
   @@index([shipmentId])
   @@map("notifications")

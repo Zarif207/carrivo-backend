@@ -185,12 +185,21 @@ export const StaffNotify = {
   hubChanged: (action: ChangeAction, hub: { id: string; code: string; name: string; city: string }, actor: Actor): Promise<void> =>
     run("HUB_CHANGED", async () => ({ kind: "HUB_CHANGED", action, hub, actorName: await actorName(actor) })),
 
-  courierAdded: (user: { id: string; name: string; email: string; zoneName: string | null }, via: "created" | "role_changed", actor: Actor): Promise<void> =>
+  courierAdded: (
+    user: { id: string; name: string; email: string; zoneName: string | null },
+    via: "created" | "role_changed" | "application",
+    actor: Actor,
+    applicationId?: string,
+  ): Promise<void> =>
     run("COURIER_ADDED", async () => ({
       kind: "COURIER_ADDED",
       user: { id: user.id, name: user.name, email: user.email },
       zoneName: user.zoneName,
       via,
       actorName: await actorName(actor),
+      ...(applicationId ? { applicationId } : {}),
     })),
+
+  courierApplicationSubmitted: (application: { id: string; vehicleType: string; zoneName: string | null }, applicant: { name: string; email: string }): Promise<void> =>
+    run("COURIER_APPLICATION_SUBMITTED", async () => ({ kind: "COURIER_APPLICATION_SUBMITTED", application, applicant })),
 };

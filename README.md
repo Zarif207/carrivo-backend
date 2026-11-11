@@ -147,8 +147,20 @@ US conventions throughout: prices in US dollars, weights in pounds (`weightLb`),
 - All shipments: assign and unassign couriers (only available couriers in the origin zone, concurrency-safe), hub steps, returns, cancel, soft delete
 - Zones, hubs and pricing rules: create, update, deactivate, soft delete (refused while in use)
 - Users: list and search, create couriers and admins, change roles, activate and deactivate (sessions revoked; the last admin is protected)
+- Courier applications: review the queue (filter by status, zone and vehicle, search by name, email or phone), approve (the customer becomes a courier in their preferred zone and is signed out everywhere) or reject with a note
 - Payments: list with filters, flag for review, retry a pending refund
 - Audit log of every change, with filters
+
+</details>
+
+<details>
+<summary><b>Courier applications</b></summary>
+
+- A customer applies to become a courier: US phone, vehicle type and plate, availability (weekdays, weekends, full time), optional preferred zone, experience and a short note. No driver licence, SSN or other government ID is collected; unknown fields are refused
+- At most one pending application per user, enforced by a partial unique index (so two submits at once can't both succeed); after a rejection the customer can apply again after 7 days, and the error names the date
+- The applicant sees their latest application, the full history with the admin's note, and whether or when they can apply again; they can cancel while it is pending
+- Approval runs in one transaction with row locks, the same path as an admin role change: creates or restores the courier profile (so the new courier can be assigned straight away), sets the role to `COURIER` and revokes every session. A repeat approve or reject gets 409 with the current status. Customers with unfinished shipments of their own can't be approved until those finish (the courier role can't see them)
+- Staff hear about new applications and approvals; the applicant gets an in-app notice and an email (when Resend is configured) for the decision
 
 </details>
 
@@ -164,8 +176,8 @@ US conventions throughout: prices in US dollars, weights in pounds (`weightLb`),
 <details>
 <summary><b>Notifications and email</b></summary>
 
-- Customers and couriers: shipment created, courier assigned, picked up, out for delivery, delivered, failed delivery, payment received and refund completed. Written in the same transaction as the change; the email (Resend) goes out after the commit, and an email failure never fails the request
-- Staff feed (every active admin and admin viewer, in-app only): shipment booked, paid, delivered, delivery failed (each attempt) and cancelled; payment failed (terminal async failure); refund completed or failed; zone or hub created, updated or deleted; courier account created or a user made a courier. Written after the commit, one row per recipient; a failure is logged and never fails the request
+- Customers and couriers: shipment created, courier assigned, picked up, out for delivery, delivered, failed delivery, payment received and refund completed; courier application approved or rejected (with the admin's note). Written in the same transaction as the change; the email (Resend) goes out after the commit, and an email failure never fails the request
+- Staff feed (every active admin and admin viewer, in-app only): shipment booked, paid, delivered, delivery failed (each attempt) and cancelled; payment failed (terminal async failure); refund completed or failed; zone or hub created, updated or deleted; courier account created, a user made a courier, a courier application submitted or approved. Written after the commit, one row per recipient; a failure is logged and never fails the request
 - Replays are safe: staff rows carry a unique per-recipient key built from the event (the payment id for payments, the Stripe refund id for refund failures), so a replayed webhook, or `/payments/verify` racing the webhook, adds nothing
 - Every notification has a `link` the frontend can open (for example `/admin/shipments/<id>`, `/admin/payments?status=FAILED`, `/admin/settings?tab=hubs`)
 - List (all, unread or read), unread count, mark one read, mark all read, delete; always the caller's own rows
@@ -262,7 +274,7 @@ Module routers are flat (no nested routers), so the read-only test can walk ever
 │       ├── routes/index.ts      # Mounts every module router under /api/v1
 │       ├── utils/               # sendResponse, catchAsync, ApiError, pagination, money, timezone, US validation
 │       └── modules/             # auth, user, zone, hub, pricing, shipment, tracking,
-│                                #   courier, payment, admin, audit, notification, health
+│                                #   courier, courierApplication, payment, admin, audit, notification, health
 ├── prisma.config.ts             # Prisma CLI config (schema, migrations, seed, DIRECT_URL)
 └── vercel.json                  # One function, every path rewritten to it
 ```
@@ -271,10 +283,10 @@ Module routers are flat (no nested routers), so the read-only test can walk ever
 
 ## Database
 
-Sixteen tables: **User**, **Session**, **Account** and **Verification** (Better Auth), **Zone**, **Hub**, **PricingRule**, **CourierProfile**, **Shipment**, **ShipmentStatusHistory**, **PickupRequest**, **Payment**, **StripeEvent**, **CourierEarning**, **AuditLog** and **Notification**. The diagram shows the shipment core. Highlights:
+Seventeen tables: **User**, **Session**, **Account** and **Verification** (Better Auth), **Zone**, **Hub**, **PricingRule**, **CourierProfile**, **CourierApplication**, **Shipment**, **ShipmentStatusHistory**, **PickupRequest**, **Payment**, **StripeEvent**, **CourierEarning**, **AuditLog** and **Notification**. The diagram shows the shipment core. Highlights:
 
 - Domain ids are **UUID v7**; money is `Decimal(10,2)` in US dollars and weights are `Decimal(8,2)` pounds.
-- **Unique:** `Shipment.trackingId`, one `PickupRequest` and one `CourierEarning` per shipment, one `CourierProfile` per courier, and every Stripe id on `Payment`.
+- **Unique:** `Shipment.trackingId`, one `PickupRequest` and one `CourierEarning` per shipment, one `CourierProfile` per courier, every Stripe id on `Payment`, and one PENDING `CourierApplication` per user (a partial unique index).
 - Mutable rows are **soft-deleted** (`deletedAt`) and every read excludes them; foreign keys restrict deletes, so history can't be lost.
 - **Indexed** on every filter and sort: shipment status, payment status, customer and courier with date, zones, service type, dates; trigram GIN indexes back the case-insensitive search on tracking id, receiver name and phone.
 - **Transactions:** every status change, payment update and user change runs in `prisma.$transaction` with its history, audit and notification rows; conditional updates and `SELECT … FOR UPDATE` row locks stop concurrent double changes.
@@ -382,7 +394,7 @@ sequenceDiagram
 
 ## API reference
 
-Every endpoint the API serves: 60 of ours plus 6 allow-listed Better Auth endpoints, all under `/api/v1` except the root. Request and response shapes are in [`docs/api.md`](docs/api.md). "Any" means any signed-in role; "Staff" means Admin and Admin viewer (reads only).
+Every endpoint the API serves: 67 of ours plus 6 allow-listed Better Auth endpoints, all under `/api/v1` except the root. Request and response shapes are in [`docs/api.md`](docs/api.md). "Any" means any signed-in role; "Staff" means Admin and Admin viewer (reads only).
 
 | Method | Path                                    | Role               | Description                                                     |
 | ------ | --------------------------------------- | ------------------ | --------------------------------------------------------------- |
@@ -435,6 +447,9 @@ Every endpoint the API serves: 60 of ours plus 6 allow-listed Better Auth endpoi
 | GET    | `/api/v1/couriers/me/tasks`             | Courier            | My tasks                                                        |
 | GET    | `/api/v1/couriers/me/earnings`          | Courier            | My earnings with a summary                                      |
 | PATCH  | `/api/v1/couriers/me/availability`      | Courier            | Set my availability                                             |
+| POST   | `/api/v1/courier-applications`          | Customer           | Apply to become a courier (one pending; 7 days after a rejection) |
+| GET    | `/api/v1/courier-applications/my`       | Customer, Courier  | My latest application, history, and whether I can apply again   |
+| PATCH  | `/api/v1/courier-applications/my/:id/cancel` | Customer      | Cancel my pending application                                   |
 | GET    | `/api/v1/admin/dashboard-stats`         | Staff              | Dashboard statistics (cached 60 s)                              |
 | GET    | `/api/v1/admin/users`                   | Staff              | List users                                                      |
 | POST   | `/api/v1/admin/users`                   | Admin              | Create a courier or an admin                                    |
@@ -443,6 +458,10 @@ Every endpoint the API serves: 60 of ours plus 6 allow-listed Better Auth endpoi
 | GET    | `/api/v1/admin/audit-logs`              | Staff              | Audit log                                                       |
 | GET    | `/api/v1/admin/payments`                | Staff              | All payments with filters                                       |
 | POST   | `/api/v1/admin/payments/:id/refund`     | Admin              | Retry or complete a pending refund                              |
+| GET    | `/api/v1/admin/courier-applications`    | Staff              | Courier applications, newest first, with filters                |
+| GET    | `/api/v1/admin/courier-applications/:id` | Staff             | One application with the applicant and reviewer                 |
+| PATCH  | `/api/v1/admin/courier-applications/:id/approve` | Admin     | Approve: applicant becomes a courier, sessions revoked          |
+| PATCH  | `/api/v1/admin/courier-applications/:id/reject`  | Admin     | Reject with a note (shown to the applicant)                     |
 | POST   | `/api/v1/payments/initiate`             | Customer           | Create a Stripe Checkout Session                                |
 | GET    | `/api/v1/payments/verify`               | Customer, Admin    | Verify a Checkout Session after the redirect                    |
 | GET    | `/api/v1/payments/my`                   | Customer           | My payments                                                     |
@@ -519,6 +538,7 @@ Every list accepts these, plus its own filters:
 | `GET /admin/users`         | name, email, phone                   | `role`, `status`                                                        | `name`, `email`, `createdAt`, `role`, `status`             |
 | `GET /admin/payments`      | –                                    | `status`, `customerId`, `shipmentId`, `requiresReview`, dates           | `createdAt`, `amount`, `paidAt`, `status`                  |
 | `GET /admin/audit-logs`    | –                                    | `actorId`, `action`, `entityType`, `entityId`, dates                    | newest first (`sortOrder`)                                 |
+| `GET /admin/courier-applications` | applicant name, email, phone  | `status`, `zoneId` (preferred zone), `vehicleType`                      | `createdAt` (default, newest first), `updatedAt`, `status` |
 
 ```
 GET https://carrivo-backend.vercel.app/api/v1/shipments?status=IN_TRANSIT&serviceType=EXPRESS&fromDate=2026-11-01&page=1&limit=5&sortBy=createdAt&sortOrder=desc
@@ -543,7 +563,7 @@ cd carrivo-backend
 npm install                 # also runs prisma generate
 cp .env.example .env        # fill in the values below
 npm run db:deploy           # apply migrations
-npm run db:seed             # US demo data (zones, hubs, pricing, accounts, shipments)
+npm run db:seed             # US demo data (zones, hubs, pricing, accounts, shipments; sample courier applications outside production)
 npm run dev                 # http://localhost:5000/api/v1/health
 ```
 
@@ -737,7 +757,8 @@ Better Auth's Google flow ends with a cookie session on the API's domain, but th
 - **No revenue time series:** dashboard stats give totals and shipments per day, not revenue per day.
 - **Proof images on Cloudinary** aren't cleaned up when a shipment is soft-deleted or demo data is reset.
 - **Region:** the function and data stores run in Singapore (`sin1`) next to the database; a US region would suit a US platform better.
-- **No integration tests against a real database:** the 181 tests are unit and HTTP tests with the database and network mocked; migrations, the seed and the reset are checked by hand on a disposable branch, with the Postman collection and the smoke test against deployments.
+- **No integration tests against a real database:** the 240 tests are unit and HTTP tests with the database and network mocked; migrations, the seed and the reset are checked by hand on a disposable branch, with the Postman collection and the smoke test against deployments.
+- **Courier applications are not verified:** there is no document upload or background check (deliberately no licence or ID numbers are stored), so the admin decides from the form alone. A customer who still has unfinished shipments of their own can't be approved until those finish.
 - **Next:** an OpenAPI spec generated from the Zod schemas, audit records for refused (403) requests, live courier location and route optimisation, and a customer address book.
 
 ## Author

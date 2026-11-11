@@ -155,6 +155,11 @@
       "value": "",
       "type": "string",
       "description": "Password for the admin created by Admin / Create admin. Set it locally; never commit a value."
+    },
+    {
+      "key": "courierApplicationId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -7496,6 +7501,1051 @@
       ]
     },
     {
+      "name": "Courier applications",
+      "description": "A CUSTOMER applies to become a COURIER; an ADMIN approves or rejects (ADMIN_VIEWER reads only).\n\n- One PENDING application per user (a partial unique index backs it); after a rejection, apply again after 7 days (the 409 names the date).\n- No driver licence, SSN or other government ID is collected: unknown body fields are refused (400).\n- Approve runs in one transaction (same path as an admin role change): courier profile from the application, role COURIER, every session of the applicant revoked (their old token gets 401; signing in again gives a COURIER token). A repeat decision gets 409 with the current status.\n- Run order: `Apply` (customer, saves courierApplicationId) → `My applications` → staff `List`/`Get` → `Approve` or `Reject`. The demo customer1 owns unfinished demo shipments, so approving their application returns 409 (a customer with active shipments can't become a courier); register a fresh customer to see a 200.",
+      "item": [
+        {
+          "name": "Apply (CUSTOMER)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201', () => pm.response.to.have.status(201));",
+                  "const id = pm.response.json().data?.id;",
+                  "if (id) pm.collectionVariables.set('courierApplicationId', id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/courier-applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "courier-applications"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "CUSTOMER only. Body: phone (US), vehicleType (BICYCLE | MOTORCYCLE | CAR | VAN | TRUCK), availability (WEEKDAYS | WEEKENDS | FULL_TIME), preferredZoneId? | null, vehiclePlate? | null, experience? (≤ 500), about? (≤ 1000).\nADMIN → 403, ADMIN_VIEWER → 403 read-only, COURIER → 409 (all before validation). 409 when a PENDING one exists or the 7-day wait after a rejection runs. Rate limit: 10 submits/cancels per hour per user.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"(646) 555-0130\",\n  \"preferredZoneId\": \"{{zoneId}}\",\n  \"vehicleType\": \"MOTORCYCLE\",\n  \"vehiclePlate\": \"NY KDR-5512\",\n  \"availability\": \"FULL_TIME\",\n  \"experience\": \"Bike messenger in Midtown for three years.\",\n  \"about\": \"Now riding a motorcycle and want full-time routes.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/courier-applications",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "courier-applications"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"phone\": \"(646) 555-0130\",\n  \"preferredZoneId\": \"{{zoneId}}\",\n  \"vehicleType\": \"MOTORCYCLE\",\n  \"vehiclePlate\": \"NY KDR-5512\",\n  \"availability\": \"FULL_TIME\",\n  \"experience\": \"Bike messenger in Midtown for three years.\",\n  \"about\": \"Now riding a motorcycle and want full-time routes.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Courier application submitted\",\n  \"data\": {\n    \"id\": \"01a1c944-1270-775f-8624-2fb308875940\",\n    \"status\": \"PENDING\",\n    \"phone\": \"(646) 555-0130\",\n    \"vehicleType\": \"MOTORCYCLE\",\n    \"vehiclePlate\": \"NY KDR-5512\",\n    \"availability\": \"FULL_TIME\",\n    \"experience\": \"Bike messenger in Midtown for three years.\",\n    \"about\": \"Now riding a motorcycle and want full-time routes.\",\n    \"reviewNote\": null,\n    \"reviewedAt\": null,\n    \"createdAt\": \"2026-11-11T06:20:44.016Z\",\n    \"updatedAt\": \"2026-11-11T06:20:44.016Z\",\n    \"preferredZone\": {\n      \"id\": \"01a1c944-0693-77db-b634-1a5f5f016a74\",\n      \"name\": \"New York Metro\",\n      \"code\": \"NYC\"\n    }\n  }\n}"
+            },
+            {
+              "name": "409 Pending exists",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/courier-applications",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "courier-applications"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"phone\": \"(646) 555-0130\",\n  \"preferredZoneId\": \"{{zoneId}}\",\n  \"vehicleType\": \"MOTORCYCLE\",\n  \"vehiclePlate\": \"NY KDR-5512\",\n  \"availability\": \"FULL_TIME\",\n  \"experience\": \"Bike messenger in Midtown for three years.\",\n  \"about\": \"Now riding a motorcycle and want full-time routes.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You already have a pending application from Nov 11, 2026. Cancel it before applying again.\",\n  \"errors\": []\n}"
+            },
+            {
+              "name": "409 Wait after rejection",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/courier-applications",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "courier-applications"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"phone\": \"(646) 555-0130\",\n  \"preferredZoneId\": \"{{zoneId}}\",\n  \"vehicleType\": \"MOTORCYCLE\",\n  \"vehiclePlate\": \"NY KDR-5512\",\n  \"availability\": \"FULL_TIME\",\n  \"experience\": \"Bike messenger in Midtown for three years.\",\n  \"about\": \"Now riding a motorcycle and want full-time routes.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Your last application was not approved. You can apply again on Nov 18, 2026.\",\n  \"errors\": [\n    {\n      \"path\": \"canReapplyAt\",\n      \"message\": \"2026-11-18T06:20:44.402Z\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "409 Already a courier",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/courier-applications",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "courier-applications"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"phone\": \"(646) 555-0130\",\n  \"preferredZoneId\": \"{{zoneId}}\",\n  \"vehicleType\": \"MOTORCYCLE\",\n  \"vehiclePlate\": \"NY KDR-5512\",\n  \"availability\": \"FULL_TIME\",\n  \"experience\": \"Bike messenger in Midtown for three years.\",\n  \"about\": \"Now riding a motorcycle and want full-time routes.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"You are already a courier\",\n  \"errors\": []\n}"
+            },
+            {
+              "name": "403 Staff account",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/courier-applications",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "courier-applications"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"phone\": \"(646) 555-0130\",\n  \"preferredZoneId\": \"{{zoneId}}\",\n  \"vehicleType\": \"MOTORCYCLE\",\n  \"vehiclePlate\": \"NY KDR-5512\",\n  \"availability\": \"FULL_TIME\",\n  \"experience\": \"Bike messenger in Midtown for three years.\",\n  \"about\": \"Now riding a motorcycle and want full-time routes.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Staff accounts can't apply to become couriers. Only customer accounts can apply.\",\n  \"errors\": []\n}"
+            },
+            {
+              "name": "400 Government ID field",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/courier-applications",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "courier-applications"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"phone\": \"(646) 555-0130\",\n  \"preferredZoneId\": \"{{zoneId}}\",\n  \"vehicleType\": \"MOTORCYCLE\",\n  \"vehiclePlate\": \"NY KDR-5512\",\n  \"availability\": \"FULL_TIME\",\n  \"experience\": \"Bike messenger in Midtown for three years.\",\n  \"about\": \"Now riding a motorcycle and want full-time routes.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    {\n      \"path\": \"body\",\n      \"message\": \"Unrecognized key: \\\"ssn\\\"\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "My applications (CUSTOMER, COURIER)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/courier-applications/my",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "courier-applications",
+                "my"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "The caller's latest application, the history (newest first, up to 20) with the admin's reviewNote, and whether they can apply now (canApply, canReapplyAt, blockedReason)."
+          },
+          "response": [
+            {
+              "name": "200 Rejected, waiting",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/courier-applications/my",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "courier-applications",
+                    "my"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Courier applications retrieved successfully\",\n  \"data\": {\n    \"latest\": {\n      \"id\": \"01a1c944-1270-775f-8624-2fb308875940\",\n      \"status\": \"REJECTED\",\n      \"phone\": \"(646) 555-0130\",\n      \"vehicleType\": \"MOTORCYCLE\",\n      \"vehiclePlate\": \"NY KDR-5512\",\n      \"availability\": \"FULL_TIME\",\n      \"experience\": \"Bike messenger in Midtown for three years.\",\n      \"about\": \"Now riding a motorcycle and want full-time routes.\",\n      \"reviewNote\": \"We need a phone number we can reach during the day\",\n      \"reviewedAt\": \"2026-11-11T06:20:44.402Z\",\n      \"createdAt\": \"2026-11-11T06:20:44.016Z\",\n      \"updatedAt\": \"2026-11-11T06:20:44.016Z\",\n      \"preferredZone\": {\n        \"id\": \"01a1c944-0693-77db-b634-1a5f5f016a74\",\n        \"name\": \"New York Metro\",\n        \"code\": \"NYC\"\n      }\n    },\n    \"history\": [\n      {\n        \"id\": \"01a1c944-1270-775f-8624-2fb308875940\",\n        \"status\": \"REJECTED\",\n        \"phone\": \"(646) 555-0130\",\n        \"vehicleType\": \"MOTORCYCLE\",\n        \"vehiclePlate\": \"NY KDR-5512\",\n        \"availability\": \"FULL_TIME\",\n        \"experience\": \"Bike messenger in Midtown for three years.\",\n        \"about\": \"Now riding a motorcycle and want full-time routes.\",\n        \"reviewNote\": \"We need a phone number we can reach during the day\",\n        \"reviewedAt\": \"2026-11-11T06:20:44.402Z\",\n        \"createdAt\": \"2026-11-11T06:20:44.016Z\",\n        \"updatedAt\": \"2026-11-11T06:20:44.016Z\",\n        \"preferredZone\": {\n          \"id\": \"01a1c944-0693-77db-b634-1a5f5f016a74\",\n          \"name\": \"New York Metro\",\n          \"code\": \"NYC\"\n        }\n      }\n    ],\n    \"canApply\": false,\n    \"canReapplyAt\": \"2026-11-18T06:20:44.402Z\",\n    \"blockedReason\": \"Your last application was not approved. You can apply again on Nov 18, 2026.\",\n    \"cooldownDays\": 7\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Cancel my pending application (CUSTOMER)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/courier-applications/my/{{courierApplicationId}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "courier-applications",
+                "my",
+                "{{courierApplicationId}}",
+                "cancel"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Owner only (someone else's id → 404) and only while PENDING (else 409 with the status). A cancelled application starts no wait."
+          },
+          "response": [
+            {
+              "name": "200 Cancelled",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/courier-applications/my/{{courierApplicationId}}/cancel",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "courier-applications",
+                    "my",
+                    "{{courierApplicationId}}",
+                    "cancel"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Courier application cancelled\",\n  \"data\": {\n    \"id\": \"01a1c944-1270-775f-8624-2fb308875940\",\n    \"status\": \"CANCELLED\",\n    \"phone\": \"(646) 555-0130\",\n    \"vehicleType\": \"MOTORCYCLE\",\n    \"vehiclePlate\": \"NY KDR-5512\",\n    \"availability\": \"FULL_TIME\",\n    \"experience\": \"Bike messenger in Midtown for three years.\",\n    \"about\": \"Now riding a motorcycle and want full-time routes.\",\n    \"reviewNote\": null,\n    \"reviewedAt\": null,\n    \"createdAt\": \"2026-11-11T06:20:44.016Z\",\n    \"updatedAt\": \"2026-11-11T06:20:44.016Z\",\n    \"preferredZone\": {\n      \"id\": \"01a1c944-0693-77db-b634-1a5f5f016a74\",\n      \"name\": \"New York Metro\",\n      \"code\": \"NYC\"\n    }\n  }\n}"
+            },
+            {
+              "name": "409 Not pending",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/courier-applications/my/{{courierApplicationId}}/cancel",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "courier-applications",
+                    "my",
+                    "{{courierApplicationId}}",
+                    "cancel"
+                  ]
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Only a pending application can be cancelled. This one is CANCELLED.\",\n  \"errors\": [\n    {\n      \"path\": \"status\",\n      \"message\": \"CANCELLED\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "List applications (Staff)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const first = pm.response.json().data?.[0];",
+                  "if (first && !pm.collectionVariables.get('courierApplicationId')) pm.collectionVariables.set('courierApplicationId', first.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/courier-applications?status=PENDING&page=1&limit=10&searchTerm=jordan&zoneId={{zoneId}}&vehicleType=CAR&sortBy=createdAt&sortOrder=desc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "courier-applications"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "searchTerm",
+                  "value": "jordan",
+                  "disabled": true
+                },
+                {
+                  "key": "zoneId",
+                  "value": "{{zoneId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "vehicleType",
+                  "value": "CAR",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "disabled": true
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "ADMIN and ADMIN_VIEWER. Newest first by default. searchTerm matches the applicant's name or email and the application phone."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/courier-applications?status=PENDING&page=1&limit=10&searchTerm=jordan&zoneId={{zoneId}}&vehicleType=CAR&sortBy=createdAt&sortOrder=desc",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "courier-applications"
+                  ],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "PENDING"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    },
+                    {
+                      "key": "searchTerm",
+                      "value": "jordan",
+                      "disabled": true
+                    },
+                    {
+                      "key": "zoneId",
+                      "value": "{{zoneId}}",
+                      "disabled": true
+                    },
+                    {
+                      "key": "vehicleType",
+                      "value": "CAR",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortBy",
+                      "value": "createdAt",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": "desc",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Courier applications retrieved successfully\",\n  \"data\": [\n    {\n      \"id\": \"01a1c944-1270-775f-8624-2fb308875940\",\n      \"status\": \"PENDING\",\n      \"phone\": \"(646) 555-0130\",\n      \"vehicleType\": \"MOTORCYCLE\",\n      \"vehiclePlate\": \"NY KDR-5512\",\n      \"availability\": \"FULL_TIME\",\n      \"experience\": \"Bike messenger in Midtown for three years.\",\n      \"about\": \"Now riding a motorcycle and want full-time routes.\",\n      \"reviewNote\": null,\n      \"reviewedAt\": null,\n      \"createdAt\": \"2026-11-11T06:20:44.016Z\",\n      \"updatedAt\": \"2026-11-11T06:20:44.016Z\",\n      \"preferredZone\": {\n        \"id\": \"01a1c944-0693-77db-b634-1a5f5f016a74\",\n        \"name\": \"New York Metro\",\n        \"code\": \"NYC\"\n      },\n      \"user\": {\n        \"id\": \"390bb4d5-e226-48bf-98c8-6b3eea24335b\",\n        \"name\": \"Jordan Lee\",\n        \"email\": \"jordan.lee@example.com\",\n        \"phone\": \"(646) 555-0130\",\n        \"role\": \"CUSTOMER\",\n        \"status\": \"ACTIVE\"\n      },\n      \"reviewedBy\": null\n    }\n  ],\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 1,\n    \"totalPages\": 1\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get application (Staff)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/courier-applications/{{courierApplicationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "courier-applications",
+                "{{courierApplicationId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "One application with the applicant's account and the reviewer."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/courier-applications/{{courierApplicationId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "courier-applications",
+                    "{{courierApplicationId}}"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Courier application retrieved successfully\",\n  \"data\": {\n    \"id\": \"01a1c944-1270-775f-8624-2fb308875940\",\n    \"status\": \"PENDING\",\n    \"phone\": \"(646) 555-0130\",\n    \"vehicleType\": \"MOTORCYCLE\",\n    \"vehiclePlate\": \"NY KDR-5512\",\n    \"availability\": \"FULL_TIME\",\n    \"experience\": \"Bike messenger in Midtown for three years.\",\n    \"about\": \"Now riding a motorcycle and want full-time routes.\",\n    \"reviewNote\": null,\n    \"reviewedAt\": null,\n    \"createdAt\": \"2026-11-11T06:20:44.016Z\",\n    \"updatedAt\": \"2026-11-11T06:20:44.016Z\",\n    \"preferredZone\": {\n      \"id\": \"01a1c944-0693-77db-b634-1a5f5f016a74\",\n      \"name\": \"New York Metro\",\n      \"code\": \"NYC\"\n    },\n    \"user\": {\n      \"id\": \"390bb4d5-e226-48bf-98c8-6b3eea24335b\",\n      \"name\": \"Jordan Lee\",\n      \"email\": \"jordan.lee@example.com\",\n      \"phone\": \"(646) 555-0130\",\n      \"role\": \"CUSTOMER\",\n      \"status\": \"ACTIVE\"\n    },\n    \"reviewedBy\": null\n  }\n}"
+            },
+            {
+              "name": "404 Not found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/courier-applications/{{courierApplicationId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "courier-applications",
+                    "{{courierApplicationId}}"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Courier application not found\",\n  \"errors\": []\n}"
+            }
+          ]
+        },
+        {
+          "name": "Approve (ADMIN)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/courier-applications/{{courierApplicationId}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "courier-applications",
+                "{{courierApplicationId}}",
+                "approve"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Optional body { zoneId?, hubId? | null } overrides the applicant's preferred zone (required when they gave none). One transaction: courier profile, role COURIER, decision, all of the applicant's sessions revoked, audit rows and their notice. 409: not PENDING (repeat approve), the applicant is no longer a CUSTOMER, or they own unfinished shipments. ADMIN_VIEWER → 403 read-only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 Approved",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/courier-applications/{{courierApplicationId}}/approve",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "courier-applications",
+                    "{{courierApplicationId}}",
+                    "approve"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Courier application approved; the applicant is now a courier and must sign in again\",\n  \"data\": {\n    \"id\": \"01a1c944-1270-775f-8624-2fb308875940\",\n    \"status\": \"APPROVED\",\n    \"phone\": \"(646) 555-0130\",\n    \"vehicleType\": \"MOTORCYCLE\",\n    \"vehiclePlate\": \"NY KDR-5512\",\n    \"availability\": \"FULL_TIME\",\n    \"experience\": \"Bike messenger in Midtown for three years.\",\n    \"about\": \"Now riding a motorcycle and want full-time routes.\",\n    \"reviewNote\": null,\n    \"reviewedAt\": \"2026-11-11T06:20:44.284Z\",\n    \"createdAt\": \"2026-11-11T06:20:44.016Z\",\n    \"updatedAt\": \"2026-11-11T06:20:44.284Z\",\n    \"preferredZone\": {\n      \"id\": \"01a1c944-0693-77db-b634-1a5f5f016a74\",\n      \"name\": \"New York Metro\",\n      \"code\": \"NYC\"\n    },\n    \"user\": {\n      \"id\": \"390bb4d5-e226-48bf-98c8-6b3eea24335b\",\n      \"name\": \"Jordan Lee\",\n      \"email\": \"jordan.lee@example.com\",\n      \"phone\": \"(646) 555-0130\",\n      \"role\": \"COURIER\",\n      \"status\": \"ACTIVE\"\n    },\n    \"reviewedBy\": {\n      \"id\": \"0a146953-dfde-4c97-b33d-e8ee79d366cb\",\n      \"name\": \"Carrivo Admin\"\n    }\n  }\n}"
+            },
+            {
+              "name": "409 Already decided",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/courier-applications/{{courierApplicationId}}/approve",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "courier-applications",
+                    "{{courierApplicationId}}",
+                    "approve"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Only a pending application can be approved. This one is APPROVED.\",\n  \"errors\": [\n    {\n      \"path\": \"status\",\n      \"message\": \"APPROVED\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "409 Customer has active shipments",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/courier-applications/{{courierApplicationId}}/approve",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "courier-applications",
+                    "{{courierApplicationId}}",
+                    "approve"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Cannot approve this application: 6 active shipment(s) are owned by this customer\",\n  \"errors\": [\n    {\n      \"path\": \"shipments\",\n      \"message\": \"Finish, unassign or cancel these first: CRV-261101-SEED08, CRV-261101-SEED06, CRV-261101-SEED04, CRV-261101-SEED02, CRV-261101-SEED01, ...\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "400 No zone",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/courier-applications/{{courierApplicationId}}/approve",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "courier-applications",
+                    "{{courierApplicationId}}",
+                    "approve"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Choose a zone: the applicant did not pick one\",\n  \"errors\": [\n    {\n      \"path\": \"body.zoneId\",\n      \"message\": \"Required when the application has no preferred zone\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Reject (ADMIN)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/courier-applications/{{courierApplicationId}}/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "courier-applications",
+                "{{courierApplicationId}}",
+                "reject"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Body { note } (3-500), shown to the applicant with the date they may reapply (7 days). Role and sessions untouched. ADMIN_VIEWER → 403 read-only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"We need a phone number we can reach during the day\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 Rejected",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/courier-applications/{{courierApplicationId}}/reject",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "courier-applications",
+                    "{{courierApplicationId}}",
+                    "reject"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"note\": \"We need a phone number we can reach during the day\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Courier application rejected\",\n  \"data\": {\n    \"id\": \"01a1c944-1270-775f-8624-2fb308875940\",\n    \"status\": \"REJECTED\",\n    \"phone\": \"(646) 555-0130\",\n    \"vehicleType\": \"MOTORCYCLE\",\n    \"vehiclePlate\": \"NY KDR-5512\",\n    \"availability\": \"FULL_TIME\",\n    \"experience\": \"Bike messenger in Midtown for three years.\",\n    \"about\": \"Now riding a motorcycle and want full-time routes.\",\n    \"reviewNote\": \"We need a phone number we can reach during the day\",\n    \"reviewedAt\": \"2026-11-11T06:20:44.402Z\",\n    \"createdAt\": \"2026-11-11T06:20:44.016Z\",\n    \"updatedAt\": \"2026-11-11T06:20:44.402Z\",\n    \"preferredZone\": {\n      \"id\": \"01a1c944-0693-77db-b634-1a5f5f016a74\",\n      \"name\": \"New York Metro\",\n      \"code\": \"NYC\"\n    },\n    \"user\": {\n      \"id\": \"390bb4d5-e226-48bf-98c8-6b3eea24335b\",\n      \"name\": \"Jordan Lee\",\n      \"email\": \"jordan.lee@example.com\",\n      \"phone\": \"(646) 555-0130\",\n      \"role\": \"CUSTOMER\",\n      \"status\": \"ACTIVE\"\n    },\n    \"reviewedBy\": {\n      \"id\": \"0a146953-dfde-4c97-b33d-e8ee79d366cb\",\n      \"name\": \"Carrivo Admin\"\n    }\n  }\n}"
+            },
+            {
+              "name": "400 Missing note",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/courier-applications/{{courierApplicationId}}/reject",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "courier-applications",
+                    "{{courierApplicationId}}",
+                    "reject"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"note\": \"We need a phone number we can reach during the day\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    {\n      \"path\": \"body.note\",\n      \"message\": \"A note explaining the decision is required\"\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Admin",
       "description": "ADMIN only. Every mutation writes an audit row. Role changes and deactivations log the user out (sessions deleted).",
       "item": [
@@ -13095,6 +14145,306 @@
           ]
         },
         {
+          "name": "403 · customer → GET /admin/courier-applications",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/courier-applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "courier-applications"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Refused before any change."
+          },
+          "response": []
+        },
+        {
+          "name": "403 · customer → PATCH /admin/courier-applications/:id/approve",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/courier-applications/019a0000-0000-7000-8000-000000000000/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "courier-applications",
+                "019a0000-0000-7000-8000-000000000000",
+                "approve"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Refused before any change.",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "403 · courier → PATCH /admin/courier-applications/:id/reject",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/courier-applications/019a0000-0000-7000-8000-000000000000/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "courier-applications",
+                "019a0000-0000-7000-8000-000000000000",
+                "reject"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{courierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Refused before any change.",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "403 · admin → POST /courier-applications (customers only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403', () => pm.response.to.have.status(403));",
+                  "pm.test('message', () => pm.expect(pm.response.json().message).to.eql(\"Staff accounts can't apply to become couriers. Only customer accounts can apply.\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/courier-applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "courier-applications"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Refused before any change.",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "409 · courier → POST /courier-applications (already a courier)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409', () => pm.response.to.have.status(409));",
+                  "pm.test('message', () => pm.expect(pm.response.json().message).to.eql(\"You are already a courier\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/courier-applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "courier-applications"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{courierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Refused before any change.",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "403 · admin → GET /courier-applications/my",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/courier-applications/my",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "courier-applications",
+                "my"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Refused before any change."
+          },
+          "response": []
+        },
+        {
           "name": "Admin Viewer (read-only)",
           "description": "Run after `Login as Admin Viewer (demo, read-only)` and the RBAC setup request (saves otherShipmentId). Reads succeed; every write returns 403 \"This account is read-only\"; customer- and courier-only routes return 403.",
           "item": [
@@ -13412,6 +14762,46 @@
                   ]
                 },
                 "description": "Courier list (admin-only read)."
+              },
+              "response": []
+            },
+            {
+              "name": "Viewer · courier applications (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/courier-applications",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "courier-applications"
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{viewerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": "Staff read."
               },
               "response": []
             },
@@ -14040,6 +15430,174 @@
                   "body": "{\n  \"success\": false,\n  \"message\": \"This account is read-only\",\n  \"errors\": []\n}"
                 }
               ]
+            },
+            {
+              "name": "Viewer · approve courier application (403 read-only)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('403', () => pm.response.to.have.status(403));",
+                      "pm.test('message', () => pm.expect(pm.response.json().message).to.eql(\"This account is read-only\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/courier-applications/019a0000-0000-7000-8000-000000000000/approve",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "courier-applications",
+                    "019a0000-0000-7000-8000-000000000000",
+                    "approve"
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{viewerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": "Refused by the central read-only rule before the service runs.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Viewer · reject courier application (403 read-only)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('403', () => pm.response.to.have.status(403));",
+                      "pm.test('message', () => pm.expect(pm.response.json().message).to.eql(\"This account is read-only\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/courier-applications/019a0000-0000-7000-8000-000000000000/reject",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "courier-applications",
+                    "019a0000-0000-7000-8000-000000000000",
+                    "reject"
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{viewerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": "Refused by the central read-only rule before the service runs.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"note\": \"\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Viewer · apply to be a courier (403 read-only)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('403', () => pm.response.to.have.status(403));",
+                      "pm.test('message', () => pm.expect(pm.response.json().message).to.eql(\"This account is read-only\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/courier-applications",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "courier-applications"
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{viewerToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "description": "Refused before any change.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
             },
             {
               "name": "Viewer · courier tasks (403)",

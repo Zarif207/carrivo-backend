@@ -27,6 +27,13 @@ export const FRONTEND_PATHS = {
   adminSettings: (tab: "zones" | "hubs" | "pricing"): string => `/admin/settings?tab=${tab}`,
   /** Admin user management (src/app/admin/users). */
   adminUsers: "/admin/users",
+  /** Admin courier-application queue, optionally filtered (?status=PENDING). */
+  adminCourierApplications: (filter?: { status?: string }): string =>
+    filter?.status ? `/admin/courier-applications?status=${encodeURIComponent(filter.status)}` : "/admin/courier-applications",
+  /** Customer page with their courier application (status, review note, reapply date). */
+  courierApplication: "/courier-application",
+  /** Signed-in home; the frontend sends each role to its own dashboard (a new courier lands on /courier). */
+  dashboard: "/dashboard",
   /**
    * Admin notification feed. NOT a frontend page yet: only the fallback for a staff
    * notice with no better target (no event uses it today).

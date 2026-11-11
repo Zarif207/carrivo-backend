@@ -6,6 +6,8 @@ import { authorize } from "../../middlewares/authorize.js";
 import { validateRequest } from "../../middlewares/validateRequest.js";
 import { AuditController } from "../audit/audit.controller.js";
 import { AuditValidation } from "../audit/audit.validation.js";
+import { CourierApplicationController } from "../courierApplication/courierApplication.controller.js";
+import { CourierApplicationValidation } from "../courierApplication/courierApplication.validation.js";
 import { PaymentController } from "../payment/payment.controller.js";
 import { PaymentValidation } from "../payment/payment.validation.js";
 import { AdminController } from "./admin.controller.js";
@@ -27,5 +29,20 @@ router.get("/dashboard-stats", AdminController.dashboardStats);
 router.get("/audit-logs", validateRequest(AuditValidation.list), AuditController.list);
 router.get("/payments", validateRequest(PaymentValidation.adminList), PaymentController.adminList);
 router.post("/payments/:id/refund", adminOnly, validateRequest(PaymentValidation.byId), PaymentController.retryRefund);
+// Courier applications: staff read the queue; only ADMIN decides (ADMIN_VIEWER → read-only 403).
+router.get("/courier-applications", validateRequest(CourierApplicationValidation.adminList), CourierApplicationController.adminList);
+router.get("/courier-applications/:id", validateRequest(CourierApplicationValidation.byId), CourierApplicationController.adminGet);
+router.patch(
+  "/courier-applications/:id/approve",
+  adminOnly,
+  validateRequest(CourierApplicationValidation.approve),
+  CourierApplicationController.approve,
+);
+router.patch(
+  "/courier-applications/:id/reject",
+  adminOnly,
+  validateRequest(CourierApplicationValidation.reject),
+  CourierApplicationController.reject,
+);
 
 export const AdminRoutes = router;

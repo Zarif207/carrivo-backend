@@ -14,7 +14,9 @@ export type NotificationKind =
   | "DELIVERED"
   | "FAILED_DELIVERY"
   | "PAYMENT_RECEIVED"
-  | "REFUND_COMPLETED";
+  | "REFUND_COMPLETED"
+  | "COURIER_APPLICATION_APPROVED"
+  | "COURIER_APPLICATION_REJECTED";
 
 export type Audience = "CUSTOMER" | "COURIER";
 
@@ -55,6 +57,8 @@ export interface NotificationContent {
   details: string[];
   /** Frontend path from FRONTEND_PATHS. */
   linkPath: string;
+  /** Email button text; "View shipment" when absent. */
+  ctaLabel?: string;
 }
 
 export interface EmailMessage {
@@ -176,7 +180,7 @@ export const escapeHtml = (value: string): string => value.replace(/[&<>"']/g, (
 
 /** Plain, branded email. Every user-supplied value is HTML-escaped. */
 export const renderEmail = (
-  content: Pick<NotificationContent, "title" | "message" | "details" | "linkPath">,
+  content: Pick<NotificationContent, "title" | "message" | "details" | "linkPath" | "ctaLabel">,
   options: { recipientName: string; frontendOrigin: string },
 ): EmailMessage => {
   const link = joinFrontendUrl(options.frontendOrigin, content.linkPath);
@@ -194,7 +198,7 @@ export const renderEmail = (
 <p style="margin:0 0 12px">${e(greeting)}</p>
 <p style="margin:0 0 16px;line-height:1.5">${e(content.message)}</p>
 ${content.details.map((line) => `<p style="margin:0 0 4px;font-size:14px;color:#44403c">${e(line)}</p>`).join("\n")}
-<p style="margin:20px 0"><a href="${e(link)}" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;padding:10px 16px;border-radius:6px">View shipment</a></p>
+<p style="margin:20px 0"><a href="${e(link)}" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;padding:10px 16px;border-radius:6px">${e(content.ctaLabel ?? "View shipment")}</a></p>
 <p style="margin:0 0 16px;font-size:12px;color:#78716c">Or open: ${e(link)}</p>
 <p style="margin:0;font-size:12px;color:#78716c">${e(footer)}</p>
 </td></tr></table>

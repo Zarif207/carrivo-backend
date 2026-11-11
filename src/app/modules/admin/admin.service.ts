@@ -111,6 +111,16 @@ const profileData = (profile: CourierProfileInput) => ({
 });
 
 /**
+ * Gives the user an active, available courier profile: created, or replaced and restored if one
+ * exists (soft-deleted after an earlier role change). Targets are validated first.
+ */
+const upsertCourierProfile = async (db: Db, userId: string, profile: CourierProfileInput): Promise<void> => {
+  await assertCourierProfileTargets(db, profile);
+  const data = { ...profileData(profile), deletedAt: null, isAvailable: true };
+  await db.courierProfile.upsert({ where: { userId }, create: { userId, ...data }, update: data });
+};
+
+/**
  * Admin creates a COURIER or ADMIN through Better Auth (so the password is hashed
  * by Better Auth), then sets the role/profile in our own transaction. Better
  * Auth's sign-up is not part of that transaction, so if the second step fails the
@@ -246,9 +256,7 @@ const changeRole = async (actor: Actor, id: string, payload: ChangeRoleInput, me
     const profile = user.courierProfile;
     if (payload.role === Role.COURIER) {
       if (payload.courierProfile) {
-        await assertCourierProfileTargets(tx, payload.courierProfile);
-        const data = { ...profileData(payload.courierProfile), deletedAt: null, isAvailable: true };
-        await tx.courierProfile.upsert({ where: { userId: id }, create: { userId: id, ...data }, update: data });
+        await upsertCourierProfile(tx, id, payload.courierProfile);
       } else if (profile) {
         await tx.courierProfile.update({ where: { id: profile.id }, data: { deletedAt: null, isAvailable: true } });
       } else {
@@ -408,3 +416,9 @@ const dashboardStats = (): Promise<DashboardStats> =>
   cache.getOrLoad(CACHE_KEYS.dashboardStats, CACHE_TTL.dashboardStats, computeDashboardStats);
 
 export const AdminService = { listUsers, getUser, createUser, changeRole, changeStatus, dashboardStats };
+
+/**
+ * The role-change building blocks, shared with courier-application approval so a courier made
+ * from an application is set up exactly like one made by PATCH /admin/users/:id/role.
+ */
+export const AdminUserRules = { beginUserChange, assertNoActiveWork, upsertCourierProfile, profileData, getUser, courierSummary };

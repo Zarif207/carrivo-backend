@@ -48,3 +48,7 @@ const displayFormatter = new Intl.DateTimeFormat("en-US", {
   timeZoneName: "short",
 });
 export const formatBusinessDateTime = (date: Date): string => displayFormatter.format(date);
+
+/** "Nov 18, 2026" in the business zone (a calendar date for messages, e.g. a reapply date). */
+const dateFormatter = new Intl.DateTimeFormat("en-US", { timeZone: BUSINESS_TIMEZONE, month: "short", day: "numeric", year: "numeric" });
+export const formatBusinessDate = (date: Date): string => dateFormatter.format(date);

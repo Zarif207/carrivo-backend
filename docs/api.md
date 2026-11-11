@@ -228,6 +228,40 @@ Query: `status` (`PENDING | PAID`), `fromDate`, `toDate`, `sortBy` `createdAt | 
 ### `PATCH /couriers/me/availability` (Courier)
 **Body:** `{ isAvailable: boolean }`. **200:** `CourierProfile`. Unavailable couriers keep their tasks but get no new ones.
 
+## Courier applications
+
+A `CUSTOMER` applies to become a `COURIER`; an `ADMIN` approves or rejects. No driver licence number, SSN or other government ID is collected: the body is strict, so such fields are refused (**400**).
+
+`CourierApplication { id, status (PENDING | APPROVED | REJECTED | CANCELLED), phone, vehicleType (BICYCLE | MOTORCYCLE | CAR | VAN | TRUCK), vehiclePlate | null, availability (WEEKDAYS | WEEKENDS | FULL_TIME), experience | null, about | null, reviewNote | null, reviewedAt | null, createdAt, updatedAt, preferredZone { id, name, code } | null }`. The staff view (`AdminCourierApplication`) adds `user { id, name, email, phone, role, status }` and `reviewedBy { id, name } | null`; the applicant never sees who reviewed.
+
+**Rules.** One `PENDING` application per user (also a partial unique index, so two simultaneous submits give one **201** and one **409**). After a `REJECTED` one the user may apply again 7 days after `reviewedAt` (`REAPPLY_COOLDOWN_DAYS`); a `CANCELLED` one starts no wait. Decisions are final: approve, reject and cancel need `PENDING`, otherwise **409** with `errors: [{ path: "status", message: "<current status>" }]`.
+
+### `POST /courier-applications` (Customer)
+- **Body:** `{ phone (US), vehicleType, availability, preferredZoneId? | null, vehiclePlate? | null (2-20, letters, digits, spaces, dashes; stored upper-case), experience? (≤ 500), about? (≤ 1000) }`.
+- **201:** `CourierApplication` (`PENDING`). Staff get a `COURIER_APPLICATION_SUBMITTED` notice.
+- **403** staff account (`ADMIN`: "Staff accounts can't apply…"; `ADMIN_VIEWER`: "This account is read-only"), **409** `COURIER` ("You are already a courier"); both before the body is validated. **409** a pending application exists, or the rejection wait is running: `"Your last application was not approved. You can apply again on Nov 18, 2026."` with `errors: [{ path: "canReapplyAt", message: "<ISO date-time>" }]`. **400** unknown or inactive `preferredZoneId`. Rate limit: 10 submits and cancels per hour per user.
+
+### `GET /courier-applications/my` (Customer, Courier)
+**200:** `{ latest: CourierApplication | null, history: CourierApplication[] (newest first, up to 20, latest included), canApply, canReapplyAt: ISO | null, blockedReason: string | null, cooldownDays: 7 }`. Each item carries the admin's `reviewNote`.
+
+### `PATCH /courier-applications/my/:id/cancel` (Customer)
+No body. **200:** `CourierApplication` (`CANCELLED`). **404** not yours (never confirmed), **409** not pending.
+
+### `GET /admin/courier-applications` (Staff)
+Query: `status`, `zoneId` (preferred zone), `vehicleType`, `searchTerm` (applicant name, email, application phone), `sortBy` `createdAt | updatedAt | status` (default `createdAt`, `sortOrder` default `desc`: newest first), `page`, `limit`. **200:** `AdminCourierApplication[]` + meta.
+
+### `GET /admin/courier-applications/:id` (Staff)
+**200:** `AdminCourierApplication`. **404** unknown id.
+
+### `PATCH /admin/courier-applications/:id/approve` (Admin)
+- **Body (optional):** `{ zoneId?, hubId? | null }`. The courier's zone is `zoneId`, else the application's preferred zone (**400** `body.zoneId` when neither exists); the hub is optional and must be active and in that zone.
+- One transaction, the same path as `PATCH /admin/users/:id/role` to `COURIER`: locks the active admins, the applicant and the application row; requires `PENDING`; requires the applicant to still be an active `CUSTOMER` (**409** otherwise; an `ADMIN`, `ADMIN_VIEWER` or `COURIER` is never changed); refuses while the customer owns unfinished shipments (**409**, same rule as a role change); creates or restores the `CourierProfile` (vehicle and plate from the application, available, no licence number); sets `role = COURIER` (and fills an empty account phone from the application); marks the application `APPROVED` with `reviewedBy`/`reviewedAt`; **deletes every session of the applicant**; writes `COURIER_APPLICATION_APPROVED` and `USER_ROLE_CHANGED` audit rows and the applicant's notice.
+- **200:** `AdminCourierApplication`. The applicant's old token now gets **401**; their next sign-in carries `COURIER`. Staff get `COURIER_ADDED`.
+- **403** `ADMIN_VIEWER` ("This account is read-only", by the central rule).
+
+### `PATCH /admin/courier-applications/:id/reject` (Admin)
+**Body:** `{ note (3-500) }`, shown to the applicant. **200:** `AdminCourierApplication` (`REJECTED`). The role and sessions are untouched. **400** missing note, **403** `ADMIN_VIEWER`, **409** not pending.
+
 ## Admin
 
 ### `GET /admin/dashboard-stats` (Staff)
@@ -247,7 +281,7 @@ Query: `role`, `status`, `searchTerm` (name, email, phone), `sortBy` `name | ema
 **Body:** `{ status (ACTIVE | INACTIVE), reason? (3-500) }`. **200:** `UserProfile`. Deactivation revokes sessions and makes a courier unavailable. **403** yourself, **409** last admin or a courier with active shipments.
 
 ### `GET /admin/audit-logs` (Staff)
-Query: `actorId`, `action`, `entityType` (`ZONE | HUB | PRICING_RULE | SHIPMENT | COURIER_PROFILE | USER | PAYMENT`), `entityId`, `fromDate`, `toDate`, `sortOrder`.
+Query: `actorId`, `action`, `entityType` (`ZONE | HUB | PRICING_RULE | SHIPMENT | COURIER_PROFILE | USER | PAYMENT | COURIER_APPLICATION`), `entityId`, `fromDate`, `toDate`, `sortOrder`.
 **200:** `AuditLog[] { id, action, entityType, entityId, actorRole, actor | null, before, after, ipAddress, userAgent, createdAt }` + meta. Snapshots are redacted.
 
 ### `GET /admin/payments` (Staff)
@@ -280,7 +314,7 @@ Raw body, `Stripe-Signature` verified. **200** with `data: { eventId, type, outc
 
 Every role; always scoped to the caller. Another user's notification answers **404**, never 403, so ids aren't confirmed.
 
-**Who gets what.** Customers and couriers get shipment and payment updates (created in the same transaction as the change, then emailed). `ADMIN` and `ADMIN_VIEWER` get an in-app staff feed, written after the change commits (one row per active staff user; inactive or deleted staff are skipped; a failure is logged and never fails the request):
+**Who gets what.** Customers and couriers get shipment and payment updates (created in the same transaction as the change, then emailed). An applicant gets `COURIER_APPLICATION_APPROVED` ("You are now a Carrivo courier… please sign in again", link `/dashboard`) or `COURIER_APPLICATION_REJECTED` (with the admin's note and the reapply date, link `/courier-application`), written in the decision's transaction with `dedupeKey = "<TYPE>:application:<id>:<userId>"`, then emailed through Resend when `RESEND_API_KEY` is set (otherwise `emailStatus: SKIPPED`; an email never fails the request). `ADMIN` and `ADMIN_VIEWER` get an in-app staff feed, written after the change commits (one row per active staff user; inactive or deleted staff are skipped; a failure is logged and never fails the request):
 
 | Type | Event | `link` |
 | --- | --- | --- |
@@ -294,11 +328,12 @@ Every role; always scoped to the caller. Another user's notification answers **4
 | `REFUND_FAILED` | `refund.failed`, or a refund call that throws | `/admin/payments?requiresReview=true` |
 | `ZONE_CHANGED` | A zone is created, updated or deleted | `/admin/settings?tab=zones` |
 | `HUB_CHANGED` | A hub is created, updated or deleted | `/admin/settings?tab=hubs` |
-| `COURIER_ADDED` | An admin creates a courier or changes a user's role to `COURIER` | `/admin/users` |
+| `COURIER_ADDED` | An admin creates a courier, changes a user's role to `COURIER`, or approves a courier application | `/admin/users` |
+| `COURIER_APPLICATION_SUBMITTED` | A customer applies to become a courier | `/admin/courier-applications?status=PENDING` |
 
 A staff notice with no better target falls back to `/admin/notifications` (no event uses it today; the frontend has no such page yet). Other status changes (picked up, in transit, ...) don't notify staff.
 
-**Idempotency.** Staff rows store `dedupeKey = "<event key>:<userId>"` under a unique index and are inserted with `createMany(skipDuplicates)`. Keys: `PAYMENT_RECEIVED:payment:<paymentId>` (shared by the webhook and `/payments/verify`), `PAYMENT_FAILED:payment:<paymentId>`, `REFUND_COMPLETED:payment:<paymentId>`, `REFUND_FAILED:payment:<paymentId>:<stripeRefundId>`, `FAILED_DELIVERY:shipment:<id>:attempt:<n>`, and `<TYPE>:shipment:<id>` for the other shipment events. Admin actions (zones, hubs, users) can't be replayed and have no key. This sits on top of the `stripe_events` table, which already drops a replayed webhook.
+**Idempotency.** Staff rows store `dedupeKey = "<event key>:<userId>"` under a unique index and are inserted with `createMany(skipDuplicates)`. Keys: `PAYMENT_RECEIVED:payment:<paymentId>` (shared by the webhook and `/payments/verify`), `PAYMENT_FAILED:payment:<paymentId>`, `REFUND_COMPLETED:payment:<paymentId>`, `REFUND_FAILED:payment:<paymentId>:<stripeRefundId>`, `FAILED_DELIVERY:shipment:<id>:attempt:<n>`, `<TYPE>:shipment:<id>` for the other shipment events, `COURIER_APPLICATION_SUBMITTED:application:<id>` and, for an approval, `COURIER_ADDED:application:<id>`. Other admin actions (zones, hubs, users) can't be replayed and have no key. This sits on top of the `stripe_events` table, which already drops a replayed webhook.
 
 ### `GET /notifications/my`
 Query: `unread` (`true | false`, omit for all), `page`, `limit`, `sortOrder`.
@@ -339,7 +374,7 @@ Query: `unread` (`true | false`, omit for all), `page`, `limit`, `sortOrder`.
 
 ## Read-only accounts (ADMIN_VIEWER)
 
-- Allowed: every admin and staff `GET` (dashboard stats, users, shipments, payments, audit logs, zones, hubs, pricing rules, couriers), `GET /users/me`, its own notifications and unread count, `PATCH /notifications/:id/read` and `PATCH /notifications/read-all` (its own read state, not a business write), and `POST /auth/logout` and `POST /auth/refresh-token`.
+- Allowed: every admin and staff `GET` (dashboard stats, users, shipments, payments, audit logs, zones, hubs, pricing rules, couriers, courier applications), `GET /users/me`, its own notifications and unread count, `PATCH /notifications/:id/read` and `PATCH /notifications/read-all` (its own read state, not a business write), and `POST /auth/logout` and `POST /auth/refresh-token`.
 - Refused with **403** `This account is read-only`: every other `POST`, `PUT`, `PATCH` and `DELETE`, including its own profile, password, session revocation and deleting a notification.
 - Not allowed on customer- or courier-only routes, or on `GET /payments/verify` (it can write).
 - The rule is one function, `violatesReadOnly(role, method, url)` in `src/app/middlewares/readOnly.ts`, run inside `authenticate` and in front of Better Auth. `readOnly.test.ts` walks the real route table.
@@ -350,6 +385,7 @@ Query: `unread` (`true | false`, omit for all), `page`, `limit`, `sortOrder`.
 | --- | --- |
 | Global rate limit | 300 requests per 15 minutes per visitor (not the Stripe webhook) |
 | Auth rate limit | 20 failed attempts per 15 minutes per visitor (login, register, change password, Google start and exchange) |
+| Courier applications | 10 submits and cancels per hour per signed-in user |
 | JSON body | 100 KB |
 | Webhook body | 1 MB, raw |
 | Proof image | 4 MB, JPEG, PNG or WebP (bytes checked) |

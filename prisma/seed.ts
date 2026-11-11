@@ -8,6 +8,8 @@
  *   left untouched (it may have been changed through the API since).
  * - Sample staff notifications (admin + viewer feed) use fixed "seed:" dedupe keys, so a
  *   re-run inserts nothing and never touches rows read or deleted since.
+ * - Sample courier applications (PENDING, REJECTED, APPROVED) use fixed ids and are only
+ *   inserted, never updated; they are skipped entirely when NODE_ENV=production.
  *
  * The demo password comes from SEED_DEMO_PASSWORD; it is never stored in code
  * and never printed. SEED_ADMIN_PASSWORD (optional) gives admin@carrivo.dev its own
@@ -22,6 +24,7 @@
 import { PLATFORM_CURRENCY } from "../src/app/config/currency.js";
 import { env } from "../src/app/config/env.js";
 import {
+  CourierApplicationStatus,
   PaymentStatus,
   PickupStatus,
   Role,
@@ -29,6 +32,7 @@ import {
   ShipmentPaymentStatus,
   ShipmentStatus,
   VehicleType,
+  WorkAvailability,
 } from "../src/generated/prisma/enums.js";
 import { auth } from "../src/app/lib/auth.js";
 import { prisma } from "../src/app/lib/prisma.js";
@@ -646,6 +650,102 @@ const seedStaffNotifications = async (): Promise<{ created: number; skipped: num
   return { created: count, skipped: data.length - count };
 };
 
+/**
+ * Dev/demo courier applications, one per decision state, on the seeded accounts:
+ * - customer2: PENDING (the admin queue has something to review),
+ * - customer1: REJECTED 12 days ago (past the 7-day wait, so the demo customer can apply again),
+ * - courier2: APPROVED 30 days ago (how that courier joined).
+ * Fixed ids + createMany(skipDuplicates): a re-run inserts nothing and never rewrites a row an
+ * admin has decided since; a user with a pending application of their own keeps it (the
+ * one-pending index makes the sample skip). Never runs in production.
+ */
+const SEED_APPLICATIONS = [
+  {
+    id: "019a5e00-0000-7000-8000-00000000a001",
+    email: "customer2@carrivo.dev",
+    status: CourierApplicationStatus.PENDING,
+    daysAgo: 1,
+    phone: "(310) 555-0131",
+    zoneCode: "LA",
+    vehicleType: VehicleType.CAR,
+    vehiclePlate: "CA 7XYZ318",
+    availability: WorkAvailability.WEEKENDS,
+    experience: "Two years of weekend food delivery around Santa Monica and Venice.",
+    about: "I know the Westside well and want steady weekend routes.",
+    reviewNote: null,
+  },
+  {
+    id: "019a5e00-0000-7000-8000-00000000a002",
+    email: "customer1@carrivo.dev",
+    status: CourierApplicationStatus.REJECTED,
+    daysAgo: 14,
+    reviewedDaysAgo: 12,
+    phone: "(646) 555-0130",
+    zoneCode: "NYC",
+    vehicleType: VehicleType.BICYCLE,
+    vehiclePlate: null,
+    availability: WorkAvailability.WEEKDAYS,
+    experience: null,
+    about: "Looking for part-time work in Midtown.",
+    reviewNote: "Manhattan routes need a cargo bike or motor vehicle for our parcel sizes. You are welcome to apply again with one.",
+  },
+  {
+    id: "019a5e00-0000-7000-8000-00000000a003",
+    email: "courier2@carrivo.dev",
+    status: CourierApplicationStatus.APPROVED,
+    daysAgo: 31,
+    reviewedDaysAgo: 30,
+    phone: "(213) 555-0121",
+    zoneCode: "LA",
+    vehicleType: VehicleType.MOTORCYCLE,
+    vehiclePlate: "CA 8MZK214",
+    availability: WorkAvailability.FULL_TIME,
+    experience: "Five years as a motorcycle courier in downtown Los Angeles.",
+    about: null,
+    reviewNote: null,
+  },
+] as const;
+
+const seedCourierApplications = async (ids: Map<string, string>): Promise<{ created: number; skipped: number }> => {
+  const users = await prisma.user.findMany({
+    where: { email: { in: [...SEED_APPLICATIONS.map((a) => a.email), "admin@carrivo.dev"] } },
+    select: { id: true, email: true },
+  });
+  const idOf = new Map(users.map((u) => [u.email, u.id]));
+  const adminId = idOf.get("admin@carrivo.dev") ?? null;
+  const now = Date.now();
+  const data = SEED_APPLICATIONS.flatMap((a) => {
+    const userId = idOf.get(a.email);
+    if (!userId) return [];
+    const decided = a.status !== CourierApplicationStatus.PENDING;
+    if (decided && !adminId) return [];
+    const createdAt = new Date(now - a.daysAgo * DAY);
+    const reviewedAt = "reviewedDaysAgo" in a ? new Date(now - a.reviewedDaysAgo * DAY) : null;
+    return [
+      {
+        id: a.id,
+        userId,
+        status: a.status,
+        phone: a.phone,
+        preferredZoneId: requireId(ids, a.zoneCode),
+        vehicleType: a.vehicleType,
+        vehiclePlate: a.vehiclePlate,
+        availability: a.availability,
+        experience: a.experience,
+        about: a.about,
+        reviewedById: decided ? adminId : null,
+        reviewedAt: decided ? reviewedAt : null,
+        reviewNote: a.reviewNote,
+        createdAt,
+        updatedAt: reviewedAt ?? createdAt,
+      },
+    ];
+  });
+  if (data.length === 0) return { created: 0, skipped: 0 };
+  const { count } = await prisma.courierApplication.createMany({ data, skipDuplicates: true });
+  return { created: count, skipped: data.length - count };
+};
+
 const resetDemoPassword = async (userId: string, email: string, password: string): Promise<boolean> => {
   const ctx = await auth.$context;
   if (!(await ctx.internalAdapter.findCredentialAccount(userId))) return false;
@@ -729,6 +829,12 @@ async function main(): Promise<void> {
   );
   const notices = await seedStaffNotifications();
   console.log(`Seed: staff notifications ${notices.created} created, ${notices.skipped} already present.`);
+  if (production) {
+    console.log("Seed: sample courier applications skipped (production).");
+  } else {
+    const applications = await seedCourierApplications(ids);
+    console.log(`Seed: sample courier applications ${applications.created} created, ${applications.skipped} already present.`);
+  }
 
   console.log(
     `\nDemo accounts (password from SEED_DEMO_PASSWORD${env.SEED_ADMIN_PASSWORD ? "; the admin uses SEED_ADMIN_PASSWORD" : ""}; never printed):`,
