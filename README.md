@@ -624,13 +624,14 @@ For Google locally, add `http://localhost:5000/api/v1/auth/callback/google` as a
 | `npm run build`                          | `prisma generate` + compile with `tsc`                                               |
 | `npm start`                              | Run the compiled server                                                              |
 | `npm run typecheck`                      | `tsc --noEmit`                                                                       |
-| `npm test`                               | 181 unit and HTTP tests (`node:test`; no database or network needed)                 |
+| `npm test`                               | 255 unit and HTTP tests (`node:test`; no database or network needed)                 |
 | `npm run smoke -- <baseUrl>`             | Read-only smoke test against any deployment (about 60 requests)                      |
 | `npm run db:generate`                    | Generate the Prisma client                                                           |
 | `npm run db:migrate`                     | `prisma migrate dev` (development)                                                   |
 | `npm run db:deploy`                      | `prisma migrate deploy` (uses `DIRECT_URL`)                                          |
 | `npm run db:seed`                        | Idempotent US demo seed                                                              |
 | `npm run db:reset-demo`                  | Guarded reset of demo data, then reseed                                              |
+| `npm run db:seed-couriers [-- --dry-run]` | Guarded, additive: 2-3 demo couriers per zone (see [Operations](#operations))       |
 | `npm run db:studio`                      | Prisma Studio                                                                        |
 | `npm run dev:mark-paid -- <trackingId>`  | Dev only: mark a shipment paid without Stripe (refuses in production and on Vercel)  |
 
@@ -672,6 +673,7 @@ Run these from your machine with `DATABASE_URL` and `DIRECT_URL` exported for th
 npm run db:deploy        # prisma migrate deploy: applies pending migrations through DIRECT_URL
 npm run db:seed          # idempotent US demo seed
 npm run db:reset-demo    # deletes demo data, then reseeds
+npm run db:seed-couriers # adds demo couriers per zone (add -- --dry-run to preview)
 ```
 
 | Command               | What its guards refuse                                                                                                                                                                                                                                         |
@@ -679,6 +681,29 @@ npm run db:reset-demo    # deletes demo data, then reseeds
 | `npm run db:deploy`   | Nothing of its own: it only applies committed migrations. Check `npx prisma migrate status` first and take a database snapshot before a migration that changes data.                                                                                        |
 | `npm run db:seed`     | With `NODE_ENV=production`: a missing or mismatched `SEED_CONFIRM_DB_HOST`, and a demo or admin password shorter than 16 characters, with fewer than 3 kinds of characters, containing a guessable word, or repeating one character 4+ times. It never resets an existing account's password unless `SEED_RESET_DEMO_PASSWORDS=true` (sessions revoked, audited), and never prints a password. |
 | `npm run db:reset-demo` | Always (every environment): a `SEED_CONFIRM_DB_HOST` that doesn't equal the database host, and a `RESET_CONFIRM` that isn't exactly `reset demo data on <that host>`. It also refuses if a kept (non-demo) user still has a courier profile. All deletes run in one transaction; registered users who aren't demo or test accounts are kept. |
+| `npm run db:seed-couriers` | Always: a `SEED_CONFIRM_DB_HOST` that doesn't equal the database host (dry runs included). Writing to a database that isn't on `localhost` also needs `SEED_COURIERS_CONFIRM` set to exactly `seed couriers on <that host>`. An optional `SEED_COURIER_LOGIN_PASSWORD` must pass the demo-password rules (the strict ones off `localhost`). |
+
+### Demo couriers per zone
+
+`prisma/seed-couriers.ts` gives every zone couriers an admin can assign: 3 in New York, Los Angeles, Chicago, Houston, Dallas–Fort Worth and Miami, 2 in every other zone (40 on the full local set, 36 on the 15 live zones). It is separate from `db:seed` and only ever adds:
+
+- **By name, not id.** It reads the target database's active zones and hubs and matches them to its roster by zone name ("Dallas–Fort Worth", "Dallas-Fort Worth" and "Dallas Fort Worth Metro" are the same zone). Roster zones the database doesn't have are skipped and listed, and so are database zones without a roster entry.
+- **Additive and idempotent.** A courier whose email already exists is left exactly as it is, so a second run creates 0. It never updates or deletes users, couriers, shipments, zones or hubs, and never touches `courier1@carrivo.dev` / `courier2@carrivo.dev`.
+- **The people.** Fictional names, emails `first.last.<zonecode>@carrivo.dev`, phones `+1 <area>-555-01XX`, dummy plates `DEMO-<ZONE>-NN` (bicycles, used only in dense cities, have none), no licence or ID numbers. Each courier gets one of the zone's hubs in turn, is available, active and email-verified.
+- **No notifications or emails.** Accounts are created with Better Auth `signUpEmail` plus the app's own `upsertCourierProfile`, in one transaction with a `USER_CREATED` audit row (source `prisma/seed-couriers.ts`). The admin "create user" service is not used, because it notifies every staff member; Better Auth sends no sign-up email. The run fails if the notification count changes.
+- **Logins.** Every account gets a random password nobody knows, so nobody can log in as them. Set `SEED_COURIER_LOGIN_PASSWORD` (local testing) to give them a known one instead. Passwords are never printed.
+
+```bash
+# Local: preview, then create
+SEED_CONFIRM_DB_HOST=localhost npm run db:seed-couriers -- --dry-run
+SEED_CONFIRM_DB_HOST=localhost npm run db:seed-couriers
+
+# Production (owner only): dry run first, then confirm the host twice
+SEED_CONFIRM_DB_HOST=<host> npm run db:seed-couriers -- --dry-run
+SEED_CONFIRM_DB_HOST=<host> SEED_COURIERS_CONFIRM="seed couriers on <host>" npm run db:seed-couriers
+```
+
+**Production caution:** export `DATABASE_URL` for the database you mean (the script also reads `.env`), read the dry run's per-zone table before writing, and don't set `SEED_COURIER_LOGIN_PASSWORD` there. The accounts end in `@carrivo.dev`, so `db:reset-demo` deletes them with the other demo accounts; run this script again after a reset.
 
 ## Testing with Postman
 

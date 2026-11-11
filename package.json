@@ -12,6 +12,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:reset-demo": "tsx prisma/reset-demo.ts",
+    "db:seed-couriers": "tsx prisma/seed-couriers.ts",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",
     "test": "node --import tsx --test \"src/**/*.test.ts\" \"prisma/**/*.test.ts\"",
