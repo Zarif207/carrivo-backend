@@ -167,6 +167,65 @@
       "name": "Health",
       "item": [
         {
+          "name": "API root",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('API root envelope', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.eql(true);",
+                  "  pm.expect(body.data.status).to.eql('ok');",
+                  "  pm.expect(body.data.environment).to.be.oneOf(['production', 'development']);",
+                  "  pm.expect(body.data.endpoints).to.have.all.keys('auth', 'users', 'shipments', 'payments', 'zones', 'hubs', 'pricing', 'notifications', 'courierApplications', 'tracking', 'admin');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": []
+            },
+            "description": "Public API root: name, version (from package.json), environment (production or development only), docs link, health path and every base path. No database or Redis call, so it answers even while the database is down. `GET /` on the bare domain answers the same."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": []
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Carrivo API is running\",\n  \"data\": {\n    \"name\": \"Carrivo API\",\n    \"version\": \"1.0.0\",\n    \"status\": \"ok\",\n    \"environment\": \"production\",\n    \"docs\": \"https://github.com/Zarif207/carrivo-backend/blob/main/docs/api.md\",\n    \"health\": \"/api/v1/health\",\n    \"endpoints\": {\n      \"auth\": \"/api/v1/auth\",\n      \"users\": \"/api/v1/users\",\n      \"shipments\": \"/api/v1/shipments\",\n      \"payments\": \"/api/v1/payments\",\n      \"zones\": \"/api/v1/zones\",\n      \"hubs\": \"/api/v1/hubs\",\n      \"pricing\": \"/api/v1/pricing\",\n      \"notifications\": \"/api/v1/notifications\",\n      \"courierApplications\": \"/api/v1/courier-applications\",\n      \"tracking\": \"/api/v1/tracking\",\n      \"admin\": \"/api/v1/admin\"\n    },\n    \"timestamp\": \"2026-11-11T14:00:00.000Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
           "name": "Health check",
           "event": [
             {

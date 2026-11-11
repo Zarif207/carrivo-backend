@@ -55,7 +55,7 @@
 
 |                     |                                                                                                                  |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| **Live API**        | [https://carrivo-backend.vercel.app/api/v1](https://carrivo-backend.vercel.app/api/v1)                           |
+| **Live API**        | [https://carrivo-backend.vercel.app/api/v1](https://carrivo-backend.vercel.app/api/v1) (API root: name, version, environment and every base path; no database call) |
 | **Health check**    | [https://carrivo-backend.vercel.app/api/v1/health](https://carrivo-backend.vercel.app/api/v1/health) (status and database check) |
 | **Frontend site**   | [https://carrivo-courier.vercel.app](https://carrivo-courier.vercel.app)                                         |
 | **Frontend repo**   | [Zarif207/Carrivo](https://github.com/Zarif207/Carrivo) (Next.js)                                                |
@@ -398,7 +398,7 @@ Every endpoint the API serves: 67 of ours plus 6 allow-listed Better Auth endpoi
 
 | Method | Path                                    | Role               | Description                                                     |
 | ------ | --------------------------------------- | ------------------ | --------------------------------------------------------------- |
-| GET    | `/`                                     | –                  | API is running                                                  |
+| GET    | `/api/v1` (also `/`)                    | –                  | API root: name, version, environment, docs, base paths          |
 | GET    | `/api/v1/health`                        | –                  | Health check with a database probe                              |
 | POST   | `/api/v1/auth/register`                 | –                  | Sign up (always `CUSTOMER`), returns a token                    |
 | POST   | `/api/v1/auth/login`                    | –                  | Log in, returns a bearer token                                  |

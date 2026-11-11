@@ -31,6 +31,40 @@ Shapes below are written as TypeScript-like objects; `?` means optional.
 
 ## Health
 
+### `GET /` (the API root, `/api/v1`)
+Public, no auth. What this API is and where its routes live. It reads no database, Redis or secret, so it answers quickly even while the database is down (use `GET /health` to check that). The bare domain (`GET /` outside `/api/v1`) answers the same. The global rate limit and security headers apply.
+
+```json
+{
+  "success": true,
+  "message": "Carrivo API is running",
+  "data": {
+    "name": "Carrivo API",
+    "version": "1.0.0",
+    "status": "ok",
+    "environment": "production",
+    "docs": "https://github.com/Zarif207/carrivo-backend/blob/main/docs/api.md",
+    "health": "/api/v1/health",
+    "endpoints": {
+      "auth": "/api/v1/auth",
+      "users": "/api/v1/users",
+      "shipments": "/api/v1/shipments",
+      "payments": "/api/v1/payments",
+      "zones": "/api/v1/zones",
+      "hubs": "/api/v1/hubs",
+      "pricing": "/api/v1/pricing",
+      "notifications": "/api/v1/notifications",
+      "courierApplications": "/api/v1/courier-applications",
+      "tracking": "/api/v1/tracking",
+      "admin": "/api/v1/admin"
+    },
+    "timestamp": "2026-11-11T14:00:00.000Z"
+  }
+}
+```
+
+`version` comes from `package.json`; `environment` is only ever `production` or `development`.
+
 ### `GET /health`
 Public. Liveness and a database check.
 
@@ -38,7 +72,6 @@ Public. Liveness and a database check.
 { "status": "ok", "environment": "production", "uptime": 42, "timestamp": "2026-11-10T14:00:00.000Z", "database": "up" }
 ```
 
-`GET /` (outside `/api/v1`) also answers 200 with `{ "version": "v1", "docs": "/api/v1/health" }`.
 
 ## Auth
 

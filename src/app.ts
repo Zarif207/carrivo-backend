@@ -11,10 +11,11 @@ import { globalErrorHandler } from "./app/middlewares/globalErrorHandler.js";
 import { globalLimiter } from "./app/middlewares/rateLimiter.js";
 import { AuthRoutes } from "./app/modules/auth/auth.route.js";
 import { PaymentController } from "./app/modules/payment/payment.controller.js";
+import { RootController } from "./app/modules/root/root.controller.js";
+import { API_BASE_PATH } from "./app/modules/root/root.service.js";
 import { notFound } from "./app/middlewares/notFound.js";
 import router from "./app/routes/index.js";
 import { ApiError } from "./app/utils/ApiError.js";
-import { sendResponse } from "./app/utils/sendResponse.js";
 
 /** No request body we accept is anywhere near this (uploads will use multipart). */
 const BODY_LIMIT = "100kb";
@@ -64,15 +65,12 @@ app.all(
 app.use(express.json({ limit: BODY_LIMIT }));
 app.use(express.urlencoded({ extended: true, limit: BODY_LIMIT }));
 
-app.get("/", (_req, res) => {
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    message: "Carrivo API is running",
-    data: { version: "v1", docs: "/api/v1/health" },
-  });
-});
+// API root (and the bare domain): name, version and where the routes live. After helmet and the
+// global limiter, before the router and the 404 handler. Exact paths only ("/" and "/api/v1",
+// trailing slash allowed), so it never shadows anything under /api/v1/*.
+app.get(["/", API_BASE_PATH], RootController.getInfo);
 
-app.use("/api/v1", router);
+app.use(API_BASE_PATH, router);
 
 app.use(notFound);
 app.use(globalErrorHandler);
