@@ -222,8 +222,12 @@ const assertNotLastAdmin = (admins: string[], user: TargetUser): void => {
   }
 };
 
-/** 409 if the change would orphan unfinished shipments (courier: assigned; customer: owned). */
-const assertNoActiveWork = async (db: Db, user: TargetUser, action: string): Promise<void> => {
+/**
+ * 409 if the change would orphan unfinished shipments (courier: assigned; customer: owned).
+ * `message` replaces the default wording (the count is passed in); the count is then also returned
+ * as `errors[{ path: "unfinishedShipments" }]` so a UI can show it without parsing text.
+ */
+const assertNoActiveWork = async (db: Db, user: TargetUser, action: string, message?: (count: number) => string): Promise<void> => {
   const scope: Prisma.ShipmentWhereInput | null =
     user.role === Role.COURIER ? { courierId: user.id } : user.role === Role.CUSTOMER ? { customerId: user.id } : null;
   if (!scope) return;
@@ -232,11 +236,15 @@ const assertNoActiveWork = async (db: Db, user: TargetUser, action: string): Pro
   if (count === 0) return;
   const sample = await db.shipment.findMany({ where, select: { trackingId: true }, orderBy: { createdAt: "asc" }, take: 5 });
   const who = user.role === Role.COURIER ? "assigned to this courier" : "owned by this customer";
+  const list = `${sample.map((s) => s.trackingId).join(", ")}${count > 5 ? ", ..." : ""}`;
+  if (message) {
+    throw conflict(message(count), [
+      { path: "unfinishedShipments", message: String(count) },
+      { path: "shipments", message: `Unfinished: ${list}` },
+    ]);
+  }
   throw conflict(`Cannot ${action}: ${count} active shipment(s) are ${who}`, [
-    {
-      path: "shipments",
-      message: `Finish, unassign or cancel these first: ${sample.map((s) => s.trackingId).join(", ")}${count > 5 ? ", ..." : ""}`,
-    },
+    { path: "shipments", message: `Finish, unassign or cancel these first: ${list}` },
   ]);
 };
 

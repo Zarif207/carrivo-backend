@@ -19,7 +19,7 @@ const { buildStaffNotification } = await import("../notification/notification.st
 const { renderEmail } = await import("../notification/notification.utils.js");
 const { createCourierApplicationService, CourierApplicationService } = await import("./courierApplication.service.js");
 const { REAPPLY_COOLDOWN_DAYS, DAY_MS } = await import("./courierApplication.constants.js");
-const { checkEligibility, roleRefusal, reapplyDate, buildApplicantNotification } = await import("./courierApplication.utils.js");
+const { checkEligibility, roleRefusal, reapplyDate, buildApplicantNotification, unfinishedShipmentsMessage } = await import("./courierApplication.utils.js");
 const { CourierApplicationValidation } = await import("./courierApplication.validation.js");
 type Deps = import("./courierApplication.service.js").CourierApplicationDeps;
 type StaffNotifyDb = import("../notification/notification.staff.js").StaffNotifyDb;
@@ -540,8 +540,14 @@ describe("approve", () => {
     const { service, state } = setup();
     const app = await service.apply(CUSTOMER, FORM, META);
     state.activeShipments["u-cust"] = 2;
-    await rejects(service.approve(ADMIN, app.id, {}, META), 409, /Cannot approve this application: 2 active shipment/);
+    await assert.rejects(service.approve(ADMIN, app.id, {}, META), (error: { statusCode: number; message: string; errors: { path: string; message: string }[] }) => {
+      assert.equal(error.statusCode, 409);
+      assert.equal(error.message, "This customer still has 2 unfinished shipments. They must be finished or cancelled before this person can become a courier.");
+      assert.deepEqual(error.errors[0], { path: "unfinishedShipments", message: "2" });
+      return true;
+    });
     assert.equal(state.users.find((u) => u.id === "u-cust")?.role, Role.CUSTOMER);
+    assert.equal(unfinishedShipmentsMessage(1), "This customer still has 1 unfinished shipment. They must be finished or cancelled before this person can become a courier.");
   });
 
   it("an admin whose access was revoked can't decide", async () => {

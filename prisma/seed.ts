@@ -8,8 +8,9 @@
  *   left untouched (it may have been changed through the API since).
  * - Sample staff notifications (admin + viewer feed) use fixed "seed:" dedupe keys, so a
  *   re-run inserts nothing and never touches rows read or deleted since.
- * - Sample courier applications (PENDING, REJECTED, APPROVED) use fixed ids and are only
- *   inserted, never updated; they are skipped entirely when NODE_ENV=production.
+ * - Outside production only: two demo applicant customers (applicant1/2@carrivo.dev, created once,
+ *   never modified again) and sample courier applications (PENDING for the applicants, REJECTED,
+ *   APPROVED) with fixed ids, only inserted, never updated.
  *
  * The demo password comes from SEED_DEMO_PASSWORD; it is never stored in code
  * and never printed. SEED_ADMIN_PASSWORD (optional) gives admin@carrivo.dev its own
@@ -41,7 +42,7 @@ import { calculateCourierEarning } from "../src/app/modules/courier/courier.util
 import { STAFF_RECIPIENT_WHERE, staffRows } from "../src/app/modules/notification/notification.staff.js";
 import { buildStaffNotification, type StaffEvent, type StaffShipmentFacts } from "../src/app/modules/notification/notification.staff.utils.js";
 import { calculatePrice } from "../src/app/modules/pricing/pricing.utils.js";
-import { MAX_DELIVERY_ATTEMPTS, allowedTransitions } from "../src/app/modules/shipment/shipment.constants.js";
+import { MAX_DELIVERY_ATTEMPTS, TERMINAL_STATUSES, allowedTransitions } from "../src/app/modules/shipment/shipment.constants.js";
 import { formatMoney } from "../src/app/utils/money.js";
 import { adminPasswordProblems, checkSeedTarget, demoPasswordProblems } from "./seed.safety.js";
 import { PRICING_RULES, ZONES } from "./seed.network.js";
@@ -651,27 +652,65 @@ const seedStaffNotifications = async (): Promise<{ created: number; skipped: num
 };
 
 /**
- * Dev/demo courier applications, one per decision state, on the seeded accounts:
- * - customer2: PENDING (the admin queue has something to review),
+ * Dev-only applicant accounts: customers with no shipments, so their PENDING courier applications
+ * can be approved in a demo (approval is refused while a customer owns unfinished shipments, and
+ * the main demo customers do). Created through Better Auth like every seeded account, but unlike
+ * USERS an existing applicant is never touched again: after a demo approval they stay a COURIER.
+ * Never seeded in production.
+ */
+const DEMO_APPLICANTS: { name: string; email: string; phone: string }[] = [
+  { name: "Jordan Lee", email: "applicant1@carrivo.dev", phone: "(312) 555-0140" },
+  { name: "Priya Nair", email: "applicant2@carrivo.dev", phone: "(713) 555-0141" },
+];
+
+const seedDemoApplicants = async (password: string): Promise<{ created: number; existing: number }> => {
+  let created = 0;
+  for (const applicant of DEMO_APPLICANTS) {
+    if (await prisma.user.findUnique({ where: { email: applicant.email }, select: { id: true } })) continue;
+    const result = await auth.api.signUpEmail({ body: { name: applicant.name, email: applicant.email, password, phone: applicant.phone } });
+    await prisma.session.deleteMany({ where: { userId: result.user.id } });
+    await prisma.user.update({ where: { id: result.user.id }, data: { emailVerified: true } });
+    created += 1;
+  }
+  return { created, existing: DEMO_APPLICANTS.length - created };
+};
+
+/**
+ * Dev/demo courier applications, one per decision state:
+ * - applicant1, applicant2: PENDING, approvable (no shipments of their own),
  * - customer1: REJECTED 12 days ago (past the 7-day wait, so the demo customer can apply again),
  * - courier2: APPROVED 30 days ago (how that courier joined).
  * Fixed ids + createMany(skipDuplicates): a re-run inserts nothing and never rewrites a row an
- * admin has decided since; a user with a pending application of their own keeps it (the
- * one-pending index makes the sample skip). Never runs in production.
+ * admin has decided since. A PENDING sample is only added for a CUSTOMER with no unfinished
+ * shipments (so it can always be approved). Never runs in production.
  */
 const SEED_APPLICATIONS = [
   {
-    id: "019a5e00-0000-7000-8000-00000000a001",
-    email: "customer2@carrivo.dev",
+    id: "019a5e00-0000-7000-8000-00000000a004",
+    email: "applicant1@carrivo.dev",
     status: CourierApplicationStatus.PENDING,
     daysAgo: 1,
-    phone: "(310) 555-0131",
-    zoneCode: "LA",
+    phone: "(312) 555-0140",
+    zoneCode: "CHI",
     vehicleType: VehicleType.CAR,
-    vehiclePlate: "CA 7XYZ318",
+    vehiclePlate: "IL CRV-2041",
+    availability: WorkAvailability.FULL_TIME,
+    experience: "Three years delivering groceries and pharmacy orders across the Loop and the North Side.",
+    about: "Looking for full-time routes with a reliable schedule.",
+    reviewNote: null,
+  },
+  {
+    id: "019a5e00-0000-7000-8000-00000000a005",
+    email: "applicant2@carrivo.dev",
+    status: CourierApplicationStatus.PENDING,
+    daysAgo: 2,
+    phone: "(713) 555-0141",
+    zoneCode: "HOU",
+    vehicleType: VehicleType.VAN,
+    vehiclePlate: "TX MKP-3390",
     availability: WorkAvailability.WEEKENDS,
-    experience: "Two years of weekend food delivery around Santa Monica and Venice.",
-    about: "I know the Westside well and want steady weekend routes.",
+    experience: "Weekend furniture and appliance deliveries around Houston.",
+    about: null,
     reviewNote: null,
   },
   {
@@ -706,25 +745,45 @@ const SEED_APPLICATIONS = [
   },
 ] as const;
 
-const seedCourierApplications = async (ids: Map<string, string>): Promise<{ created: number; skipped: number }> => {
+/** An earlier seed gave customer2 (who owns unfinished demo shipments) a PENDING sample that can't be approved. */
+const RETIRED_SAMPLE_ID = "019a5e00-0000-7000-8000-00000000a001";
+
+const seedCourierApplications = async (ids: Map<string, string>): Promise<{ created: number; skipped: number; retired: number }> => {
+  // Withdraw only that exact seed row, and only while it is still untouched (PENDING).
+  const { count: retired } = await prisma.courierApplication.updateMany({
+    where: { id: RETIRED_SAMPLE_ID, status: CourierApplicationStatus.PENDING },
+    data: { status: CourierApplicationStatus.CANCELLED },
+  });
   const users = await prisma.user.findMany({
     where: { email: { in: [...SEED_APPLICATIONS.map((a) => a.email), "admin@carrivo.dev"] } },
-    select: { id: true, email: true },
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      _count: { select: { shipments: { where: { deletedAt: null, status: { notIn: [...TERMINAL_STATUSES] } } } } },
+    },
   });
-  const idOf = new Map(users.map((u) => [u.email, u.id]));
-  const adminId = idOf.get("admin@carrivo.dev") ?? null;
+  const byEmail = new Map(users.map((u) => [u.email, u]));
+  const present = new Set(
+    (await prisma.courierApplication.findMany({ where: { id: { in: SEED_APPLICATIONS.map((a) => a.id) } }, select: { id: true } })).map((r) => r.id),
+  );
+  const adminId = byEmail.get("admin@carrivo.dev")?.id ?? null;
   const now = Date.now();
   const data = SEED_APPLICATIONS.flatMap((a) => {
-    const userId = idOf.get(a.email);
-    if (!userId) return [];
+    const user = byEmail.get(a.email);
+    if (!user || present.has(a.id)) return [];
     const decided = a.status !== CourierApplicationStatus.PENDING;
     if (decided && !adminId) return [];
+    if (!decided && (user.role !== Role.CUSTOMER || user._count.shipments > 0)) {
+      console.log(`Seed: no pending sample for ${a.email} (${user.role}, ${user._count.shipments} unfinished shipment(s)): it could not be approved.`);
+      return [];
+    }
     const createdAt = new Date(now - a.daysAgo * DAY);
     const reviewedAt = "reviewedDaysAgo" in a ? new Date(now - a.reviewedDaysAgo * DAY) : null;
     return [
       {
         id: a.id,
-        userId,
+        userId: user.id,
         status: a.status,
         phone: a.phone,
         preferredZoneId: requireId(ids, a.zoneCode),
@@ -741,9 +800,9 @@ const seedCourierApplications = async (ids: Map<string, string>): Promise<{ crea
       },
     ];
   });
-  if (data.length === 0) return { created: 0, skipped: 0 };
+  if (data.length === 0) return { created: 0, skipped: present.size, retired };
   const { count } = await prisma.courierApplication.createMany({ data, skipDuplicates: true });
-  return { created: count, skipped: data.length - count };
+  return { created: count, skipped: present.size + data.length - count, retired };
 };
 
 const resetDemoPassword = async (userId: string, email: string, password: string): Promise<boolean> => {
@@ -830,10 +889,16 @@ async function main(): Promise<void> {
   const notices = await seedStaffNotifications();
   console.log(`Seed: staff notifications ${notices.created} created, ${notices.skipped} already present.`);
   if (production) {
-    console.log("Seed: sample courier applications skipped (production).");
+    console.log("Seed: demo applicant accounts and sample courier applications skipped (production).");
   } else {
+    const applicants = await seedDemoApplicants(password);
+    console.log(`Seed: demo applicant accounts ${applicants.created} created, ${applicants.existing} already present.`);
     const applications = await seedCourierApplications(ids);
-    console.log(`Seed: sample courier applications ${applications.created} created, ${applications.skipped} already present.`);
+    console.log(
+      `Seed: sample courier applications ${applications.created} created, ${applications.skipped} already present${
+        applications.retired ? `, ${applications.retired} unapprovable old sample withdrawn` : ""
+      }.`,
+    );
   }
 
   console.log(

@@ -7502,7 +7502,7 @@
     },
     {
       "name": "Courier applications",
-      "description": "A CUSTOMER applies to become a COURIER; an ADMIN approves or rejects (ADMIN_VIEWER reads only).\n\n- One PENDING application per user (a partial unique index backs it); after a rejection, apply again after 7 days (the 409 names the date).\n- No driver licence, SSN or other government ID is collected: unknown body fields are refused (400).\n- Approve runs in one transaction (same path as an admin role change): courier profile from the application, role COURIER, every session of the applicant revoked (their old token gets 401; signing in again gives a COURIER token). A repeat decision gets 409 with the current status.\n- Run order: `Apply` (customer, saves courierApplicationId) → `My applications` → staff `List`/`Get` → `Approve` or `Reject`. The demo customer1 owns unfinished demo shipments, so approving their application returns 409 (a customer with active shipments can't become a courier); register a fresh customer to see a 200.",
+      "description": "A CUSTOMER applies to become a COURIER; an ADMIN approves or rejects (ADMIN_VIEWER reads only).\n\n- One PENDING application per user (a partial unique index backs it); after a rejection, apply again after 7 days (the 409 names the date).\n- No driver licence, SSN or other government ID is collected: unknown body fields are refused (400).\n- Approve runs in one transaction (same path as an admin role change): courier profile from the application, role COURIER, every session of the applicant revoked (their old token gets 401; signing in again gives a COURIER token). A repeat decision gets 409 with the current status.\n- Run order: `Apply` (customer, saves courierApplicationId) → `My applications` → staff `List`/`Get` → `Approve` or `Reject`. In a local/dev seed, applicant1@carrivo.dev and applicant2@carrivo.dev (demo password) have PENDING applications that can be approved; customer1 owns unfinished demo shipments, so approving one of theirs returns 409 with the unfinished count.",
       "item": [
         {
           "name": "Apply (CUSTOMER)",
@@ -8364,7 +8364,7 @@
                   "value": "application/json; charset=utf-8"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"Cannot approve this application: 6 active shipment(s) are owned by this customer\",\n  \"errors\": [\n    {\n      \"path\": \"shipments\",\n      \"message\": \"Finish, unassign or cancel these first: CRV-261101-SEED08, CRV-261101-SEED06, CRV-261101-SEED04, CRV-261101-SEED02, CRV-261101-SEED01, ...\"\n    }\n  ]\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"This customer still has 6 unfinished shipments. They must be finished or cancelled before this person can become a courier.\",\n  \"errors\": [\n    {\n      \"path\": \"unfinishedShipments\",\n      \"message\": \"6\"\n    },\n    {\n      \"path\": \"shipments\",\n      \"message\": \"Unfinished: CRV-261101-SEED08, CRV-261101-SEED06, CRV-261101-SEED04, CRV-261101-SEED02, CRV-261101-SEED01, ...\"\n    }\n  ]\n}"
             },
             {
               "name": "400 No zone",

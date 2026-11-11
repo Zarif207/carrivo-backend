@@ -23,7 +23,14 @@ import {
   type MyApplication,
   type MyApplications,
 } from "./courierApplication.types.js";
-import { applicantDedupeKey, buildApplicantNotification, checkEligibility, reapplyDate, type Refusal } from "./courierApplication.utils.js";
+import {
+  applicantDedupeKey,
+  buildApplicantNotification,
+  checkEligibility,
+  reapplyDate,
+  unfinishedShipmentsMessage,
+  type Refusal,
+} from "./courierApplication.utils.js";
 import type { AdminApplicationListQuery, ApplyInput, ApproveInput, RejectInput } from "./courierApplication.validation.js";
 
 type Tx = Prisma.TransactionClient;
@@ -272,7 +279,7 @@ export const createCourierApplicationService = (deps: CourierApplicationDeps) =>
         ]);
       }
       if (user.status !== UserStatus.ACTIVE) throw conflict("The applicant's account is deactivated. Reactivate it or reject the application.");
-      await AdminUserRules.assertNoActiveWork(tx, user, "approve this application");
+      await AdminUserRules.assertNoActiveWork(tx, user, "approve this application", unfinishedShipmentsMessage);
 
       const app = await tx.courierApplication.findUniqueOrThrow({
         where: { id },

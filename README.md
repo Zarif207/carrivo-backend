@@ -563,7 +563,7 @@ cd carrivo-backend
 npm install                 # also runs prisma generate
 cp .env.example .env        # fill in the values below
 npm run db:deploy           # apply migrations
-npm run db:seed             # US demo data (zones, hubs, pricing, accounts, shipments; sample courier applications outside production)
+npm run db:seed             # US demo data (zones, hubs, pricing, accounts, shipments; outside production also applicant1/2@carrivo.dev with approvable courier applications)
 npm run dev                 # http://localhost:5000/api/v1/health
 ```
 

@@ -73,6 +73,10 @@ export const checkEligibility = ({ role, pending, lastRejectedAt, now }: Eligibi
   return { canApply: true, canReapplyAt: null, refusal: null };
 };
 
+/** Approval refused because the customer still owns unfinished shipments (shown as-is in the admin UI). */
+export const unfinishedShipmentsMessage = (count: number): string =>
+  `This customer still has ${count} unfinished ${count === 1 ? "shipment" : "shipments"}. They must be finished or cancelled before this person can become a courier.`;
+
 /** Statuses that are final: nothing changes them again. */
 export const isDecided = (status: CourierApplicationStatus): boolean => status !== CourierApplicationStatus.PENDING;
 
